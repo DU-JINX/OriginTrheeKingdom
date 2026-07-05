@@ -6,7 +6,7 @@ using UnityEditor;
 using UnityEngine;
 
 /// <summary>
-/// 率土五星头像和原始头像的一键切换工具。
+/// 率土头像和原始头像的一键切换工具。
 /// </summary>
 public static class StzbPortraitSwitcher
 {
@@ -14,13 +14,13 @@ public static class StzbPortraitSwitcher
     private const string HeadDirectory = "Assets/Graph/Head";
     private const string VariantDirectory = "Assets/Graph/HeadVariants";
     private const string OriginalDirectory = VariantDirectory + "/Original";
-    private const string StzbFiveStarDirectory = VariantDirectory + "/StzbFiveStar";
+    private const string StzbPortraitDirectory = VariantDirectory + "/StzbFiveStar";
     private const string MappingPath = VariantDirectory + "/replaced-heads.tsv";
 
     private enum PortraitVariant
     {
         Original,
-        StzbFiveStar
+        StzbPortrait
     }
 
     private sealed class PortraitEntry
@@ -31,11 +31,11 @@ public static class StzbPortraitSwitcher
     }
 
     /// <summary>
-    /// 方法说明：根据当前头像状态在原始头像和率土五星头像之间切换。
+    /// 方法说明：根据当前头像状态在原始头像和率土头像之间切换。
     /// 参数说明：无。
     /// 返回说明：无返回值；资源缺失或当前状态混合时抛出异常。
     /// </summary>
-    [MenuItem(MenuRoot + "一键切换原始和率土五星")]
+    [MenuItem(MenuRoot + "一键切换原始和率土头像")]
     public static void TogglePortraits()
     {
         // 1. 读取并校验头像映射，保证切换只覆盖已登记的武将头像。
@@ -45,12 +45,12 @@ public static class StzbPortraitSwitcher
         PortraitVariant? currentVariant = GetCurrentVariant(entries);
         if (currentVariant == null)
         {
-            throw new InvalidOperationException("当前头像处于混合状态，无法一键判断目标。请先使用“还原原始头像”或“使用率土五星头像”。");
+            throw new InvalidOperationException("当前头像处于混合状态，无法一键判断目标。请先使用“还原原始头像”或“使用率土头像”。");
         }
 
         // 3. 选择另一套资源并执行覆盖。
         PortraitVariant nextVariant = currentVariant == PortraitVariant.Original
-            ? PortraitVariant.StzbFiveStar
+            ? PortraitVariant.StzbPortrait
             : PortraitVariant.Original;
         ApplyVariant(nextVariant, entries);
 
@@ -59,16 +59,16 @@ public static class StzbPortraitSwitcher
     }
 
     /// <summary>
-    /// 方法说明：强制把已登记武将头像切换为率土五星头像。
+    /// 方法说明：强制把已登记武将头像切换为率土头像。
     /// 参数说明：无。
     /// 返回说明：无返回值；资源缺失时抛出异常。
     /// </summary>
-    [MenuItem(MenuRoot + "使用率土五星头像")]
-    public static void UseStzbFiveStarPortraits()
+    [MenuItem(MenuRoot + "使用率土头像")]
+    public static void UseStzbPortraits()
     {
         List<PortraitEntry> entries = LoadEntries();
-        ApplyVariant(PortraitVariant.StzbFiveStar, entries);
-        Debug.Log("已使用率土五星头像，替换数量：" + entries.Count);
+        ApplyVariant(PortraitVariant.StzbPortrait, entries);
+        Debug.Log("已使用率土头像，替换数量：" + entries.Count);
     }
 
     /// <summary>
@@ -180,21 +180,21 @@ public static class StzbPortraitSwitcher
     /// <summary>
     /// 方法说明：判断当前 Head 目录是否完全等于某个已登记变体。
     /// 参数说明：entries 表示需要检查的头像清单。
-    /// 返回说明：返回当前变体；如果不是完整原始或完整五星状态，则返回 null。
+    /// 返回说明：返回当前变体；如果不是完整原始或完整率土状态，则返回 null。
     /// </summary>
     private static PortraitVariant? GetCurrentVariant(IReadOnlyList<PortraitEntry> entries)
     {
         bool isOriginal = IsVariantActive(PortraitVariant.Original, entries);
-        bool isStzbFiveStar = IsVariantActive(PortraitVariant.StzbFiveStar, entries);
+        bool isStzbPortrait = IsVariantActive(PortraitVariant.StzbPortrait, entries);
 
-        if (isOriginal && !isStzbFiveStar)
+        if (isOriginal && !isStzbPortrait)
         {
             return PortraitVariant.Original;
         }
 
-        if (isStzbFiveStar && !isOriginal)
+        if (isStzbPortrait && !isOriginal)
         {
-            return PortraitVariant.StzbFiveStar;
+            return PortraitVariant.StzbPortrait;
         }
 
         return null;
@@ -287,8 +287,8 @@ public static class StzbPortraitSwitcher
         {
             case PortraitVariant.Original:
                 return OriginalDirectory;
-            case PortraitVariant.StzbFiveStar:
-                return StzbFiveStarDirectory;
+            case PortraitVariant.StzbPortrait:
+                return StzbPortraitDirectory;
             default:
                 throw new ArgumentOutOfRangeException("variant", variant, "未知立绘变体");
         }
@@ -305,8 +305,8 @@ public static class StzbPortraitSwitcher
         {
             case PortraitVariant.Original:
                 return "原始头像";
-            case PortraitVariant.StzbFiveStar:
-                return "率土五星头像";
+            case PortraitVariant.StzbPortrait:
+                return "率土头像";
             default:
                 throw new ArgumentOutOfRangeException("variant", variant, "未知立绘变体");
         }
