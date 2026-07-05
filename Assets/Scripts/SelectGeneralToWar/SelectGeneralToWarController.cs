@@ -49,6 +49,7 @@ public class SelectGeneralToWarController : MonoBehaviour {
 	private const int StatePostBattleSurrenderAsk = 6;
 	private const int StatePostBattleSurrenderPrisonerAnswer = 7;
 	private const int StatePostBattleSurrenderKingAnswer = 8;
+	private const int StateQuickBattleConfirm = 9;
 		
 	private int state;
 	private int menuSelectIdx = -1;
@@ -289,6 +290,9 @@ public class SelectGeneralToWarController : MonoBehaviour {
 			case StatePostBattleSurrenderKingAnswer:
 				OnPostBattleSurrenderKingAnswerModeHandler();
 				break;
+			case StateQuickBattleConfirm:
+				OnQuickBattleConfirmModeHandler();
+				break;
 			}
 		}
 	
@@ -300,10 +304,17 @@ public class SelectGeneralToWarController : MonoBehaviour {
 		}
 	}
 	
+	// 方法说明：初始化战斗选将场景，并在玩家战斗开始时弹出快速战斗确认。
+	// 参数说明：无。
+	// 返回说明：无返回值。
 	void InitScene() {
 		
+		bool shouldShowQuickBattleConfirm = isWarBegin;
 		InitData();
 		InitTopBarInformation();
+		if (shouldShowQuickBattleConfirm && IsPlayerBattle()) {
+			ShowQuickBattleConfirm();
+		}
 		//InitGeneralInfo();
 	}
 	
@@ -338,6 +349,241 @@ public class SelectGeneralToWarController : MonoBehaviour {
 		
 		leftGeneralInfo.SetGeneralInformation(leftGenerals[leftSelectIdx], leftDefense, 0);
 		rightGeneralInfo.SetGeneralInformation(rightGenerals[rightSelectIdx], rightDefense, gPos[rightSelectIdx]);
+	}
+
+	// 方法说明：判断当前战斗是否有玩家势力参与。
+	// 参数说明：无。
+	// 返回说明：玩家在左右任意一方时返回 true，否则返回 false。
+	bool IsPlayerBattle() {
+		return leftKing == Controller.kingIndex || rightKing == Controller.kingIndex;
+	}
+
+	// 方法说明：显示快速战斗确认对话，并暂时关闭手动战斗菜单。
+	// 参数说明：无。
+	// 返回说明：无返回值。
+	void ShowQuickBattleConfirm() {
+		state = StateQuickBattleConfirm;
+		OnSubMenu();
+		dialogCtrl.SetDialogue(Informations.Instance.GetKingInfo(Controller.kingIndex).generalIdx,
+		                       ZhongWen.Instance.quickBattleConfirm,
+		                       MenuDisplayAnim.AnimType.InsertFromBottom);
+	}
+
+	// 方法说明：处理快速战斗确认输入，左键确认，右键或返回键取消。
+	// 参数说明：无。
+	// 返回说明：无返回值。
+	void OnQuickBattleConfirmModeHandler() {
+		if (Misc.GetBack()) {
+			dialogCtrl.SetDialogueOut(MenuDisplayAnim.AnimType.OutToBottom);
+			state = 0;
+			Invoke("OnReturnMain", 0.5f);
+			return;
+		}
+
+		if (!dialogCtrl.IsShowingText() && Input.GetMouseButtonUp(0)) {
+			Input.ResetInputAxes();
+			ExecuteQuickBattle();
+			dialogCtrl.SetDialogueOut(MenuDisplayAnim.AnimType.OutToBottom);
+			state = 0;
+			Invoke("WarOverResult", 0.5f);
+		}
+	}
+
+	// 方法说明：执行整场快速战斗自动结算。
+	// 参数说明：无。
+	// 返回说明：无返回值。
+	void ExecuteQuickBattle() {
+		// 1. 初始化快速战斗依赖，确保技能表可用且本场不是撤退战。
+		MagicManager.Instance.LoadConfig();
+		WarSceneController.isEscape = false;
+		isPrisoned = false;
+		isWarOver = false;
+
+		// 2. 循环选择双方当前未败武将中武力最低者出战。
+		while (!isWarOver) {
+			leftSelectIdx = GetLowestStrengthGeneralIndex(leftGenerals, leftFailFlag);
+			rightSelectIdx = GetLowestStrengthGeneralIndex(rightGenerals, rightFailFlag);
+
+			if (leftSelectIdx == -1 || rightSelectIdx == -1) {
+				Debug.LogError("Quick battle cannot find available general!");
+				CheckWarOver();
+				break;
+			}
+
+			GeneralInfo left = Informations.Instance.GetGeneralInfo(leftGenerals[leftSelectIdx]);
+			GeneralInfo right = Informations.Instance.GetGeneralInfo(rightGenerals[rightSelectIdx]);
+
+			// 3. 按真实入场规则恢复体力技力，并自动释放可用技能。
+			RecoverGeneralForQuickBattle(left);
+			RecoverGeneralForQuickBattle(right);
+			int leftMagicPower = UseQuickBattleMagic(left);
+			int rightMagicPower = UseQuickBattleMagic(right);
+			int leftPower = GetQuickBattlePower(left, leftDefense) + leftMagicPower;
+			int rightPower = GetQuickBattlePower(right, rightDefense) + rightMagicPower;
+
+			// 4. 按本轮战力结算败退，再检查整场是否结束。
+			if (leftPower > rightPower) {
+				rightFailFlag[rightSelectIdx] = true;
+				ApplyQuickBattleDuelResult(left, right, rightPower);
+			} else {
+				leftFailFlag[leftSelectIdx] = true;
+				ApplyQuickBattleDuelResult(right, left, leftPower);
+			}
+
+			CheckWarOver();
+		}
+	}
+
+	// 方法说明：选择当前未败武将中武力最低的列表索引。
+	// 参数说明：generals 为武将编号列表，failFlags 为败退标记数组。
+	// 返回说明：找到返回列表索引，找不到返回 -1。
+	int GetLowestStrengthGeneralIndex(List<int> generals, bool[] failFlags) {
+		int selectedIndex = -1;
+		int selectedStrength = int.MaxValue;
+
+		for (int i=0; i<generals.Count; i++) {
+			if (failFlags[i]) {
+				continue;
+			}
+
+			GeneralInfo gInfo = Informations.Instance.GetGeneralInfo(generals[i]);
+			if (gInfo.strength < selectedStrength) {
+				selectedIndex = i;
+				selectedStrength = gInfo.strength;
+			}
+		}
+
+		return selectedIndex;
+	}
+
+	// 方法说明：按真实战斗入场规则恢复武将体力和技力。
+	// 参数说明：gInfo 为出战武将数据。
+	// 返回说明：无返回值。
+	void RecoverGeneralForQuickBattle(GeneralInfo gInfo) {
+		gInfo.healthCur += 10;
+		gInfo.healthCur = Mathf.Clamp(gInfo.healthCur, 0, gInfo.healthMax);
+		gInfo.manaCur += 5;
+		gInfo.manaCur = Mathf.Clamp(gInfo.manaCur, 0, gInfo.manaMax);
+	}
+
+	// 方法说明：计算快速战斗中的基础战力。
+	// 参数说明：gInfo 为武将数据，defense 为城市防御修正。
+	// 返回说明：基础战力数值。
+	int GetQuickBattlePower(GeneralInfo gInfo, int defense) {
+		return gInfo.level * 5
+			+ gInfo.knightCur * 6
+			+ gInfo.soldierCur * 3
+			+ gInfo.strength * 2
+			+ gInfo.healthCur
+			+ gInfo.manaCur / 2
+			+ defense / 10
+			+ Random.Range(0, 20);
+	}
+
+	// 方法说明：自动释放快速战斗可用技能，并返回本轮战力加成。
+	// 参数说明：gInfo 为出战武将数据。
+	// 返回说明：技能带来的本轮战力加成；治疗技能返回 0 但会恢复体力。
+	int UseQuickBattleMagic(GeneralInfo gInfo) {
+		MagicDataInfo info = GetQuickBattleMagicInfo(gInfo);
+		if (info == null) {
+			return 0;
+		}
+
+		gInfo.manaCur -= info.MP;
+		if (info.ATTRIB == "补血") {
+			gInfo.healthCur += info.ATTACK;
+			gInfo.healthCur = Mathf.Clamp(gInfo.healthCur, 0, gInfo.healthMax);
+			return 0;
+		}
+
+		return info.ATTACK;
+	}
+
+	// 方法说明：获取快速战斗中可释放的优先技能。
+	// 参数说明：gInfo 为出战武将数据。
+	// 返回说明：可释放技能数据；没有可用技能返回 null。
+	MagicDataInfo GetQuickBattleMagicInfo(GeneralInfo gInfo) {
+		for (int i=3; i>=0; i--) {
+			if (gInfo.magic[i] == -1) {
+				continue;
+			}
+
+			MagicDataInfo info = MagicManager.Instance.GetMagicDataInfo(gInfo.magic[i]);
+			if (info != null && gInfo.manaCur >= info.MP) {
+				return info;
+			}
+		}
+
+		return null;
+	}
+
+	// 方法说明：套用快速战斗单轮胜负后的武将消耗、经验和俘虏结果。
+	// 参数说明：winner 为本轮胜者，loser 为本轮败者，damager 为败者战力值。
+	// 返回说明：无返回值。
+	void ApplyQuickBattleDuelResult(GeneralInfo winner, GeneralInfo loser, int damager) {
+		loser.knightCur = 0;
+		loser.soldierCur = 0;
+		loser.healthCur = 2;
+		loser.manaCur = 2;
+
+		int horse = 0;
+		if (loser.equipment == 27 || loser.equipment == 28
+		    || loser.equipment == 29 || loser.equipment == 30) {
+			horse = 1;
+		}
+
+		if (loser == Informations.Instance.GetGeneralInfo(Informations.Instance.GetKingInfo(loser.king).generalIdx)) {
+			if (Informations.Instance.GetKingInfo(loser.king).cities.Count > 0) {
+				horse += 3;
+			}
+		}
+
+		if (Random.Range(0, 100) > 50 + horse * 25 - loser.escape * 25) {
+			loser.prisonerIdx = winner.king;
+			isPrisoned = true;
+			loser.escape = 0;
+		} else {
+			isPrisoned = false;
+			loser.escape++;
+		}
+
+		winner.experience += (Misc.GetLevelExperience(winner.level + 1) - Misc.GetLevelExperience(winner.level)) / 2;
+		CheckLevelUp(winner);
+
+		damager -= winner.strength;
+		if (damager <= 0) {
+			return;
+		}
+
+		if (damager > winner.knightCur * 6) {
+			damager -= winner.knightCur * 6;
+			winner.knightCur = 0;
+		} else {
+			winner.knightCur -= damager / 6;
+			return;
+		}
+
+		if (damager > winner.soldierCur * 3) {
+			damager -= winner.soldierCur * 3;
+			winner.soldierCur = 0;
+		} else {
+			winner.soldierCur -= damager / 3;
+			return;
+		}
+
+		if (damager > winner.manaCur / 2) {
+			damager -= winner.manaCur / 2;
+			winner.manaCur = 0;
+		} else {
+			winner.manaCur -= damager * 2;
+			return;
+		}
+
+		if (winner.healthCur - damager < 15) {
+			winner.healthCur = 15;
+		} else {
+			winner.healthCur = winner.healthCur - damager;
+		}
 	}
 	
 	void InitData() {
