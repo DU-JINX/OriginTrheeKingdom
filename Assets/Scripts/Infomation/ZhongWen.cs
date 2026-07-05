@@ -154,7 +154,9 @@ public class ZhongWen {
 
 	public string speedUp = "加速";
 	public string normalSpeed = "正常";
-	public string quickBattleConfirm = "是否快速战斗？点击确认，右键取消。";
+	public string quickBattleConfirm = "是否快速战斗？";
+	public string quickBattleConfirmOk = "确认";
+	public string quickBattleNoNeed = "不需要";
 	
 	public string[] chuzhan1 = new string[]{
 		"就让你看看我的厉害！",

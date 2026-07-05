@@ -62,6 +62,9 @@ public class SelectGeneralToWarController : MonoBehaviour {
 	private int postBattleSurrenderCityIdx = -1;
 	private CityInfo postBattleSurrenderCityInfo = null;
 	private ArmyInfo postBattleSurrenderArmyInfo = null;
+	private GameObject quickBattleConfirmBox = null;
+	private Button quickBattleOkButton = null;
+	private Button quickBattleNoNeedButton = null;
 	
 	// Use this for initialization
 	void Start () {
@@ -362,30 +365,122 @@ public class SelectGeneralToWarController : MonoBehaviour {
 	// 参数说明：无。
 	// 返回说明：无返回值。
 	void ShowQuickBattleConfirm() {
+		if (!EnsureQuickBattleConfirmBox()) {
+			state = 0;
+			OnReturnMain();
+			return;
+		}
+
 		state = StateQuickBattleConfirm;
 		OnSubMenu();
+		quickBattleConfirmBox.SetActive(true);
 		dialogCtrl.SetDialogue(Informations.Instance.GetKingInfo(Controller.kingIndex).generalIdx,
 		                       ZhongWen.Instance.quickBattleConfirm,
 		                       MenuDisplayAnim.AnimType.InsertFromBottom);
 	}
 
-	// 方法说明：处理快速战斗确认输入，左键确认，右键或返回键取消。
+	// 方法说明：处理快速战斗确认输入，设备返回键等同于选择“不需要”。
 	// 参数说明：无。
 	// 返回说明：无返回值。
 	void OnQuickBattleConfirmModeHandler() {
 		if (Misc.GetBack()) {
-			dialogCtrl.SetDialogueOut(MenuDisplayAnim.AnimType.OutToBottom);
-			state = 0;
-			Invoke("OnReturnMain", 0.5f);
+			OnQuickBattleNoNeedButton();
+		}
+	}
+
+	// 方法说明：创建并初始化快速战斗确认按钮框。
+	// 参数说明：无。
+	// 返回说明：创建或复用成功返回 true，控件缺失返回 false。
+	bool EnsureQuickBattleConfirmBox() {
+		if (quickBattleConfirmBox != null) {
+			return true;
+		}
+
+		if (retreatConfirm == null) {
+			Debug.LogError("Quick battle confirm box cannot found!");
+			return false;
+		}
+
+		quickBattleConfirmBox = GameObject.Instantiate(retreatConfirm) as GameObject;
+		quickBattleConfirmBox.name = "QuickBattleConfirm";
+		quickBattleConfirmBox.SetActive(false);
+
+		SGRetreat retreat = quickBattleConfirmBox.GetComponent<SGRetreat>();
+		if (retreat == null) {
+			Debug.LogError("Quick battle confirm retreat component cannot found!");
+			GameObject.Destroy(quickBattleConfirmBox);
+			quickBattleConfirmBox = null;
+			return false;
+		}
+
+		retreat.enabled = false;
+		quickBattleOkButton = retreat.okButton;
+		quickBattleNoNeedButton = retreat.cancelButton;
+		if (quickBattleOkButton == null || quickBattleNoNeedButton == null) {
+			Debug.LogError("Quick battle confirm buttons cannot found!");
+			GameObject.Destroy(quickBattleConfirmBox);
+			quickBattleConfirmBox = null;
+			return false;
+		}
+
+		SetQuickBattleConfirmButtonText(quickBattleOkButton, ZhongWen.Instance.quickBattleConfirmOk);
+		SetQuickBattleConfirmButtonText(quickBattleNoNeedButton, ZhongWen.Instance.quickBattleNoNeed);
+		quickBattleOkButton.SetButtonClickHandler(OnQuickBattleOkButton);
+		quickBattleNoNeedButton.SetButtonClickHandler(OnQuickBattleNoNeedButton);
+
+		return true;
+	}
+
+	// 方法说明：设置快速战斗确认按钮文字。
+	// 参数说明：button 为待设置按钮，text 为按钮显示文本。
+	// 返回说明：无返回值。
+	void SetQuickBattleConfirmButtonText(Button button, string text) {
+		exSpriteFont font = button.GetComponent<exSpriteFont>();
+		if (font == null) {
+			Debug.LogError("Quick battle confirm button font cannot found!");
 			return;
 		}
 
-		if (!dialogCtrl.IsShowingText() && Input.GetMouseButtonUp(0)) {
-			Input.ResetInputAxes();
-			ExecuteQuickBattle();
-			dialogCtrl.SetDialogueOut(MenuDisplayAnim.AnimType.OutToBottom);
-			state = 0;
-			Invoke("WarOverResult", 0.5f);
+		font.text = text;
+	}
+
+	// 方法说明：点击“确认”后执行快速战斗并进入战后结算。
+	// 参数说明：无。
+	// 返回说明：无返回值。
+	void OnQuickBattleOkButton() {
+		if (state != StateQuickBattleConfirm) {
+			return;
+		}
+
+		Input.ResetInputAxes();
+		HideQuickBattleConfirmBox();
+		ExecuteQuickBattle();
+		dialogCtrl.SetDialogueOut(MenuDisplayAnim.AnimType.OutToBottom);
+		state = 0;
+		Invoke("WarOverResult", 0.5f);
+	}
+
+	// 方法说明：点击“不需要”后关闭快速战斗确认并恢复手动战斗菜单。
+	// 参数说明：无。
+	// 返回说明：无返回值。
+	void OnQuickBattleNoNeedButton() {
+		if (state != StateQuickBattleConfirm) {
+			return;
+		}
+
+		Input.ResetInputAxes();
+		HideQuickBattleConfirmBox();
+		dialogCtrl.SetDialogueOut(MenuDisplayAnim.AnimType.OutToBottom);
+		state = 0;
+		Invoke("OnReturnMain", 0.5f);
+	}
+
+	// 方法说明：隐藏快速战斗确认按钮框。
+	// 参数说明：无。
+	// 返回说明：无返回值。
+	void HideQuickBattleConfirmBox() {
+		if (quickBattleConfirmBox != null) {
+			quickBattleConfirmBox.SetActive(false);
 		}
 	}
 
