@@ -104,7 +104,7 @@ public class StrategyController : MonoBehaviour {
 	// 返回说明：无返回值。
 	void OnNormalMode() {
 		
-		// 1. 顶部加速按钮区域交给 StrategySpeedUpController 处理，避免触发地图菜单。
+		// 1. 顶部加速和暂停按钮区域交给 StrategySpeedUpController 处理，避免触发地图菜单。
 		bool isPointerOverSpeedButton = StrategySpeedUpController.IsPointerOverSpeedButton();
 
 		if (Input.GetMouseButtonDown(0) && isPointerOverSpeedButton) {
@@ -120,6 +120,10 @@ public class StrategyController : MonoBehaviour {
 		}
 
 		if (!Input.GetMouseButton(0) && isPointerOverSpeedButton) {
+			return;
+		}
+
+		if (StrategySpeedState.IsPaused()) {
 			return;
 		}
 		

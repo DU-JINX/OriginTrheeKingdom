@@ -157,6 +157,8 @@ public class ZhongWen {
 
 	public string speedUp = "加速";
 	public string normalSpeed = "正常";
+	public string pause = "暂停";
+	public string resume = "继续";
 	public string quickBattleConfirm = "快速战斗出战优先级？";
 	public string quickBattleHighStrength = "武力高";
 	public string quickBattleLowStrength = "武力低";
