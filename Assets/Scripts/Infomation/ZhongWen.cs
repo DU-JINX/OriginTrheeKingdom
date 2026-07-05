@@ -154,9 +154,12 @@ public class ZhongWen {
 
 	public string speedUp = "加速";
 	public string normalSpeed = "正常";
-	public string quickBattleConfirm = "是否快速战斗？";
-	public string quickBattleConfirmOk = "确认";
+	public string quickBattleConfirm = "快速战斗出战优先级？";
+	public string quickBattleHighStrength = "武力高";
+	public string quickBattleLowStrength = "武力低";
 	public string quickBattleNoNeed = "不需要";
+	public string postBattleSurrenderTitle = "战后招降";
+	public string postBattleSurrenderContinue = "点击继续";
 	
 	public string[] chuzhan1 = new string[]{
 		"就让你看看我的厉害！",

@@ -51,6 +51,11 @@ public class SelectGeneralToWarController : MonoBehaviour {
 	private const int StatePostBattleSurrenderKingAnswer = 8;
 	private const int StateQuickBattleConfirm = 9;
 	private const string PostBattleSurrenderBackgroundResource = "PostBattleSurrenderBackground";
+
+	private enum QuickBattlePriority {
+		LowStrength,
+		HighStrength
+	}
 		
 	private int state;
 	private int menuSelectIdx = -1;
@@ -64,10 +69,17 @@ public class SelectGeneralToWarController : MonoBehaviour {
 	private CityInfo postBattleSurrenderCityInfo = null;
 	private ArmyInfo postBattleSurrenderArmyInfo = null;
 	private GameObject quickBattleConfirmBox = null;
-	private Button quickBattleOkButton = null;
+	private Button quickBattleHighStrengthButton = null;
+	private Button quickBattleLowStrengthButton = null;
 	private Button quickBattleNoNeedButton = null;
-	private GameObject postBattleSurrenderBackgroundObject = null;
-	private Sprite postBattleSurrenderBackgroundSprite = null;
+	private QuickBattlePriority quickBattlePriority = QuickBattlePriority.LowStrength;
+	private Texture2D postBattleSurrenderBackgroundTexture = null;
+	private bool isPostBattleSurrenderStageActive = false;
+	private float postBattleSurrenderBackgroundAlpha = 0f;
+	private string postBattleSurrenderText = "";
+	private GUIStyle postBattleSurrenderTitleStyle = null;
+	private GUIStyle postBattleSurrenderTextStyle = null;
+	private GUIStyle postBattleSurrenderHintStyle = null;
 	
 	// Use this for initialization
 	void Start () {
@@ -105,6 +117,8 @@ public class SelectGeneralToWarController : MonoBehaviour {
 	
 	// Update is called once per frame
 	void Update () {
+
+		UpdatePostBattleSurrenderStageAnimation();
 		
 		switch (state) {
 		case 1:
@@ -309,6 +323,18 @@ public class SelectGeneralToWarController : MonoBehaviour {
 			menus[menuSelectIdx].GetComponent<exSpriteFont>().botColor = new Color(1, 0, 0, 1);
 		}
 	}
+
+	// 方法说明：绘制战后招降专用背景和底部对话框。
+	// 参数说明：无。
+	// 返回说明：无返回值。
+	void OnGUI() {
+		if (!isPostBattleSurrenderStageActive) {
+			return;
+		}
+
+		DrawPostBattleSurrenderBackground();
+		DrawPostBattleSurrenderDialogue();
+	}
 	
 	// 方法说明：初始化战斗选将场景，并在玩家战斗开始时弹出快速战斗确认。
 	// 参数说明：无。
@@ -417,21 +443,78 @@ public class SelectGeneralToWarController : MonoBehaviour {
 		}
 
 		retreat.enabled = false;
-		quickBattleOkButton = retreat.okButton;
+		quickBattleHighStrengthButton = retreat.okButton;
 		quickBattleNoNeedButton = retreat.cancelButton;
-		if (quickBattleOkButton == null || quickBattleNoNeedButton == null) {
+		if (quickBattleHighStrengthButton == null || quickBattleNoNeedButton == null) {
 			Debug.LogError("Quick battle confirm buttons cannot found!");
 			GameObject.Destroy(quickBattleConfirmBox);
 			quickBattleConfirmBox = null;
 			return false;
 		}
 
-		SetQuickBattleConfirmButtonText(quickBattleOkButton, ZhongWen.Instance.quickBattleConfirmOk);
+		quickBattleLowStrengthButton = CreateQuickBattleLowStrengthButton();
+		if (quickBattleLowStrengthButton == null) {
+			Debug.LogError("Quick battle low strength button cannot found!");
+			GameObject.Destroy(quickBattleConfirmBox);
+			quickBattleConfirmBox = null;
+			return false;
+		}
+
+		LayoutQuickBattleConfirmButtons();
+		SetQuickBattleConfirmButtonText(quickBattleHighStrengthButton, ZhongWen.Instance.quickBattleHighStrength);
+		SetQuickBattleConfirmButtonText(quickBattleLowStrengthButton, ZhongWen.Instance.quickBattleLowStrength);
 		SetQuickBattleConfirmButtonText(quickBattleNoNeedButton, ZhongWen.Instance.quickBattleNoNeed);
-		quickBattleOkButton.SetButtonClickHandler(OnQuickBattleOkButton);
+		quickBattleHighStrengthButton.SetButtonClickHandler(OnQuickBattleHighStrengthButton);
+		quickBattleLowStrengthButton.SetButtonClickHandler(OnQuickBattleLowStrengthButton);
 		quickBattleNoNeedButton.SetButtonClickHandler(OnQuickBattleNoNeedButton);
 
 		return true;
+	}
+
+	// 方法说明：复制“不需要”按钮生成“低武力”按钮，保持确认框原有按钮样式。
+	// 参数说明：无。
+	// 返回说明：创建成功返回按钮组件，失败返回 null。
+	Button CreateQuickBattleLowStrengthButton() {
+		GameObject lowButtonObject = GameObject.Instantiate(quickBattleNoNeedButton.gameObject) as GameObject;
+		if (lowButtonObject == null) {
+			return null;
+		}
+
+		lowButtonObject.name = "LowStrength";
+		lowButtonObject.transform.parent = quickBattleNoNeedButton.transform.parent;
+		lowButtonObject.transform.localPosition = quickBattleNoNeedButton.transform.localPosition;
+		lowButtonObject.transform.localRotation = quickBattleNoNeedButton.transform.localRotation;
+		lowButtonObject.transform.localScale = quickBattleNoNeedButton.transform.localScale;
+
+		return lowButtonObject.GetComponent<Button>();
+	}
+
+	// 方法说明：把快速战斗确认按钮排成高武力、低武力、不需要三项。
+	// 参数说明：无。
+	// 返回说明：无返回值。
+	void LayoutQuickBattleConfirmButtons() {
+		Vector3 highPos = quickBattleHighStrengthButton.transform.localPosition;
+		Vector3 noNeedPos = quickBattleNoNeedButton.transform.localPosition;
+		float centerX = (highPos.x + noNeedPos.x) / 2f;
+		float gap = Mathf.Abs(noNeedPos.x - highPos.x);
+		if (gap < 48f) {
+			gap = 72f;
+		}
+
+		quickBattleHighStrengthButton.transform.localPosition = new Vector3(centerX - gap, highPos.y, highPos.z);
+		quickBattleLowStrengthButton.transform.localPosition = new Vector3(centerX, highPos.y, highPos.z);
+		quickBattleNoNeedButton.transform.localPosition = new Vector3(centerX + gap, noNeedPos.y, noNeedPos.z);
+		ScaleQuickBattleConfirmButton(quickBattleHighStrengthButton);
+		ScaleQuickBattleConfirmButton(quickBattleLowStrengthButton);
+		ScaleQuickBattleConfirmButton(quickBattleNoNeedButton);
+	}
+
+	// 方法说明：缩小快速战斗确认按钮文字，避免手游确认框中按钮文案被裁切。
+	// 参数说明：button 为需要缩放的按钮。
+	// 返回说明：无返回值。
+	void ScaleQuickBattleConfirmButton(Button button) {
+		Vector3 scale = button.transform.localScale;
+		button.transform.localScale = new Vector3(scale.x * 0.82f, scale.y * 0.82f, scale.z);
 	}
 
 	// 方法说明：设置快速战斗确认按钮文字。
@@ -447,15 +530,34 @@ public class SelectGeneralToWarController : MonoBehaviour {
 		font.text = text;
 	}
 
-	// 方法说明：点击“确认”后执行快速战斗并进入战后结算。
+	// 方法说明：点击“高武力”后按武力高优先执行快速战斗并进入战后结算。
 	// 参数说明：无。
 	// 返回说明：无返回值。
-	void OnQuickBattleOkButton() {
+	void OnQuickBattleHighStrengthButton() {
 		if (state != StateQuickBattleConfirm) {
 			return;
 		}
 
+		StartQuickBattleWithPriority(QuickBattlePriority.HighStrength);
+	}
+
+	// 方法说明：点击“低武力”后按武力低优先执行快速战斗并进入战后结算。
+	// 参数说明：无。
+	// 返回说明：无返回值。
+	void OnQuickBattleLowStrengthButton() {
+		if (state != StateQuickBattleConfirm) {
+			return;
+		}
+
+		StartQuickBattleWithPriority(QuickBattlePriority.LowStrength);
+	}
+
+	// 方法说明：按指定武力优先级执行快速战斗并进入战后结算。
+	// 参数说明：priority 为快速战斗出战武将选择优先级。
+	// 返回说明：无返回值。
+	void StartQuickBattleWithPriority(QuickBattlePriority priority) {
 		Input.ResetInputAxes();
+		quickBattlePriority = priority;
 		HideQuickBattleConfirmBox();
 		ExecuteQuickBattle();
 		dialogCtrl.SetDialogueOut(MenuDisplayAnim.AnimType.OutToBottom);
@@ -497,10 +599,10 @@ public class SelectGeneralToWarController : MonoBehaviour {
 		isPrisoned = false;
 		isWarOver = false;
 
-		// 2. 循环选择双方当前未败武将中武力最低者出战。
+		// 2. 循环按玩家选择的武力优先级派出双方当前未败武将。
 		while (!isWarOver) {
-			leftSelectIdx = GetLowestStrengthGeneralIndex(leftGenerals, leftFailFlag);
-			rightSelectIdx = GetLowestStrengthGeneralIndex(rightGenerals, rightFailFlag);
+			leftSelectIdx = GetQuickBattleGeneralIndex(leftGenerals, leftFailFlag, quickBattlePriority);
+			rightSelectIdx = GetQuickBattleGeneralIndex(rightGenerals, rightFailFlag, quickBattlePriority);
 
 			if (leftSelectIdx == -1 || rightSelectIdx == -1) {
 				Debug.LogError("Quick battle cannot find available general!");
@@ -532,12 +634,12 @@ public class SelectGeneralToWarController : MonoBehaviour {
 		}
 	}
 
-	// 方法说明：选择当前未败武将中武力最低的列表索引。
-	// 参数说明：generals 为武将编号列表，failFlags 为败退标记数组。
+	// 方法说明：按快速战斗优先级选择当前未败武将的列表索引。
+	// 参数说明：generals 为武将编号列表，failFlags 为败退标记数组，priority 为武力高或低优先。
 	// 返回说明：找到返回列表索引，找不到返回 -1。
-	int GetLowestStrengthGeneralIndex(List<int> generals, bool[] failFlags) {
+	int GetQuickBattleGeneralIndex(List<int> generals, bool[] failFlags, QuickBattlePriority priority) {
 		int selectedIndex = -1;
-		int selectedStrength = int.MaxValue;
+		int selectedStrength = priority == QuickBattlePriority.LowStrength ? int.MaxValue : int.MinValue;
 
 		for (int i=0; i<generals.Count; i++) {
 			if (failFlags[i]) {
@@ -545,13 +647,24 @@ public class SelectGeneralToWarController : MonoBehaviour {
 			}
 
 			GeneralInfo gInfo = Informations.Instance.GetGeneralInfo(generals[i]);
-			if (gInfo.strength < selectedStrength) {
+			if (IsBetterQuickBattleGeneral(gInfo.strength, selectedStrength, priority)) {
 				selectedIndex = i;
 				selectedStrength = gInfo.strength;
 			}
 		}
 
 		return selectedIndex;
+	}
+
+	// 方法说明：判断当前武力值是否比已选武力值更符合快速战斗优先级。
+	// 参数说明：strength 为当前武将武力，selectedStrength 为已选武力，priority 为武力高或低优先。
+	// 返回说明：当前武将更符合优先级时返回 true，否则返回 false。
+	bool IsBetterQuickBattleGeneral(int strength, int selectedStrength, QuickBattlePriority priority) {
+		if (priority == QuickBattlePriority.HighStrength) {
+			return strength > selectedStrength;
+		}
+
+		return strength < selectedStrength;
 	}
 
 	// 方法说明：按真实战斗入场规则恢复武将体力和技力。
@@ -1129,61 +1242,134 @@ public class SelectGeneralToWarController : MonoBehaviour {
 	void ShowPostBattleSurrenderStage() {
 		SetPostBattleSurrenderControlsVisible(false);
 		EnsurePostBattleSurrenderBackground();
+		isPostBattleSurrenderStageActive = true;
+		postBattleSurrenderBackgroundAlpha = 0f;
+		if (dialogCtrl != null) {
+			dialogCtrl.gameObject.SetActive(false);
+		}
 	}
 
 	// 方法说明：创建并显示战后招降背景图。
 	// 参数说明：无。
 	// 返回说明：创建或显示成功返回 true，资源缺失返回 false。
 	bool EnsurePostBattleSurrenderBackground() {
-		if (postBattleSurrenderBackgroundObject != null) {
-			postBattleSurrenderBackgroundObject.SetActive(true);
-			FitPostBattleSurrenderBackground();
+		if (postBattleSurrenderBackgroundTexture != null) {
 			return true;
 		}
 
-		Texture2D texture = Resources.Load<Texture2D>(PostBattleSurrenderBackgroundResource);
-		if (texture == null) {
+		postBattleSurrenderBackgroundTexture = Resources.Load<Texture2D>(PostBattleSurrenderBackgroundResource);
+		if (postBattleSurrenderBackgroundTexture == null) {
 			Debug.LogError("Post battle surrender background cannot found!");
 			return false;
 		}
 
-		postBattleSurrenderBackgroundSprite = Sprite.Create(texture,
-		                                                    new Rect(0, 0, texture.width, texture.height),
-		                                                    new Vector2(0.5f, 0.5f),
-		                                                    100f);
-		postBattleSurrenderBackgroundObject = new GameObject("PostBattleSurrenderBackground");
-		SpriteRenderer renderer = postBattleSurrenderBackgroundObject.AddComponent<SpriteRenderer>();
-		renderer.sprite = postBattleSurrenderBackgroundSprite;
-		renderer.sortingOrder = -10000;
-		FitPostBattleSurrenderBackground();
-
 		return true;
 	}
 
-	// 方法说明：把战后招降背景图适配到当前主摄像机视野。
+	// 方法说明：更新战后招降背景淡入动画。
 	// 参数说明：无。
 	// 返回说明：无返回值。
-	void FitPostBattleSurrenderBackground() {
-		if (postBattleSurrenderBackgroundObject == null || postBattleSurrenderBackgroundSprite == null) {
+	void UpdatePostBattleSurrenderStageAnimation() {
+		if (!isPostBattleSurrenderStageActive) {
 			return;
 		}
 
-		Camera camera = Camera.main;
-		if (camera == null) {
-			Debug.LogError("Post battle surrender camera cannot found!");
-			return;
+		postBattleSurrenderBackgroundAlpha = Mathf.MoveTowards(postBattleSurrenderBackgroundAlpha, 1f, Time.unscaledDeltaTime * 2.5f);
+	}
+
+	// 方法说明：绘制战后招降全屏背景图。
+	// 参数说明：无。
+	// 返回说明：无返回值。
+	void DrawPostBattleSurrenderBackground() {
+		Color color = GUI.color;
+		GUI.color = new Color(1f, 1f, 1f, postBattleSurrenderBackgroundAlpha);
+
+		if (postBattleSurrenderBackgroundTexture != null) {
+			GUI.DrawTexture(new Rect(0, 0, Screen.width, Screen.height),
+			                postBattleSurrenderBackgroundTexture,
+			                ScaleMode.ScaleAndCrop);
+		} else {
+			GUI.DrawTexture(new Rect(0, 0, Screen.width, Screen.height),
+			                Texture2D.blackTexture,
+			                ScaleMode.StretchToFill);
 		}
 
-		postBattleSurrenderBackgroundObject.transform.position = camera.transform.position + camera.transform.forward * 50f;
-		if (!camera.orthographic) {
-			return;
+		GUI.color = color;
+	}
+
+	// 方法说明：绘制战后招降底部文字框。
+	// 参数说明：无。
+	// 返回说明：无返回值。
+	void DrawPostBattleSurrenderDialogue() {
+		float scale = Mathf.Min(Screen.width / 640f, Screen.height / 480f);
+		Rect boxRect = new Rect(Screen.width * 0.08f,
+		                        Screen.height - 132f * scale,
+		                        Screen.width * 0.84f,
+		                        108f * scale);
+		Rect titleRect = new Rect(boxRect.x + 18f * scale,
+		                          boxRect.y + 10f * scale,
+		                          boxRect.width - 36f * scale,
+		                          28f * scale);
+		Rect textRect = new Rect(boxRect.x + 18f * scale,
+		                         boxRect.y + 40f * scale,
+		                         boxRect.width - 36f * scale,
+		                         44f * scale);
+		Rect hintRect = new Rect(boxRect.x + 18f * scale,
+		                         boxRect.y + 80f * scale,
+		                         boxRect.width - 36f * scale,
+		                         22f * scale);
+
+		Color color = GUI.color;
+		GUI.color = new Color(0f, 0f, 0f, 0.68f * postBattleSurrenderBackgroundAlpha);
+		GUI.Box(boxRect, "");
+		GUI.color = new Color(1f, 0.86f, 0.48f, postBattleSurrenderBackgroundAlpha);
+		GUI.Label(titleRect, ZhongWen.Instance.postBattleSurrenderTitle, GetPostBattleSurrenderTitleStyle(scale));
+		GUI.color = new Color(1f, 1f, 1f, postBattleSurrenderBackgroundAlpha);
+		GUI.Label(textRect, postBattleSurrenderText, GetPostBattleSurrenderTextStyle(scale));
+		GUI.color = new Color(0.9f, 0.9f, 0.9f, postBattleSurrenderBackgroundAlpha);
+		GUI.Label(hintRect, ZhongWen.Instance.postBattleSurrenderContinue, GetPostBattleSurrenderHintStyle(scale));
+		GUI.color = color;
+	}
+
+	// 方法说明：取得战后招降标题样式。
+	// 参数说明：scale 为屏幕缩放系数。
+	// 返回说明：返回当前帧使用的标题样式。
+	GUIStyle GetPostBattleSurrenderTitleStyle(float scale) {
+		if (postBattleSurrenderTitleStyle == null) {
+			postBattleSurrenderTitleStyle = new GUIStyle(GUI.skin.label);
+			postBattleSurrenderTitleStyle.alignment = TextAnchor.MiddleLeft;
+			postBattleSurrenderTitleStyle.fontStyle = FontStyle.Bold;
 		}
 
-		float viewHeight = camera.orthographicSize * 2f;
-		float viewWidth = viewHeight * camera.aspect;
-		Vector2 spriteSize = postBattleSurrenderBackgroundSprite.bounds.size;
-		float scale = Mathf.Max(viewWidth / spriteSize.x, viewHeight / spriteSize.y);
-		postBattleSurrenderBackgroundObject.transform.localScale = new Vector3(scale, scale, 1f);
+		postBattleSurrenderTitleStyle.fontSize = Mathf.RoundToInt(22f * scale);
+		return postBattleSurrenderTitleStyle;
+	}
+
+	// 方法说明：取得战后招降正文样式。
+	// 参数说明：scale 为屏幕缩放系数。
+	// 返回说明：返回当前帧使用的正文样式。
+	GUIStyle GetPostBattleSurrenderTextStyle(float scale) {
+		if (postBattleSurrenderTextStyle == null) {
+			postBattleSurrenderTextStyle = new GUIStyle(GUI.skin.label);
+			postBattleSurrenderTextStyle.alignment = TextAnchor.MiddleLeft;
+			postBattleSurrenderTextStyle.wordWrap = true;
+		}
+
+		postBattleSurrenderTextStyle.fontSize = Mathf.RoundToInt(20f * scale);
+		return postBattleSurrenderTextStyle;
+	}
+
+	// 方法说明：取得战后招降继续提示样式。
+	// 参数说明：scale 为屏幕缩放系数。
+	// 返回说明：返回当前帧使用的继续提示样式。
+	GUIStyle GetPostBattleSurrenderHintStyle(float scale) {
+		if (postBattleSurrenderHintStyle == null) {
+			postBattleSurrenderHintStyle = new GUIStyle(GUI.skin.label);
+			postBattleSurrenderHintStyle.alignment = TextAnchor.MiddleRight;
+		}
+
+		postBattleSurrenderHintStyle.fontSize = Mathf.RoundToInt(14f * scale);
+		return postBattleSurrenderHintStyle;
 	}
 
 	// 方法说明：设置战后招降期间选将界面元素是否可见。
@@ -1224,19 +1410,18 @@ public class SelectGeneralToWarController : MonoBehaviour {
 		}
 
 		state = StatePostBattleSurrenderAsk;
-		dialogCtrl.SetDialogue(Informations.Instance.GetKingInfo(Controller.kingIndex).generalIdx, msg, MenuDisplayAnim.AnimType.InsertFromBottom);
+		SetPostBattleSurrenderText(msg);
 	}
 
 	// 方法说明：处理战后招降询问后的点击，并显示俘虏答复。
 	// 参数说明：无。
 	// 返回说明：无返回值。
 	void OnPostBattleSurrenderAskModeHandler() {
-		if (!dialogCtrl.IsShowingText() && Input.GetMouseButtonUp(0)) {
+		if (IsPostBattleSurrenderContinueClicked()) {
 			Input.ResetInputAxes();
 			ApplyPostBattleSurrenderResult();
 			state = StatePostBattleSurrenderPrisonerAnswer;
-			dialogCtrl.SetHeadIndex(postBattleSurrenderPrisons[postBattleSurrenderIdx]);
-			dialogCtrl.SetText(ZhongWen.Instance.zhaoxiang_wenda[postBattleSurrenderDialogueIdx * 2]);
+			SetPostBattleSurrenderText(ZhongWen.Instance.zhaoxiang_wenda[postBattleSurrenderDialogueIdx * 2]);
 		}
 	}
 
@@ -1244,11 +1429,10 @@ public class SelectGeneralToWarController : MonoBehaviour {
 	// 参数说明：无。
 	// 返回说明：无返回值。
 	void OnPostBattleSurrenderPrisonerAnswerModeHandler() {
-		if (!dialogCtrl.IsShowingText() && Input.GetMouseButtonUp(0)) {
+		if (IsPostBattleSurrenderContinueClicked()) {
 			Input.ResetInputAxes();
 			state = StatePostBattleSurrenderKingAnswer;
-			dialogCtrl.SetHeadIndex(Informations.Instance.GetKingInfo(Controller.kingIndex).generalIdx);
-			dialogCtrl.SetText(ZhongWen.Instance.zhaoxiang_wenda[postBattleSurrenderDialogueIdx * 2 + 1]);
+			SetPostBattleSurrenderText(ZhongWen.Instance.zhaoxiang_wenda[postBattleSurrenderDialogueIdx * 2 + 1]);
 		}
 	}
 
@@ -1256,12 +1440,12 @@ public class SelectGeneralToWarController : MonoBehaviour {
 	// 参数说明：无。
 	// 返回说明：无返回值。
 	void OnPostBattleSurrenderKingAnswerModeHandler() {
-		if (!dialogCtrl.IsShowingText() && Input.GetMouseButtonUp(0)) {
+		if (IsPostBattleSurrenderContinueClicked()) {
 			Input.ResetInputAxes();
 			postBattleSurrenderIdx++;
 
 			if (postBattleSurrenderIdx >= postBattleSurrenderPrisons.Count) {
-				dialogCtrl.SetDialogueOut(MenuDisplayAnim.AnimType.OutToBottom);
+				HidePostBattleSurrenderStage();
 				state = 0;
 				Invoke("LoadStrategyAfterWarOver", 0.5f);
 				return;
@@ -1269,6 +1453,33 @@ public class SelectGeneralToWarController : MonoBehaviour {
 
 			ShowPostBattleSurrenderAsk();
 		}
+	}
+
+	// 方法说明：设置战后招降文字框内容。
+	// 参数说明：text 为当前阶段需要展示的招降文本。
+	// 返回说明：无返回值。
+	void SetPostBattleSurrenderText(string text) {
+		postBattleSurrenderText = text;
+		Input.ResetInputAxes();
+	}
+
+	// 方法说明：判断战后招降文字框是否被点击继续。
+	// 参数说明：无。
+	// 返回说明：背景淡入后点击屏幕返回 true，否则返回 false。
+	bool IsPostBattleSurrenderContinueClicked() {
+		if (postBattleSurrenderBackgroundAlpha < 0.95f) {
+			return false;
+		}
+
+		return Input.GetMouseButtonUp(0);
+	}
+
+	// 方法说明：隐藏战后招降专用背景和文字框。
+	// 参数说明：无。
+	// 返回说明：无返回值。
+	void HidePostBattleSurrenderStage() {
+		isPostBattleSurrenderStageActive = false;
+		postBattleSurrenderText = "";
 	}
 
 	// 方法说明：按年度招降同一套概率结算当前俘虏的战后招降结果。
