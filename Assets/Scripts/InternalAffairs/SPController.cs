@@ -1,7 +1,9 @@
 using UnityEngine;
 using System.Collections;
+using System.Collections.Generic;
 
 public class SPController : MonoBehaviour {
+	private const int StateSurrenderAllResult = 9;
 	
 	public IAController IACtrl;
 	
@@ -16,6 +18,7 @@ public class SPController : MonoBehaviour {
 	private int dialogueIdx;
 	
 	private float timeTick = 0;
+	private GUIStyle surrenderAllButtonStyle = null;
 	
 	// Use this for initialization
 	void Start () {
@@ -72,6 +75,28 @@ public class SPController : MonoBehaviour {
 		case 8:
 			OnReturnMainModeHandler();
 			break;
+		case StateSurrenderAllResult:
+			OnSurrenderAllResultModeHandler();
+			break;
+		}
+	}
+
+	// 方法说明：绘制年度内政招降的一键招降触屏按钮。
+	// 参数说明：无。
+	// 返回说明：无返回值。
+	void OnGUI() {
+		if (state != 2 || !HasSelectablePrisoners()) {
+			return;
+		}
+
+		float scale = Mathf.Min(Screen.width / 640f, Screen.height / 480f);
+		Rect buttonRect = new Rect(Screen.width - 142f * scale,
+		                           Screen.height - 70f * scale,
+		                           118f * scale,
+		                           42f * scale);
+
+		if (GUI.Button(buttonRect, ZhongWen.Instance.zhaoxiang_all, GetSurrenderAllButtonStyle(scale))) {
+			OnSurrenderAllButton();
 		}
 	}
 	
@@ -126,49 +151,8 @@ public class SPController : MonoBehaviour {
 		if (!kingDialogue.IsShowingText()) {
 			if (Input.GetMouseButtonUp(0)) {
 				state = 4;
-				bool isSuccess = false;
-				
-				GeneralInfo gInfo = Informations.Instance.GetGeneralInfo(prisonIdx);
-				gInfo.active = 0;
-				
-				if (gInfo.king == Controller.kingIndex) {
-					dialogueIdx = 5;
-					
-					isSuccess = true;
-					
-				} else if (Random.Range(0, 100) < (100 - gInfo.loyalty) / 2) {
-					dialogueIdx = 0;
-					
-					isSuccess = true;
-					
-				} else {
-					dialogueIdx = (100 - gInfo.loyalty) / 10 + 1;
-					dialogueIdx = Mathf.Clamp(dialogueIdx, 0, 4);
-					
-					gInfo.loyalty -= Random.Range(5, 20);
-					gInfo.loyalty = Mathf.Clamp(gInfo.loyalty, 0, 100);
-				}
-				
+				bool isSuccess = ApplySurrenderResultForGeneral(prisonIdx, out dialogueIdx);
 				if (isSuccess) {
-					
-					gInfo.loyalty = 90;
-					gInfo.king = Controller.kingIndex;
-					gInfo.prisonerIdx = -1;
-					gInfo.soldierCur = gInfo.soldierMax;
-					gInfo.knightCur = gInfo.knightMax;
-					
-					CityInfo cInfo = Informations.Instance.GetCityInfo(gInfo.city);
-					for (int i=0; i<cInfo.prisons.Count; i++) {
-						
-						if ((int)cInfo.prisons[i] == prisonIdx) {
-							cInfo.prisons.RemoveAt(i);
-							break;
-						}
-					}
-					
-					cInfo.generals.Add(prisonIdx);
-					Informations.Instance.GetKingInfo(Controller.kingIndex).generals.Add(prisonIdx);
-
 					SoundController.Instance.PlaySound("00045");
 				} else {
 					SoundController.Instance.PlaySound("00057");
@@ -219,6 +203,20 @@ public class SPController : MonoBehaviour {
 			}
 		}
 	}
+
+	// 方法说明：处理年度内政一键招降结果提示后的点击。
+	// 参数说明：无。
+	// 返回说明：无返回值。
+	void OnSurrenderAllResultModeHandler() {
+		if (!kingDialogue.IsShowingText()) {
+			if (Input.GetMouseButtonUp(0)) {
+				state = 7;
+				Input.ResetInputAxes();
+				kingDialogue.SetDialogueOut(MenuDisplayAnim.AnimType.OutToBottom);
+				prisonerList.SetItemSelected(-1, false);
+			}
+		}
+	}
 	
 	void OnDialogueOverHandler() {
 		if (!kingDialogue.gameObject.activeSelf && !prisonerDialogue.gameObject.activeSelf) {
@@ -226,6 +224,189 @@ public class SPController : MonoBehaviour {
 			
 			prisonerList.enabled = true;
 		}
+	}
+
+	// 方法说明：处理年度内政一键招降按钮点击。
+	// 参数说明：无。
+	// 返回说明：无返回值。
+	void OnSurrenderAllButton() {
+		if (state != 2 || !HasSelectablePrisoners()) {
+			return;
+		}
+
+		ApplySurrenderAllResult();
+	}
+
+	// 方法说明：批量结算年度内政招降列表中本年度仍可招降的俘虏。
+	// 参数说明：无。
+	// 返回说明：无返回值。
+	void ApplySurrenderAllResult() {
+		Input.ResetInputAxes();
+		prisonerList.enabled = false;
+		int successCount = 0;
+		int returnCount = 0;
+		int failCount = 0;
+		int notInCityCount = 0;
+
+		// 1. 遍历当前年度招降列表，只处理仍可选的俘虏，避免重复消耗已行动武将。
+		for (int i=0; i<prisonerList.GetCount(); i++) {
+			ListItem item = prisonerList.GetListItem(i);
+			if (item == null || !item.GetSelectEnable()) {
+				continue;
+			}
+
+			int gIdx = (int)item.GetItemData();
+			GeneralInfo gInfo = Informations.Instance.GetGeneralInfo(gIdx);
+			bool isOwnGeneralReturn = gInfo.king == Controller.kingIndex;
+
+			// 2. 不在城中的俘虏沿用原逻辑：本年度标为已处理，但不强行登用。
+			if (gInfo.city == -1) {
+				gInfo.active = 0;
+				item.SetSelectEnable(false);
+				notInCityCount++;
+				continue;
+			}
+
+			// 3. 在城中的俘虏按原年度招降概率逐个结算。
+			int resultDialogueIdx;
+			bool isSuccess = ApplySurrenderResultForGeneral(gIdx, out resultDialogueIdx);
+			item.SetSelectEnable(false);
+			if (isSuccess && isOwnGeneralReturn) {
+				returnCount++;
+			} else if (isSuccess) {
+				successCount++;
+			} else {
+				failCount++;
+			}
+		}
+
+		// 4. 汇总显示本次一键招降结果，并回到招降列表。
+		if (successCount + returnCount > 0) {
+			SoundController.Instance.PlaySound("00045");
+		} else {
+			SoundController.Instance.PlaySound("00057");
+		}
+
+		state = StateSurrenderAllResult;
+		prisonerList.SetItemSelected(-1, false);
+		string msg = GetSurrenderAllResultMessage(successCount, returnCount, failCount, notInCityCount);
+		kingDialogue.SetDialogue(Informations.Instance.GetKingInfo(Controller.kingIndex).generalIdx,
+		                          msg,
+		                          MenuDisplayAnim.AnimType.InsertFromBottom);
+	}
+
+	// 方法说明：生成年度内政一键招降的结果文案。
+	// 参数说明：successCount 为敌将归降数，returnCount 为旧将回归数，failCount 为失败数，notInCityCount 为不在城中数。
+	// 返回说明：返回用于君主对话框展示的结果文案。
+	string GetSurrenderAllResultMessage(int successCount, int returnCount, int failCount, int notInCityCount) {
+		if (notInCityCount > 0) {
+			return string.Format(ZhongWen.Instance.zhaoxiang_all_result_buzai,
+			                     successCount,
+			                     returnCount,
+			                     failCount,
+			                     notInCityCount);
+		}
+
+		return string.Format(ZhongWen.Instance.zhaoxiang_all_result,
+		                     successCount,
+		                     returnCount,
+		                     failCount);
+	}
+
+	// 方法说明：按年度招降概率结算指定俘虏。
+	// 参数说明：gIdx 为武将编号，resultDialogueIdx 返回原单人对话索引。
+	// 返回说明：招降成功或旧将回归返回 true，失败返回 false。
+	bool ApplySurrenderResultForGeneral(int gIdx, out int resultDialogueIdx) {
+		GeneralInfo gInfo = Informations.Instance.GetGeneralInfo(gIdx);
+		bool isSuccess = false;
+		resultDialogueIdx = 0;
+
+		gInfo.active = 0;
+
+		if (gInfo.king == Controller.kingIndex) {
+			resultDialogueIdx = 5;
+			isSuccess = true;
+		} else if (Random.Range(0, 100) < (100 - gInfo.loyalty) / 2) {
+			resultDialogueIdx = 0;
+			isSuccess = true;
+		} else {
+			resultDialogueIdx = (100 - gInfo.loyalty) / 10 + 1;
+			resultDialogueIdx = Mathf.Clamp(resultDialogueIdx, 0, 4);
+			LowerSurrenderLoyalty(gInfo);
+		}
+
+		if (isSuccess) {
+			ApplySurrenderSuccess(gInfo, gIdx);
+		}
+
+		return isSuccess;
+	}
+
+	// 方法说明：处理年度招降失败后的忠诚变化。
+	// 参数说明：gInfo 为招降失败的俘虏武将数据。
+	// 返回说明：无返回值。
+	void LowerSurrenderLoyalty(GeneralInfo gInfo) {
+		gInfo.loyalty -= Random.Range(5, 20);
+		gInfo.loyalty = Mathf.Clamp(gInfo.loyalty, 0, 100);
+	}
+
+	// 方法说明：把年度招降成功的俘虏加入所在城市和当前君主武将列表。
+	// 参数说明：gInfo 为成功招降的武将数据，gIdx 为武将编号。
+	// 返回说明：无返回值。
+	void ApplySurrenderSuccess(GeneralInfo gInfo, int gIdx) {
+		gInfo.loyalty = 90;
+		gInfo.king = Controller.kingIndex;
+		gInfo.prisonerIdx = -1;
+		gInfo.soldierCur = gInfo.soldierMax;
+		gInfo.knightCur = gInfo.knightMax;
+
+		CityInfo cInfo = Informations.Instance.GetCityInfo(gInfo.city);
+		cInfo.prisons.Remove(gIdx);
+		AddGeneralUnique(cInfo.generals, gIdx);
+		AddGeneralUnique(Informations.Instance.GetKingInfo(Controller.kingIndex).generals, gIdx);
+	}
+
+	// 方法说明：向武将编号列表追加不存在的武将，避免一键招降造成重复归属。
+	// 参数说明：generals 为武将编号列表，gIdx 为武将编号。
+	// 返回说明：无返回值。
+	void AddGeneralUnique(List<int> generals, int gIdx) {
+		if (!generals.Contains(gIdx)) {
+			generals.Add(gIdx);
+		}
+	}
+
+	// 方法说明：判断当前年度招降列表中是否还有可操作俘虏。
+	// 参数说明：无。
+	// 返回说明：存在可操作俘虏返回 true，否则返回 false。
+	bool HasSelectablePrisoners() {
+		if (prisonerList == null) {
+			return false;
+		}
+
+		for (int i=0; i<prisonerList.GetCount(); i++) {
+			ListItem item = prisonerList.GetListItem(i);
+			if (item != null && item.GetSelectEnable()) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	// 方法说明：取得年度内政一键招降按钮样式。
+	// 参数说明：scale 为屏幕缩放系数。
+	// 返回说明：返回当前帧使用的一键招降按钮样式。
+	GUIStyle GetSurrenderAllButtonStyle(float scale) {
+		if (surrenderAllButtonStyle == null) {
+			surrenderAllButtonStyle = new GUIStyle(GUI.skin.button);
+			surrenderAllButtonStyle.alignment = TextAnchor.MiddleCenter;
+			surrenderAllButtonStyle.fontStyle = FontStyle.Bold;
+			surrenderAllButtonStyle.wordWrap = false;
+			surrenderAllButtonStyle.clipping = TextClipping.Overflow;
+		}
+
+		surrenderAllButtonStyle.fontSize = Mathf.RoundToInt(16f * scale);
+		return surrenderAllButtonStyle;
 	}
 	
 	void OnReturnMainModeHandler() {

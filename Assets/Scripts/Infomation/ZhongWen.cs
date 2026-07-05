@@ -57,6 +57,9 @@ public class ZhongWen {
 	public string zhaoxiang_ask = "将军，请加入我方，共创和平大业。";
 	public string zhaoxiang_guilai = "将军安全归来，请再随我一起出征吧！";
 	public string zhaoxiang_buzai = "目前不在城中，无法登用。";
+	public string zhaoxiang_all = "一键招降";
+	public string zhaoxiang_all_result = "招降结束。归降{0}人，回归{1}人，失败{2}人。";
+	public string zhaoxiang_all_result_buzai = "招降结束。归降{0}人，回归{1}人，失败{2}人，无法登用{3}人。";
 	public string[] zhaoxiang_wenda = new string[]{
 		"多谢大人爱戴，我愿效犬马之劳！",
 		"太好了....",
