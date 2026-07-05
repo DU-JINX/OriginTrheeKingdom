@@ -2,21 +2,25 @@ using UnityEngine;
 
 public class StrategySpeedUpController : MonoBehaviour {
 
-	private const float NormalTimeScale = 1f;
-	private const float SpeedUpTimeScale = 2f;
 	private const float ButtonBaseWidth = 96f;
 	private const float ButtonBaseHeight = 34f;
 	private const float ButtonBaseTop = 10f;
 	private const float ButtonBaseFontSize = 18f;
 
-	private bool isSpeedUp = false;
 	private GUIStyle speedButtonStyle;
 
-	// 方法说明：初始化主地图加速状态，进入战略地图时默认恢复正常速度。
+	// 方法说明：组件启用时恢复已记录的战略地图加速状态。
+	// 参数说明：无。
+	// 返回说明：无返回值。
+	void OnEnable () {
+		StrategySpeedState.ApplyCurrentTimeScale();
+	}
+
+	// 方法说明：初始化主地图加速状态，进入战略地图时恢复上次记录的加速状态。
 	// 参数说明：无。
 	// 返回说明：无返回值。
 	void Start () {
-		SetSpeedUp(false);
+		StrategySpeedState.ApplyCurrentTimeScale();
 	}
 
 	// 方法说明：绘制主地图顶部居中的加速按钮，并处理点击切换。
@@ -35,18 +39,18 @@ public class StrategySpeedUpController : MonoBehaviour {
 		}
 	}
 
-	// 方法说明：组件停用时恢复正常速度，避免倍速影响其他场景。
+	// 方法说明：组件停用时临时恢复正常速度，但保留战略地图加速状态。
 	// 参数说明：无。
 	// 返回说明：无返回值。
 	void OnDisable () {
-		SetSpeedUp(false);
+		StrategySpeedState.ApplyNormalTimeScale();
 	}
 
-	// 方法说明：组件销毁时恢复正常速度，避免切换场景后残留 Time.timeScale。
+	// 方法说明：组件销毁时临时恢复正常速度，但保留战略地图加速状态。
 	// 参数说明：无。
 	// 返回说明：无返回值。
 	void OnDestroy () {
-		SetSpeedUp(false);
+		StrategySpeedState.ApplyNormalTimeScale();
 	}
 
 	// 方法说明：判断当前鼠标位置是否位于主地图加速按钮范围内。
@@ -77,11 +81,7 @@ public class StrategySpeedUpController : MonoBehaviour {
 	// 参数说明：无。
 	// 返回说明：倍速中返回“正常”，普通速度返回“加速”。
 	private string GetSpeedButtonText () {
-		if (isSpeedUp) {
-			return ZhongWen.Instance.normalSpeed;
-		}
-
-		return ZhongWen.Instance.speedUp;
+		return StrategySpeedState.GetSpeedButtonText();
 	}
 
 	// 方法说明：取得并刷新 IMGUI 按钮样式，使按钮在不同分辨率下保持可读。
@@ -105,14 +105,6 @@ public class StrategySpeedUpController : MonoBehaviour {
 	// 参数说明：无。
 	// 返回说明：无返回值。
 	private void ToggleSpeedUp () {
-		SetSpeedUp(!isSpeedUp);
-	}
-
-	// 方法说明：设置主地图是否使用 2 倍速。
-	// 参数说明：speedUp 为 true 时设置 2 倍速，为 false 时恢复正常速度。
-	// 返回说明：无返回值。
-	private void SetSpeedUp (bool speedUp) {
-		isSpeedUp = speedUp;
-		Time.timeScale = isSpeedUp ? SpeedUpTimeScale : NormalTimeScale;
+		StrategySpeedState.ToggleSpeedUp();
 	}
 }

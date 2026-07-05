@@ -50,6 +50,7 @@ public class SelectGeneralToWarController : MonoBehaviour {
 	private const int StatePostBattleSurrenderPrisonerAnswer = 7;
 	private const int StatePostBattleSurrenderKingAnswer = 8;
 	private const int StateQuickBattleConfirm = 9;
+	private const string PostBattleSurrenderBackgroundResource = "PostBattleSurrenderBackground";
 		
 	private int state;
 	private int menuSelectIdx = -1;
@@ -65,6 +66,8 @@ public class SelectGeneralToWarController : MonoBehaviour {
 	private GameObject quickBattleConfirmBox = null;
 	private Button quickBattleOkButton = null;
 	private Button quickBattleNoNeedButton = null;
+	private GameObject postBattleSurrenderBackgroundObject = null;
+	private Sprite postBattleSurrenderBackgroundSprite = null;
 	
 	// Use this for initialization
 	void Start () {
@@ -1116,7 +1119,94 @@ public class SelectGeneralToWarController : MonoBehaviour {
 		}
 
 		postBattleSurrenderIdx = 0;
+		ShowPostBattleSurrenderStage();
 		ShowPostBattleSurrenderAsk();
+	}
+
+	// 方法说明：显示战后招降专用背景，并隐藏战斗选将界面元素。
+	// 参数说明：无。
+	// 返回说明：无返回值。
+	void ShowPostBattleSurrenderStage() {
+		SetPostBattleSurrenderControlsVisible(false);
+		EnsurePostBattleSurrenderBackground();
+	}
+
+	// 方法说明：创建并显示战后招降背景图。
+	// 参数说明：无。
+	// 返回说明：创建或显示成功返回 true，资源缺失返回 false。
+	bool EnsurePostBattleSurrenderBackground() {
+		if (postBattleSurrenderBackgroundObject != null) {
+			postBattleSurrenderBackgroundObject.SetActive(true);
+			FitPostBattleSurrenderBackground();
+			return true;
+		}
+
+		Texture2D texture = Resources.Load<Texture2D>(PostBattleSurrenderBackgroundResource);
+		if (texture == null) {
+			Debug.LogError("Post battle surrender background cannot found!");
+			return false;
+		}
+
+		postBattleSurrenderBackgroundSprite = Sprite.Create(texture,
+		                                                    new Rect(0, 0, texture.width, texture.height),
+		                                                    new Vector2(0.5f, 0.5f),
+		                                                    100f);
+		postBattleSurrenderBackgroundObject = new GameObject("PostBattleSurrenderBackground");
+		SpriteRenderer renderer = postBattleSurrenderBackgroundObject.AddComponent<SpriteRenderer>();
+		renderer.sprite = postBattleSurrenderBackgroundSprite;
+		renderer.sortingOrder = -10000;
+		FitPostBattleSurrenderBackground();
+
+		return true;
+	}
+
+	// 方法说明：把战后招降背景图适配到当前主摄像机视野。
+	// 参数说明：无。
+	// 返回说明：无返回值。
+	void FitPostBattleSurrenderBackground() {
+		if (postBattleSurrenderBackgroundObject == null || postBattleSurrenderBackgroundSprite == null) {
+			return;
+		}
+
+		Camera camera = Camera.main;
+		if (camera == null) {
+			Debug.LogError("Post battle surrender camera cannot found!");
+			return;
+		}
+
+		postBattleSurrenderBackgroundObject.transform.position = camera.transform.position + camera.transform.forward * 50f;
+		if (!camera.orthographic) {
+			return;
+		}
+
+		float viewHeight = camera.orthographicSize * 2f;
+		float viewWidth = viewHeight * camera.aspect;
+		Vector2 spriteSize = postBattleSurrenderBackgroundSprite.bounds.size;
+		float scale = Mathf.Max(viewWidth / spriteSize.x, viewHeight / spriteSize.y);
+		postBattleSurrenderBackgroundObject.transform.localScale = new Vector3(scale, scale, 1f);
+	}
+
+	// 方法说明：设置战后招降期间选将界面元素是否可见。
+	// 参数说明：visible 为 true 时显示选将界面元素，为 false 时隐藏。
+	// 返回说明：无返回值。
+	void SetPostBattleSurrenderControlsVisible(bool visible) {
+		if (leftBar != null) leftBar.gameObject.SetActive(visible);
+		if (rightBar != null) rightBar.gameObject.SetActive(visible);
+		if (leftGeneralInfo != null) leftGeneralInfo.gameObject.SetActive(visible);
+		if (rightGeneralInfo != null) rightGeneralInfo.gameObject.SetActive(visible);
+		if (generalListCtrl != null) generalListCtrl.gameObject.SetActive(visible);
+
+		for (int i=0; i<menus.Length; i++) {
+			if (menus[i] != null) {
+				menus[i].gameObject.SetActive(visible);
+			}
+		}
+
+		if (selectFormation != null) selectFormation.gameObject.SetActive(false);
+		if (generalsInfo != null) generalsInfo.gameObject.SetActive(false);
+		if (generalPos != null) generalPos.SetActive(false);
+		if (retreatConfirm != null) retreatConfirm.SetActive(false);
+		HideQuickBattleConfirmBox();
 	}
 
 	// 方法说明：显示当前俘虏的战后招降询问文本。
