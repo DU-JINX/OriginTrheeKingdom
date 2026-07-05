@@ -160,6 +160,8 @@ public class ZhongWen {
 	public string quickBattleNoNeed = "不需要";
 	public string postBattleSurrenderTitle = "战后招降";
 	public string postBattleSurrenderContinue = "点击继续";
+	public string postBattleSurrenderAll = "一键招降";
+	public string postBattleSurrenderAllResult = "招降结束。归降{0}人，回归{1}人，失败{2}人。";
 	
 	public string[] chuzhan1 = new string[]{
 		"就让你看看我的厉害！",
