@@ -4,8 +4,6 @@ public static class StrategySpeedState {
 
 	private const float NormalTimeScale = 1f;
 	private const float SpeedUpTimeScale = 2f;
-	private const float PausedTimeScale = 0f;
-
 	private static bool isSpeedUp = false;
 	private static bool isPaused = false;
 
@@ -39,7 +37,7 @@ public static class StrategySpeedState {
 	}
 
 	// 方法说明：设置战略地图暂停状态，并立即应用到当前 Time.timeScale。
-	// 参数说明：paused 为 true 时暂停战略地图推进，为 false 时恢复到记录的正常或加速状态。
+	// 参数说明：paused 为 true 时暂停战略地图推进但保留界面动画，为 false 时恢复到记录的正常或加速状态。
 	// 返回说明：无返回值。
 	public static void SetPaused(bool paused) {
 		isPaused = paused;
@@ -53,12 +51,12 @@ public static class StrategySpeedState {
 		SetPaused(!isPaused);
 	}
 
-	// 方法说明：把记录中的战略地图加速状态重新应用到当前场景。
+	// 方法说明：把记录中的战略地图加速和暂停状态重新应用到当前场景。
 	// 参数说明：无。
 	// 返回说明：无返回值。
 	public static void ApplyCurrentTimeScale() {
 		if (isPaused) {
-			Time.timeScale = PausedTimeScale;
+			Time.timeScale = NormalTimeScale;
 			return;
 		}
 

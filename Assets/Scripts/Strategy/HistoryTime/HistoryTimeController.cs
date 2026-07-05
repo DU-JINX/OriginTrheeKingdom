@@ -29,6 +29,7 @@ public class HistoryTimeController : MonoBehaviour {
 	void TimePassing() {
 		
 		if (StrategyController.state != StrategyController.State.Normal) return;
+		if (StrategySpeedState.IsPaused()) return;
 		
 		timeTick += Time.deltaTime;
 		

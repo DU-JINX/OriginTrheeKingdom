@@ -93,6 +93,10 @@ public class ArmyController : MonoBehaviour {
 	
 	void ArmyMoveController() {
 		
+		if (StrategySpeedState.IsPaused()) {
+			return;
+		}
+
 		if (state != ArmyState.Garrison && state != ArmyState.Victory 
 			&& route != null && route.Count > 0 ) {
 			

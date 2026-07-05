@@ -123,10 +123,6 @@ public class StrategyController : MonoBehaviour {
 			return;
 		}
 
-		if (StrategySpeedState.IsPaused()) {
-			return;
-		}
-		
 		// 2. 鼠标按下时记录起点，用于区分点击和拖动。
 		if (Input.GetMouseButtonDown(0)) {
 			
