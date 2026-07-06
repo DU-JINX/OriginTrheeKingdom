@@ -51,6 +51,10 @@ public class SelectGeneralToWarController : MonoBehaviour {
 	private const int StatePostBattleSurrenderKingAnswer = 8;
 	private const int StateQuickBattleConfirm = 9;
 	private const string PostBattleSurrenderBackgroundResource = "PostBattleSurrenderBackground";
+	private const float QuickBattleTroopBaseLossRate = 0.08f;
+	private const float QuickBattleTroopAdvantageLossRate = 0.24f;
+	private const float QuickBattleTroopRandomLossRate = 0.04f;
+	private const float QuickBattleTroopMaxLossRate = 0.40f;
 
 	private enum QuickBattlePriority {
 		LowStrength,
@@ -596,15 +600,18 @@ public class SelectGeneralToWarController : MonoBehaviour {
 			GeneralInfo left = Informations.Instance.GetGeneralInfo(leftGenerals[leftSelectIdx]);
 			GeneralInfo right = Informations.Instance.GetGeneralInfo(rightGenerals[rightSelectIdx]);
 
-			// 3. 按真实入场规则恢复体力技力，并自动释放可用技能。
+			// 3. 按真实入场规则恢复体力技力，并让双方小兵先进行冲锋消耗。
 			RecoverGeneralForQuickBattle(left);
 			RecoverGeneralForQuickBattle(right);
+			ApplyQuickBattleTroopClash(left, right);
+
+			// 4. 自动释放可用技能，并按小兵冲锋后的剩余兵力计算本轮战力。
 			int leftMagicPower = UseQuickBattleMagic(left);
 			int rightMagicPower = UseQuickBattleMagic(right);
 			int leftPower = GetQuickBattlePower(left, leftDefense) + leftMagicPower;
 			int rightPower = GetQuickBattlePower(right, rightDefense) + rightMagicPower;
 
-			// 4. 按本轮战力结算败退，再检查整场是否结束。
+			// 5. 按本轮战力结算败退，再检查整场是否结束。
 			if (leftPower > rightPower) {
 				rightFailFlag[rightSelectIdx] = true;
 				ApplyQuickBattleDuelResult(left, right, rightPower);
@@ -658,6 +665,65 @@ public class SelectGeneralToWarController : MonoBehaviour {
 		gInfo.healthCur = Mathf.Clamp(gInfo.healthCur, 0, gInfo.healthMax);
 		gInfo.manaCur += 5;
 		gInfo.manaCur = Mathf.Clamp(gInfo.manaCur, 0, gInfo.manaMax);
+	}
+
+	// 方法说明：执行快速战斗中武将对决前的小兵冲锋互耗。
+	// 参数说明：left 为左侧出战武将，right 为右侧出战武将。
+	// 返回说明：无返回值。
+	void ApplyQuickBattleTroopClash(GeneralInfo left, GeneralInfo right) {
+		int leftTroopPower = GetQuickBattleTroopPower(left);
+		int rightTroopPower = GetQuickBattleTroopPower(right);
+		if (leftTroopPower <= 0 || rightTroopPower <= 0) {
+			return;
+		}
+
+		float leftLossRate = GetQuickBattleTroopLossRate(rightTroopPower, leftTroopPower);
+		float rightLossRate = GetQuickBattleTroopLossRate(leftTroopPower, rightTroopPower);
+		ApplyQuickBattleTroopLoss(left, leftLossRate);
+		ApplyQuickBattleTroopLoss(right, rightLossRate);
+	}
+
+	// 方法说明：计算快速战斗小兵冲锋阶段的兵力战力。
+	// 参数说明：gInfo 为出战武将数据。
+	// 返回说明：返回骑兵和步兵折算后的兵力战力。
+	int GetQuickBattleTroopPower(GeneralInfo gInfo) {
+		return gInfo.knightCur * 6 + gInfo.soldierCur * 3;
+	}
+
+	// 方法说明：根据敌我小兵战力比例计算本方小兵损耗比例。
+	// 参数说明：attackerTroopPower 为敌方小兵战力，defenderTroopPower 为本方小兵战力。
+	// 返回说明：返回本方本轮小兵损耗比例。
+	float GetQuickBattleTroopLossRate(int attackerTroopPower, int defenderTroopPower) {
+		if (attackerTroopPower <= 0 || defenderTroopPower <= 0) {
+			return 0f;
+		}
+
+		float pressureRate = Mathf.Clamp01((float)attackerTroopPower / defenderTroopPower);
+		float randomRate = Random.Range(-QuickBattleTroopRandomLossRate, QuickBattleTroopRandomLossRate);
+		float lossRate = QuickBattleTroopBaseLossRate + pressureRate * QuickBattleTroopAdvantageLossRate + randomRate;
+		return Mathf.Clamp(lossRate, 0f, QuickBattleTroopMaxLossRate);
+	}
+
+	// 方法说明：按损耗比例扣除快速战斗小兵冲锋阶段的骑兵和步兵。
+	// 参数说明：gInfo 为出战武将数据，lossRate 为本轮损耗比例。
+	// 返回说明：无返回值。
+	void ApplyQuickBattleTroopLoss(GeneralInfo gInfo, float lossRate) {
+		if (lossRate <= 0f || GetQuickBattleTroopPower(gInfo) <= 0) {
+			return;
+		}
+
+		int knightLoss = Mathf.FloorToInt(gInfo.knightCur * lossRate);
+		int soldierLoss = Mathf.FloorToInt(gInfo.soldierCur * lossRate);
+		if (knightLoss == 0 && soldierLoss == 0) {
+			if (gInfo.soldierCur > 0) {
+				soldierLoss = 1;
+			} else if (gInfo.knightCur > 0) {
+				knightLoss = 1;
+			}
+		}
+
+		gInfo.knightCur = Mathf.Max(0, gInfo.knightCur - knightLoss);
+		gInfo.soldierCur = Mathf.Max(0, gInfo.soldierCur - soldierLoss);
 	}
 
 	// 方法说明：计算快速战斗中的基础战力。
