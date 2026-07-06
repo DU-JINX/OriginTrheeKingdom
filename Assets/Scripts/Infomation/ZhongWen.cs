@@ -59,7 +59,11 @@ public class ZhongWen {
 	public string zhaoxiang_buzai = "目前不在城中，无法登用。";
 	public string zhaoxiang_all = "一键招降";
 	public string zhaoxiang_all_result = "招降结束。归降{0}人，回归{1}人，失败{2}人。";
-	public string zhaoxiang_all_result_buzai = "招降结束。归降{0}人，回归{1}人，失败{2}人，无法登用{3}人。";
+	public string zhaoxiang_all_result_buzai = "无法登用{0}人。";
+	public string zhaoxiang_all_success_label = "归降";
+	public string zhaoxiang_all_return_label = "回归";
+	public string zhaoxiang_all_fail_label = "失败";
+	public string zhaoxiang_all_not_in_city_label = "无法登用";
 	public string[] zhaoxiang_wenda = new string[]{
 		"多谢大人爱戴，我愿效犬马之劳！",
 		"太好了....",
@@ -144,6 +148,8 @@ public class ZhongWen {
 	public string henyihantongyi = "很遗憾，统一中国的梦想无法实现了....";
 
 	public string daohao = "，";
+	public string dunhao = "、";
+	public string maohao = "：";
 	public string juhao = "。";
 	public string tanhao = "！";
 	public string shengluehao = "...";

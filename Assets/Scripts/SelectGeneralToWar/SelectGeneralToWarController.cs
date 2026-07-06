@@ -1537,6 +1537,9 @@ public class SelectGeneralToWarController : MonoBehaviour {
 		int successCount = 0;
 		int returnCount = 0;
 		int failCount = 0;
+		List<int> successGenerals = new List<int>();
+		List<int> returnGenerals = new List<int>();
+		List<int> failGenerals = new List<int>();
 
 		// 1. 从当前俘虏开始，逐个按原年度招降概率结算剩余名单。
 		for (int i=postBattleSurrenderIdx; i<postBattleSurrenderPrisons.Count; i++) {
@@ -1549,10 +1552,13 @@ public class SelectGeneralToWarController : MonoBehaviour {
 			// 2. 区分本方旧将回归、敌将归降和拒绝招降，方便玩家看懂批量结果。
 			if (isSuccess && isOwnGeneralReturn) {
 				returnCount++;
+				returnGenerals.Add(gIdx);
 			} else if (isSuccess) {
 				successCount++;
+				successGenerals.Add(gIdx);
 			} else {
 				failCount++;
+				failGenerals.Add(gIdx);
 			}
 		}
 
@@ -1566,10 +1572,55 @@ public class SelectGeneralToWarController : MonoBehaviour {
 		// 4. 跳到战后招降结束阶段，点击继续后回到主地图。
 		postBattleSurrenderIdx = postBattleSurrenderPrisons.Count;
 		state = StatePostBattleSurrenderKingAnswer;
-		SetPostBattleSurrenderText(string.Format(ZhongWen.Instance.postBattleSurrenderAllResult,
-		                                         successCount,
-		                                         returnCount,
-		                                         failCount));
+		SetPostBattleSurrenderText(GetPostBattleSurrenderAllResultMessage(successCount,
+		                                                                  returnCount,
+		                                                                  failCount,
+		                                                                  successGenerals,
+		                                                                  returnGenerals,
+		                                                                  failGenerals));
+	}
+
+	// 方法说明：生成战后一键招降的结果文案，并列出对应武将名单。
+	// 参数说明：successCount 为敌将归降数，returnCount 为旧将回归数，failCount 为失败数，后续列表为对应武将编号名单。
+	// 返回说明：返回用于战后招降结果框展示的文案。
+	string GetPostBattleSurrenderAllResultMessage(int successCount,
+	                                              int returnCount,
+	                                              int failCount,
+	                                              List<int> successGenerals,
+	                                              List<int> returnGenerals,
+	                                              List<int> failGenerals) {
+		string msg = string.Format(ZhongWen.Instance.postBattleSurrenderAllResult,
+		                           successCount,
+		                           returnCount,
+		                           failCount);
+		msg += GetPostBattleSurrenderNameDetail(ZhongWen.Instance.zhaoxiang_all_success_label, successGenerals);
+		msg += GetPostBattleSurrenderNameDetail(ZhongWen.Instance.zhaoxiang_all_return_label, returnGenerals);
+		msg += GetPostBattleSurrenderNameDetail(ZhongWen.Instance.zhaoxiang_all_fail_label, failGenerals);
+
+		return msg;
+	}
+
+	// 方法说明：生成战后一键招降某类结果的武将名单文案。
+	// 参数说明：label 为名单标题，generals 为武将编号列表。
+	// 返回说明：存在名单时返回标题和武将名，不存在名单时返回空字符串。
+	string GetPostBattleSurrenderNameDetail(string label, List<int> generals) {
+		if (generals.Count == 0) {
+			return "";
+		}
+
+		return label + ZhongWen.Instance.maohao + GetPostBattleSurrenderGeneralNamesText(generals) + ZhongWen.Instance.juhao;
+	}
+
+	// 方法说明：把战后招降武将编号列表转换为顿号分隔的武将名称。
+	// 参数说明：generals 为武将编号列表。
+	// 返回说明：返回可显示在战后一键招降结果中的武将名称字符串。
+	string GetPostBattleSurrenderGeneralNamesText(List<int> generals) {
+		List<string> names = new List<string>();
+		for (int i=0; i<generals.Count; i++) {
+			names.Add(ZhongWen.Instance.GetGeneralName(generals[i]));
+		}
+
+		return string.Join(ZhongWen.Instance.dunhao, names.ToArray());
 	}
 
 	// 方法说明：按年度招降同一套概率结算指定俘虏的战后招降结果。

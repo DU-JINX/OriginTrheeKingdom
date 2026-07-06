@@ -247,6 +247,10 @@ public class SPController : MonoBehaviour {
 		int returnCount = 0;
 		int failCount = 0;
 		int notInCityCount = 0;
+		List<int> successGenerals = new List<int>();
+		List<int> returnGenerals = new List<int>();
+		List<int> failGenerals = new List<int>();
+		List<int> notInCityGenerals = new List<int>();
 
 		// 1. 遍历当前年度招降列表，只处理仍可选的俘虏，避免重复消耗已行动武将。
 		for (int i=0; i<prisonerList.GetCount(); i++) {
@@ -264,6 +268,7 @@ public class SPController : MonoBehaviour {
 				gInfo.active = 0;
 				item.SetSelectEnable(false);
 				notInCityCount++;
+				notInCityGenerals.Add(gIdx);
 				continue;
 			}
 
@@ -273,10 +278,13 @@ public class SPController : MonoBehaviour {
 			item.SetSelectEnable(false);
 			if (isSuccess && isOwnGeneralReturn) {
 				returnCount++;
+				returnGenerals.Add(gIdx);
 			} else if (isSuccess) {
 				successCount++;
+				successGenerals.Add(gIdx);
 			} else {
 				failCount++;
+				failGenerals.Add(gIdx);
 			}
 		}
 
@@ -289,28 +297,67 @@ public class SPController : MonoBehaviour {
 
 		state = StateSurrenderAllResult;
 		prisonerList.SetItemSelected(-1, false);
-		string msg = GetSurrenderAllResultMessage(successCount, returnCount, failCount, notInCityCount);
+		string msg = GetSurrenderAllResultMessage(successCount,
+		                                          returnCount,
+		                                          failCount,
+		                                          notInCityCount,
+		                                          successGenerals,
+		                                          returnGenerals,
+		                                          failGenerals,
+		                                          notInCityGenerals);
 		kingDialogue.SetDialogue(Informations.Instance.GetKingInfo(Controller.kingIndex).generalIdx,
 		                          msg,
 		                          MenuDisplayAnim.AnimType.InsertFromBottom);
 	}
 
 	// 方法说明：生成年度内政一键招降的结果文案。
-	// 参数说明：successCount 为敌将归降数，returnCount 为旧将回归数，failCount 为失败数，notInCityCount 为不在城中数。
+	// 参数说明：successCount 为敌将归降数，returnCount 为旧将回归数，failCount 为失败数，notInCityCount 为不在城中数，后四个列表为对应武将编号名单。
 	// 返回说明：返回用于君主对话框展示的结果文案。
-	string GetSurrenderAllResultMessage(int successCount, int returnCount, int failCount, int notInCityCount) {
+	string GetSurrenderAllResultMessage(int successCount,
+	                                    int returnCount,
+	                                    int failCount,
+	                                    int notInCityCount,
+	                                    List<int> successGenerals,
+	                                    List<int> returnGenerals,
+	                                    List<int> failGenerals,
+	                                    List<int> notInCityGenerals) {
+		string msg = string.Format(ZhongWen.Instance.zhaoxiang_all_result,
+		                           successCount,
+		                           returnCount,
+		                           failCount);
 		if (notInCityCount > 0) {
-			return string.Format(ZhongWen.Instance.zhaoxiang_all_result_buzai,
-			                     successCount,
-			                     returnCount,
-			                     failCount,
-			                     notInCityCount);
+			msg += string.Format(ZhongWen.Instance.zhaoxiang_all_result_buzai, notInCityCount);
 		}
 
-		return string.Format(ZhongWen.Instance.zhaoxiang_all_result,
-		                     successCount,
-		                     returnCount,
-		                     failCount);
+		msg += GetSurrenderAllNameDetail(ZhongWen.Instance.zhaoxiang_all_success_label, successGenerals);
+		msg += GetSurrenderAllNameDetail(ZhongWen.Instance.zhaoxiang_all_return_label, returnGenerals);
+		msg += GetSurrenderAllNameDetail(ZhongWen.Instance.zhaoxiang_all_fail_label, failGenerals);
+		msg += GetSurrenderAllNameDetail(ZhongWen.Instance.zhaoxiang_all_not_in_city_label, notInCityGenerals);
+
+		return msg;
+	}
+
+	// 方法说明：生成一键招降某类结果的武将名单文案。
+	// 参数说明：label 为名单标题，generals 为武将编号列表。
+	// 返回说明：存在名单时返回标题和武将名，不存在名单时返回空字符串。
+	string GetSurrenderAllNameDetail(string label, List<int> generals) {
+		if (generals.Count == 0) {
+			return "";
+		}
+
+		return label + ZhongWen.Instance.maohao + GetGeneralNamesText(generals) + ZhongWen.Instance.juhao;
+	}
+
+	// 方法说明：把武将编号列表转换为顿号分隔的武将名称。
+	// 参数说明：generals 为武将编号列表。
+	// 返回说明：返回可显示在一键招降结果中的武将名称字符串。
+	string GetGeneralNamesText(List<int> generals) {
+		List<string> names = new List<string>();
+		for (int i=0; i<generals.Count; i++) {
+			names.Add(ZhongWen.Instance.GetGeneralName(generals[i]));
+		}
+
+		return string.Join(ZhongWen.Instance.dunhao, names.ToArray());
 	}
 
 	// 方法说明：按年度招降概率结算指定俘虏。
