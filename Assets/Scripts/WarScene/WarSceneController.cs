@@ -116,7 +116,11 @@ public class WarSceneController : MonoBehaviour {
 		SetCameraPosition(new Vector3(0, -30, 0));
 	}
 	
+	// 方法说明：初始化战斗场景数据、默认速度、技能配置和背景音乐。
+	// 参数说明：无。
+	// 返回说明：无返回值。
 	void Start () {
+		ApplyDefaultBattleSpeed();
 		Init();
 
 		MagicManager.Instance.LoadConfig();
@@ -130,6 +134,14 @@ public class WarSceneController : MonoBehaviour {
 		int musicIdx = Random.Range(0, 8);
 		string musicName = "0" + (musicIdx + 1);
 		SoundController.Instance.PlayBackgroundMusic(musicName);
+	}
+
+	// 方法说明：进入战斗场景时默认应用加速状态。
+	// 参数说明：无。
+	// 返回说明：无返回值。
+	void ApplyDefaultBattleSpeed() {
+
+		Time.timeScale = 2f;
 	}
 	
 	// Update is called once per frame
@@ -1143,4 +1155,3 @@ public class WarSceneController : MonoBehaviour {
 		}
 	}
 }
-

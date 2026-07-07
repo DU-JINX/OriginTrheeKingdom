@@ -534,6 +534,9 @@ public class StrategyController : MonoBehaviour {
 		}
 	}
 	
+	// 方法说明：处理每月战略地图上的武将恢复、城池行动和部队行动。
+	// 参数说明：无。
+	// 返回说明：无返回值。
 	public void MonthAct() {
 		
 		for (int i=0; i<Informations.Instance.generalNum; i++) {
@@ -549,6 +552,9 @@ public class StrategyController : MonoBehaviour {
 		}
 	}
 	
+	// 方法说明：按武将属性恢复指定武将的体力和技力。
+	// 参数说明：gIdx 为需要恢复的武将编号。
+	// 返回说明：无返回值。
 	void GeneralResume(int gIdx) {
 		
 		GeneralInfo gInfo = Informations.Instance.GetGeneralInfo(gIdx);
@@ -566,43 +572,26 @@ public class StrategyController : MonoBehaviour {
 		}
 	}
 	
+	// 方法说明：处理单座城池的月度行动，包括自动征兵和电脑势力调兵。
+	// 参数说明：cIdx 为需要处理的城池编号。
+	// 返回说明：无返回值。
 	void CityAct(int cIdx) {
-		
+
 		CityInfo cInfo = Informations.Instance.GetCityInfo(cIdx);
-		
-		if (cInfo.king == -1 
-			|| cInfo.king == Controller.kingIndex
-			|| cInfo.king == Informations.Instance.kingNum ) {
+
+		if (cInfo.king == -1 || cInfo.king == Informations.Instance.kingNum) {
 			return;
 		}
-		
-		foreach (int gIdx in cInfo.generals) {
-			
-			if (cInfo.reservist == 0)	break;
-			
-			GeneralInfo gInfo = Informations.Instance.GetGeneralInfo(gIdx);
 
-			if (gInfo.knightCur < gInfo.knightMax) {
-				
-				int soldierAdd = gInfo.knightMax - gInfo.knightCur;
-				soldierAdd = Mathf.Clamp(soldierAdd, 0, cInfo.reservist);
-				
-				gInfo.knightCur += soldierAdd;
-				cInfo.reservist -= soldierAdd;
-			}
+		// 1. 所有有主城池先按武力从高到低给城内武将自动征兵。
+		AutoConscribeCityGenerals(cInfo);
 
-			if (cInfo.reservist == 0)	break;
-
-			if (gInfo.soldierCur < gInfo.soldierMax) {
-				
-				int soldierAdd = gInfo.soldierMax - gInfo.soldierCur;
-				soldierAdd = Mathf.Clamp(soldierAdd, 0, cInfo.reservist);
-				
-				gInfo.soldierCur += soldierAdd;
-				cInfo.reservist -= soldierAdd;
-			}
+		// 2. 玩家城池只自动补兵，不执行电脑势力的自动调兵和出征逻辑。
+		if (cInfo.king == Controller.kingIndex) {
+			return;
 		}
-		
+
+		// 3. 电脑势力根据邻城状态决定是否支援或出征。
 		List<int> cities = MyPathfinding.GetCityNearbyIdx(cIdx);
 		
 		for (int i=0; i<cities.Count; i++) {
@@ -649,6 +638,87 @@ public class StrategyController : MonoBehaviour {
 				}
 			}
 		}
+	}
+
+	// 方法说明：按武力从高到低为城内武将自动分配城池预备兵。
+	// 参数说明：cInfo 为需要执行自动征兵的城池数据。
+	// 返回说明：无返回值。
+	void AutoConscribeCityGenerals(CityInfo cInfo) {
+
+		if (cInfo.reservist <= 0 || cInfo.generals.Count == 0) {
+			return;
+		}
+
+		List<int> sortedGenerals = new List<int>(cInfo.generals);
+		sortedGenerals.Sort(CompareGeneralStrengthDescending);
+
+		for (int i=0; i<sortedGenerals.Count; i++) {
+			if (cInfo.reservist <= 0) {
+				break;
+			}
+
+			FillGeneralSoldiers(Informations.Instance.GetGeneralInfo(sortedGenerals[i]), cInfo);
+		}
+	}
+
+	// 方法说明：比较两个武将的武力值，用于自动征兵优先级排序。
+	// 参数说明：leftIdx 为左侧武将编号，rightIdx 为右侧武将编号。
+	// 返回说明：右侧武力更高时返回正数，左侧武力更高时返回负数，武力相同则按编号升序返回。
+	int CompareGeneralStrengthDescending(int leftIdx, int rightIdx) {
+
+		GeneralInfo leftInfo = Informations.Instance.GetGeneralInfo(leftIdx);
+		GeneralInfo rightInfo = Informations.Instance.GetGeneralInfo(rightIdx);
+		int strengthCompare = rightInfo.strength.CompareTo(leftInfo.strength);
+		if (strengthCompare != 0) {
+			return strengthCompare;
+		}
+
+		return leftIdx.CompareTo(rightIdx);
+	}
+
+	// 方法说明：使用城池预备兵为单个武将补满骑兵和步兵。
+	// 参数说明：gInfo 为需要补兵的武将数据，cInfo 为提供预备兵的城池数据。
+	// 返回说明：无返回值。
+	void FillGeneralSoldiers(GeneralInfo gInfo, CityInfo cInfo) {
+
+		FillGeneralKnight(gInfo, cInfo);
+		if (cInfo.reservist <= 0) {
+			return;
+		}
+
+		FillGeneralFootSoldier(gInfo, cInfo);
+	}
+
+	// 方法说明：使用城池预备兵为单个武将补充骑兵。
+	// 参数说明：gInfo 为需要补骑兵的武将数据，cInfo 为提供预备兵的城池数据。
+	// 返回说明：无返回值。
+	void FillGeneralKnight(GeneralInfo gInfo, CityInfo cInfo) {
+
+		if (gInfo.knightCur >= gInfo.knightMax) {
+			return;
+		}
+
+		int soldierAdd = gInfo.knightMax - gInfo.knightCur;
+		soldierAdd = Mathf.Clamp(soldierAdd, 0, cInfo.reservist);
+
+		gInfo.knightCur += soldierAdd;
+		cInfo.reservist -= soldierAdd;
+	}
+
+	// 方法说明：使用城池预备兵为单个武将补充步兵。
+	// 参数说明：gInfo 为需要补步兵的武将数据，cInfo 为提供预备兵的城池数据。
+	// 返回说明：无返回值。
+	void FillGeneralFootSoldier(GeneralInfo gInfo, CityInfo cInfo) {
+
+		if (gInfo.soldierCur >= gInfo.soldierMax) {
+			return;
+		}
+
+		int soldierAdd = gInfo.soldierMax - gInfo.soldierCur;
+		soldierAdd = Mathf.Clamp(soldierAdd, 0, cInfo.reservist);
+
+		gInfo.soldierCur += soldierAdd;
+		cInfo.reservist -= soldierAdd;
 	}
 	
 	void SetArmyMove(int fo, int to, int num, int maxNum) {
