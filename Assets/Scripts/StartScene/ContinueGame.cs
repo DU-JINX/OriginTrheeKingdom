@@ -34,11 +34,19 @@ public class ContinueGame : MonoBehaviour {
 		}
 	}
 
+	/// <summary>
+	/// 方法说明：读取存档头信息，并按存档所属 MOD 显示武将名称。
+	/// 参数说明：无参数。
+	/// 返回说明：无返回值。
+	/// </summary>
 	void GetHeadInfo() {
 
 		RecordHeadInfo[] headInfoList = RecordController.Instance.GetHeadInfo();
 		for (int i=0; i<8; i++) {
 			if (headInfoList[i] != null) {
+				if (!MODLoadController.Instance.LoadMOD(headInfoList[i].modIndex)) {
+					MODLoadController.Instance.LoadMOD(1);
+				}
 				string str = ZhongWen.Instance.jindu + ZhongWen.Instance.shuzi[i] + "  ";
 				str += ZhongWen.Instance.GetGeneralName1(headInfoList[i].generalIdx) + "  ";
 				str += ZhongWen.Instance.chengshu;

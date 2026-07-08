@@ -212,11 +212,53 @@ public class MyPathfinding : MonoBehaviour {
 		}
 	}
 	
+	/// <summary>
+	/// 方法说明：读取城池相邻目标，旧 48 城使用原始拓扑，新增城池按恢复坐标选择近邻。
+	/// 参数说明：cIdx 为城池索引。
+	/// 返回说明：返回可作为目标的城池索引列表。
+	/// </summary>
 	public static List<int> GetCityNearbyIdx(int cIdx) {
 		
-		if (cIdx < 0 || cIdx >= Informations.Instance.cityNum) return null;
+		if (cIdx < 0 || cIdx >= Informations.Instance.cityNum) return new List<int>();
 		
+		if (cIdx >= nearbyCities.Count) {
+			return GetRecoveredNearbyCities(cIdx);
+		}
+
 		return nearbyCities[cIdx];
+	}
+
+	/// <summary>
+	/// 方法说明：按恢复坐标为新增城池生成最近邻。
+	/// 参数说明：cIdx 为城池索引。
+	/// 返回说明：返回最多 4 个最近城池。
+	/// </summary>
+	private static List<int> GetRecoveredNearbyCities(int cIdx) {
+		List<int> result = new List<int>();
+		if (!Informations.Instance.HasCityPosition(cIdx)) return result;
+
+		Vector3 basePos = Informations.Instance.GetCityWorldPosition(cIdx);
+		List<int> candidates = new List<int>();
+		List<float> distances = new List<float>();
+		for (int i = 0; i < Informations.Instance.cityNum; i++) {
+			if (i == cIdx || !Informations.Instance.HasCityPosition(i)) continue;
+
+			float distance = Vector3.Distance(basePos, Informations.Instance.GetCityWorldPosition(i));
+			int insertIndex = 0;
+			while (insertIndex < distances.Count && distances[insertIndex] < distance) {
+				insertIndex++;
+			}
+
+			distances.Insert(insertIndex, distance);
+			candidates.Insert(insertIndex, i);
+		}
+
+		int count = Mathf.Min(4, candidates.Count);
+		for (int i = 0; i < count; i++) {
+			result.Add(candidates[i]);
+		}
+
+		return result;
 	}
 	
 	private int GetPointIdx(Vector3 pos) {
@@ -257,18 +299,37 @@ public class MyPathfinding : MonoBehaviour {
 		return -1;
 	}
 	
+	/// <summary>
+	/// 方法说明：读取城池对应路径点索引。
+	/// 参数说明：city 为城池索引。
+	/// 返回说明：旧城池返回场景路径点，新增城池按恢复坐标寻找最近路径点。
+	/// </summary>
 	private int GetPointIdx(int city) {
+		if (city < 0) return -1;
+
+		if (city >= cityPoints.Length || cityPoints[city] == null) {
+			if (Informations.Instance.HasCityPosition(city)) {
+				return GetPointIdx(Informations.Instance.GetCityWorldPosition(city));
+			}
+
+			return -1;
+		}
 		
 		return GetPointIdx(cityPoints[city]);
 	}
 	
+	/// <summary>
+	/// 方法说明：根据世界坐标反查城池索引。
+	/// 参数说明：pos 为世界坐标，distance 为命中距离。
+	/// 返回说明：命中返回城池索引，否则返回 -1。
+	/// </summary>
 	public int GetCityIndex(Vector3 pos, int distance) {
 		
 		int ret = -1;
 		
-		for (int i=0; i<cityPoints.Length; i++) {
+		for (int i=0; i<Informations.Instance.cityNum; i++) {
 			
-			if (Vector3.Distance(pos, cityPoints[i].position) < distance) {
+			if (Vector3.Distance(pos, GetCityPos(i)) < distance) {
 				ret = i;
 				break;
 			}
@@ -277,32 +338,79 @@ public class MyPathfinding : MonoBehaviour {
 		return ret;
 	}
 	
+	/// <summary>
+	/// 方法说明：读取城池世界坐标。
+	/// 参数说明：city 为城池索引。
+	/// 返回说明：旧城池返回场景路径点坐标，新增城池返回恢复坐标。
+	/// </summary>
 	public Vector3 GetCityPos(int city) {
 		
 		if (city < 0 || city >= Informations.Instance.cityNum) return Vector3.zero;
+
+		if (city < cityPoints.Length && cityPoints[city] != null) {
+			return cityPoints[city].position;
+		}
+
+		if (Informations.Instance.HasCityPosition(city)) {
+			return Informations.Instance.GetCityWorldPosition(city);
+		}
 		
-		return cityPoints[city].position;
+		return Vector3.zero;
 	}
 	
+	/// <summary>
+	/// 方法说明：获取任意坐标到任意坐标的路径。
+	/// 参数说明：startPos 为起点坐标，endPos 为终点坐标。
+	/// 返回说明：返回路径点列表。
+	/// </summary>
 	public List<Vector3> GetRoute(Vector3 startPos, Vector3 endPos) {
 		
 		return GetRoutePoints(GetPointIdx(startPos), GetPointIdx(endPos));
 	}
 	
+	/// <summary>
+	/// 方法说明：获取任意坐标到目标城池的路径。
+	/// 参数说明：startPos 为起点坐标，endCity 为目标城池索引。
+	/// 返回说明：返回路径点列表。
+	/// </summary>
 	public List<Vector3> GetRoute(Vector3 startPos, int endCity) {
-		return GetRoutePoints(GetPointIdx(startPos), GetPointIdx(endCity));
+		int start = GetPointIdx(startPos);
+		int end = GetPointIdx(endCity);
+		if (start < 0 || end < 0 || endCity >= cityPoints.Length) {
+			return GetDirectRoute(GetCityPos(endCity));
+		}
+
+		return GetRoutePoints(start, end);
 	}
 	
+	/// <summary>
+	/// 方法说明：获取城池到城池的路径。
+	/// 参数说明：startCity 为起点城池，endCity 为目标城池。
+	/// 返回说明：返回路径点列表，新增城池无法走旧拓扑时返回直线路径。
+	/// </summary>
 	public List<Vector3> GetRoute(int startCity, int endCity) {
-		
+		if (startCity >= cityPoints.Length || endCity >= cityPoints.Length) {
+			return GetDirectRoute(GetCityPos(endCity));
+		}
+
 		return GetRoutePoints(GetPointIdx(startCity), GetPointIdx(endCity));
 	}
 	
+	/// <summary>
+	/// 方法说明：获取 Transform 到 Transform 的路径。
+	/// 参数说明：start 为起点 Transform，end 为终点 Transform。
+	/// 返回说明：返回路径点列表。
+	/// </summary>
 	public List<Vector3> GetRoute(Transform start, Transform end) {
 		
 		return GetRoutePoints(GetPointIdx(start), GetPointIdx(end));
 	}
 	
+	/// <summary>
+	/// 方法说明：从路径点索引生成路径。
+	/// 参数说明：start 为起点路径点索引，end 为终点路径点索引。
+	/// 返回说明：返回路径点列表，无法连通时返回终点直达。
+	/// </summary>
 	private List<Vector3> GetRoutePoints(int start, int end) {
 		
 		List<Vector3> list = new List<Vector3>();
@@ -312,6 +420,10 @@ public class MyPathfinding : MonoBehaviour {
 			InitConnectList();
 		}
 		
+		if (start < 0 || end < 0 || start >= transform.childCount || end >= transform.childCount) {
+			return list;
+		}
+
 		if (start == end) {
 			
 			list.Add(transform.GetChild(end).position);
@@ -326,7 +438,7 @@ public class MyPathfinding : MonoBehaviour {
 		flag[end] = index;
 		nodes.AddRange(connectList[end]);
 		
-		while (!isFinished) {
+		while (!isFinished && nodes.Count > 0) {
 			
 			index++;
 			
@@ -350,6 +462,11 @@ public class MyPathfinding : MonoBehaviour {
 				nodes.RemoveAt(i);
 			}
 		}
+
+		if (!isFinished) {
+			list.Add(transform.GetChild(end).position);
+			return list;
+		}
 		
 		nodes = connectList[start];
 		
@@ -370,6 +487,17 @@ public class MyPathfinding : MonoBehaviour {
 			}
 		}
 		
+		return list;
+	}
+
+	/// <summary>
+	/// 方法说明：生成直达路径。
+	/// 参数说明：endPos 为终点坐标。
+	/// 返回说明：返回只包含终点的路径列表。
+	/// </summary>
+	private List<Vector3> GetDirectRoute(Vector3 endPos) {
+		List<Vector3> list = new List<Vector3>();
+		list.Add(endPos);
 		return list;
 	}
 	

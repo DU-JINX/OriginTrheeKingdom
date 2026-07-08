@@ -316,11 +316,12 @@ public class GeneralController : MonoBehaviour {
 		} else {
 			str = "Generals/HeadGreen/";
 		}
-		int[,] generalBody = Informations.Instance.generalBody;
-		if (generalBody[gIdx, 0] < 9) {
-			str += "Head0" + (generalBody[gIdx, 0]+1);
+		int headPart = Informations.Instance.GetGeneralBodyPart(gIdx, 0);
+		int bodyPart = Informations.Instance.GetGeneralBodyPart(gIdx, 1);
+		if (headPart < 9) {
+			str += "Head0" + (headPart+1);
 		} else {
-			str += "Head" + (generalBody[gIdx, 0]+1);
+			str += "Head" + (headPart+1);
 		}
 		go = (GameObject)Instantiate(Resources.Load(str));
 		head = go.GetComponent<exSpriteAnimation>();
@@ -330,18 +331,18 @@ public class GeneralController : MonoBehaviour {
 		} else {
 			str = "Generals/BodyGreen/";
 		}
-		if (generalBody[gIdx, 1] < 9) {
-			str += "Body0" + (generalBody[gIdx, 1]+1);
+		if (bodyPart < 9) {
+			str += "Body0" + (bodyPart+1);
 		} else {
-			str += "Body" + (generalBody[gIdx, 1]+1);
+			str += "Body" + (bodyPart+1);
 		}
 		go = (GameObject)Instantiate(Resources.Load(str));
 		body = go.GetComponent<exSpriteAnimation>();
 		
-		if (generalBody[gIdx, 1] < 9) {
-			str = "Generals/Weapon/Weapon0" + (generalBody[gIdx, 1]+1);
+		if (bodyPart < 9) {
+			str = "Generals/Weapon/Weapon0" + (bodyPart+1);
 		} else {
-			str = "Generals/Weapon/Weapon" + (generalBody[gIdx, 1]+1);
+			str = "Generals/Weapon/Weapon" + (bodyPart+1);
 		}
 		go = (GameObject)Instantiate(Resources.Load(str));
 		weapon = go.GetComponent<exSpriteAnimation>();

@@ -245,8 +245,17 @@ public class ZhongWen {
                                    "马腾","陶谦","孔岫","刘表","刘繇","严白虎","王朗","刘焉", "", 
                                    "何进","张角","丁原","龚景","乔玄","孙权","刘璋","张鲁","孟获","金旋","彻里吉"};
 
+    /// <summary>
+    /// 方法说明：读取势力名称，优先使用 MOD XML 运行时元数据。
+    /// 参数说明：idx 为势力索引。
+    /// 返回说明：返回势力名称，未找到时返回空字符串。
+    /// </summary>
     public string GetKingName(int idx)
     {
+        string runtimeName = Informations.Instance.GetRuntimeKingName(idx);
+        if (runtimeName != "") {
+            return runtimeName;
+        }
 
         if (kingName == null)
         {
@@ -261,13 +270,26 @@ public class ZhongWen {
             };
         }
 
+        if (Controller.MODSelect < 0 || Controller.MODSelect >= kingName.Length)
+            return "";
+
         if (idx < 0 || idx >= kingName[Controller.MODSelect].Length)
 			return "";
 
         return kingName[Controller.MODSelect][idx];
 	}
 	
+	/// <summary>
+	/// 方法说明：读取城池名称，优先使用 MOD XML 运行时元数据。
+	/// 参数说明：idx 为城池索引。
+	/// 返回说明：返回城池名称，未找到时返回空字符串。
+	/// </summary>
 	public string GetCityName(int idx) {
+		string runtimeName = Informations.Instance.GetRuntimeCityName(idx);
+		if (runtimeName != "") {
+			return runtimeName;
+		}
+
 		if (cityName == null) {
 			cityName = new string[] {
 				"襄平", "北平", "代县", "晋阳", "南皮", "平原", "邺", "北海", "濮阳", "陈留",
@@ -284,7 +306,17 @@ public class ZhongWen {
 		return cityName[idx];
 	}
 	
+	/// <summary>
+	/// 方法说明：读取武将名称，优先使用 MOD XML 运行时元数据。
+	/// 参数说明：idx 为武将索引。
+	/// 返回说明：返回武将名称，未找到时返回空字符串。
+	/// </summary>
 	public string GetGeneralName(int idx) {
+		string runtimeName = Informations.Instance.GetRuntimeGeneralName(idx);
+		if (runtimeName != "") {
+			return runtimeName;
+		}
+
 		if (generalName == null) {
 			generalName = new string[]{
 				"丁奉", "于禁", "兀突骨", "公孙瓒", "卞喜", "太史慈", "孔岫", "孔融", "文钦", "文聘", 

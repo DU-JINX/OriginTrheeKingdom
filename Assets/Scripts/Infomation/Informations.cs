@@ -96,6 +96,13 @@ public class Informations {
 	private CityInfo[] cities;
 	private GeneralInfo[] generals;
 	private EquipmentInfo[] equipments;
+	private string[] runtimeKingNames;
+	private string[] runtimeCityNames;
+	private string[] runtimeGeneralNames;
+	private int[] runtimeGeneralFaces;
+	private Vector3[] runtimeCityWorldPositions;
+	private Vector3[] runtimeCityFlagWorldPositions;
+	private bool[] runtimeCityHasPosition;
 	
 	public int kingNum = 18;
 	public int cityNum = 48;
@@ -106,7 +113,7 @@ public class Informations {
 	public int formationNum = 7;
 	public int jobsNum = 50;
 
-    public int[] modKingNum = new int[] { 14, 18, 8, 8, 5 };
+    public int[] modKingNum = new int[] { 14, 18, 8, 8, 5, 21 };
 
 	public List<ArmyInfo> armys = new List<ArmyInfo>();
 	
@@ -123,6 +130,165 @@ public class Informations {
 	public static void Reset() {
 		instance = null;
 	}
+
+	/// <summary>
+	/// 方法说明：按 MOD XML 中的节点数量配置运行时数据容量。
+	/// 参数说明：kingCount 为势力数量，cityCount 为城池数量，generalCount 为武将数量。
+	/// 返回说明：无返回值。
+	/// </summary>
+	public void ConfigureRuntimeCounts(int kingCount, int cityCount, int generalCount) {
+		if (kingCount < 0 || cityCount < 0 || generalCount < 0) {
+			Debug.LogError("MOD数量配置错误。");
+			return;
+		}
+
+		// 1. 更新运行时数量，替代一代固定的 18/48/255。
+		kingNum = kingCount;
+		cityNum = cityCount;
+		generalNum = generalCount;
+
+		// 2. 按新数量重建主数据数组。
+		kings = new KingInfo[kingNum + 1];
+		cities = new CityInfo[cityNum];
+		generals = new GeneralInfo[generalNum];
+
+		// 3. 建立名称、头像、坐标等从二代 APK 恢复出的元数据数组。
+		runtimeKingNames = new string[kingNum];
+		runtimeCityNames = new string[cityNum];
+		runtimeGeneralNames = new string[generalNum];
+		runtimeGeneralFaces = new int[generalNum];
+		runtimeCityWorldPositions = new Vector3[cityNum];
+		runtimeCityFlagWorldPositions = new Vector3[cityNum];
+		runtimeCityHasPosition = new bool[cityNum];
+
+		// 4. 头像默认仍按一代序号，MOD06 会用 Face 字段覆盖。
+		for (int i = 0; i < runtimeGeneralFaces.Length; i++) {
+			runtimeGeneralFaces[i] = i + 1;
+		}
+	}
+
+	/// <summary>
+	/// 方法说明：记录运行时势力名称。
+	/// 参数说明：idx 为势力索引，name 为势力名称。
+	/// 返回说明：无返回值。
+	/// </summary>
+	public void SetKingMeta(int idx, string name) {
+		if (runtimeKingNames == null || idx < 0 || idx >= runtimeKingNames.Length) return;
+		runtimeKingNames[idx] = name;
+	}
+
+	/// <summary>
+	/// 方法说明：记录运行时城池名称与地图坐标。
+	/// 参数说明：idx 为城池索引，name 为城池名称，worldPosition 为城池世界坐标，flagWorldPosition 为旗帜世界坐标。
+	/// 返回说明：无返回值。
+	/// </summary>
+	public void SetCityMeta(int idx, string name, Vector3 worldPosition, Vector3 flagWorldPosition) {
+		if (runtimeCityNames == null || idx < 0 || idx >= runtimeCityNames.Length) return;
+		runtimeCityNames[idx] = name;
+		runtimeCityWorldPositions[idx] = worldPosition;
+		runtimeCityFlagWorldPositions[idx] = flagWorldPosition;
+		runtimeCityHasPosition[idx] = worldPosition != Vector3.zero || flagWorldPosition != Vector3.zero;
+	}
+
+	/// <summary>
+	/// 方法说明：记录运行时武将名称与二代头像编号。
+	/// 参数说明：idx 为武将索引，name 为武将名称，faceIndex 为 APK 中的 Face 编号。
+	/// 返回说明：无返回值。
+	/// </summary>
+	public void SetGeneralMeta(int idx, string name, int faceIndex) {
+		if (runtimeGeneralNames == null || idx < 0 || idx >= runtimeGeneralNames.Length) return;
+		runtimeGeneralNames[idx] = name;
+		runtimeGeneralFaces[idx] = faceIndex;
+	}
+
+	/// <summary>
+	/// 方法说明：读取运行时势力名称。
+	/// 参数说明：idx 为势力索引。
+	/// 返回说明：找到则返回名称，否则返回空字符串。
+	/// </summary>
+	public string GetRuntimeKingName(int idx) {
+		if (runtimeKingNames == null || idx < 0 || idx >= runtimeKingNames.Length) return "";
+		return runtimeKingNames[idx] == null ? "" : runtimeKingNames[idx];
+	}
+
+	/// <summary>
+	/// 方法说明：读取运行时城池名称。
+	/// 参数说明：idx 为城池索引。
+	/// 返回说明：找到则返回名称，否则返回空字符串。
+	/// </summary>
+	public string GetRuntimeCityName(int idx) {
+		if (runtimeCityNames == null || idx < 0 || idx >= runtimeCityNames.Length) return "";
+		return runtimeCityNames[idx] == null ? "" : runtimeCityNames[idx];
+	}
+
+	/// <summary>
+	/// 方法说明：读取运行时武将名称。
+	/// 参数说明：idx 为武将索引。
+	/// 返回说明：找到则返回名称，否则返回空字符串。
+	/// </summary>
+	public string GetRuntimeGeneralName(int idx) {
+		if (runtimeGeneralNames == null || idx < 0 || idx >= runtimeGeneralNames.Length) return "";
+		return runtimeGeneralNames[idx] == null ? "" : runtimeGeneralNames[idx];
+	}
+
+	/// <summary>
+	/// 方法说明：读取武将头像编号。
+	/// 参数说明：idx 为武将索引。
+	/// 返回说明：返回 MOD 指定 Face 编号，失败时返回 0。
+	/// </summary>
+	public int GetGeneralFaceIndex(int idx) {
+		if (runtimeGeneralFaces == null || idx < 0 || idx >= runtimeGeneralFaces.Length) return 0;
+		return runtimeGeneralFaces[idx];
+	}
+
+	/// <summary>
+	/// 方法说明：判断城池是否有从 APK 恢复出的地图坐标。
+	/// 参数说明：idx 为城池索引。
+	/// 返回说明：有坐标返回 true，否则返回 false。
+	/// </summary>
+	public bool HasCityPosition(int idx) {
+		if (runtimeCityHasPosition == null || idx < 0 || idx >= runtimeCityHasPosition.Length) return false;
+		return runtimeCityHasPosition[idx];
+	}
+
+	/// <summary>
+	/// 方法说明：读取城池世界坐标。
+	/// 参数说明：idx 为城池索引。
+	/// 返回说明：有坐标返回世界坐标，否则返回 Vector3.zero。
+	/// </summary>
+	public Vector3 GetCityWorldPosition(int idx) {
+		if (!HasCityPosition(idx)) return Vector3.zero;
+		return runtimeCityWorldPositions[idx];
+	}
+
+	/// <summary>
+	/// 方法说明：读取城池旗帜世界坐标。
+	/// 参数说明：idx 为城池索引。
+	/// 返回说明：有坐标返回旗帜坐标，否则返回城池坐标。
+	/// </summary>
+	public Vector3 GetCityFlagWorldPosition(int idx) {
+		if (!HasCityPosition(idx)) return GetCityWorldPosition(idx);
+		return runtimeCityFlagWorldPositions[idx];
+	}
+
+	/// <summary>
+	/// 方法说明：读取战斗小人部件索引。
+	/// 参数说明：gIdx 为武将索引，partIdx 为部件索引，0 表示头，1 表示身体/武器。
+	/// 返回说明：返回部件索引；超出已恢复资源范围时返回 0 并输出错误日志。
+	/// </summary>
+	public int GetGeneralBodyPart(int gIdx, int partIdx) {
+		if (partIdx < 0 || partIdx >= 2) {
+			Debug.LogError("武将战斗部件索引错误: " + partIdx);
+			return 0;
+		}
+
+		if (gIdx < 0 || gIdx >= generalBody.GetLength(0)) {
+			Debug.LogError("武将战斗小人资源尚未恢复，使用一代基础部件。武将索引: " + gIdx);
+			return 0;
+		}
+
+		return generalBody[gIdx, partIdx];
+	}
 	
 	public EquipmentInfo GetEquipmentInfo(int idx) {
 		if (idx < 0 || idx >= equipmentNum) return null;
@@ -134,7 +300,7 @@ public class Informations {
 	}
 	
 	public KingInfo GetKingInfo(int idx) {
-		if (idx < 0 || idx >= kingNum+1) {
+		if (idx < 0) {
 			return null;
 		}
 		
@@ -142,6 +308,10 @@ public class Informations {
 			//InitDefaultKingsInfo();
 			//InitKingInfo();
             MODLoadController.Instance.LoadMOD(Controller.MODSelect);
+		}
+
+		if (idx >= kingNum+1) {
+			return null;
 		}
 		
 		return kings[idx];
@@ -157,7 +327,7 @@ public class Informations {
 	}
 	
 	public CityInfo GetCityInfo(int idx) {
-		if (idx < 0 || idx >= cityNum)
+		if (idx < 0)
 			return null;
 		
 		if (cities == null) {
@@ -166,6 +336,9 @@ public class Informations {
 			//InitCityInfo();
             MODLoadController.Instance.LoadMOD(Controller.MODSelect);
 		}
+
+		if (idx >= cityNum)
+			return null;
 		
 		return cities[idx];
 	}
@@ -180,7 +353,7 @@ public class Informations {
 	}
 	
 	public GeneralInfo GetGeneralInfo(int idx) {
-		if (idx < 0 || idx >= generalNum)
+		if (idx < 0)
 			return null;
 		
 		if (generals == null) {
@@ -223,6 +396,9 @@ public class Informations {
 			generals[2].king = 0;
 			*/
 		}
+
+		if (idx >= generalNum)
+			return null;
 		
 		return generals[idx];
 	}
@@ -250,26 +426,52 @@ public class Informations {
     public void InitGeneralInfo() {
         for (int i = 0; i < generalNum; i++)
         {
+			if (generals[i] == null) {
+				Debug.LogError("武将数据缺失，索引: " + i);
+				generals[i] = new GeneralInfo();
+			}
             generals[i].job = generals[i].magic[0];
         }
 
         for (int m = 0; m < generalNum; m++)
         {
-            int arms = generals[m].arms;
-            int i = 0;
-            while (i < armsNum && (arms & (1 << i)) == 0) i++;
-            generals[m].armsCur = 1 << i;
+			if (generals[m].armsCur == 0) {
+				generals[m].armsCur = GetFirstEnabledBit(generals[m].arms, armsNum, false, "兵种", m);
+			}
         }
 
         for (int m = 0; m < generalNum; m++)
         {
-            int formation = generals[m].formation;
-            int i = formationNum;
-            while (i >= 0 && (formation & (1 << i)) == 0) i--;
-
-            generals[m].formationCur = 1 << i;
+			if (generals[m].formationCur == 0) {
+				generals[m].formationCur = GetFirstEnabledBit(generals[m].formation, formationNum, true, "阵型", m);
+			}
         }
     }
+
+	/// <summary>
+	/// 方法说明：从 bit code 中读取一个当前引擎可用的选中项。
+	/// 参数说明：code 为可用项 bit code，maxCount 为当前引擎数量，reverse 为是否从高位优先，label 和 ownerIdx 用于日志定位。
+	/// 返回说明：返回选中的 bit code，无法读取时返回 1 并输出错误日志。
+	/// </summary>
+	private int GetFirstEnabledBit(int code, int maxCount, bool reverse, string label, int ownerIdx) {
+		if (code <= 0) {
+			Debug.LogError("未映射" + label + "，使用当前引擎基础项。武将索引: " + ownerIdx);
+			return 1;
+		}
+
+		if (reverse) {
+			for (int i = maxCount - 1; i >= 0; i--) {
+				if ((code & (1 << i)) != 0) return 1 << i;
+			}
+		} else {
+			for (int i = 0; i < maxCount; i++) {
+				if ((code & (1 << i)) != 0) return 1 << i;
+			}
+		}
+
+		Debug.LogError(label + "超出当前引擎范围，使用基础项。武将索引: " + ownerIdx + " Code: " + code);
+		return 1;
+	}
 
 	/// <summary>
 	/// Inits the king cities.
@@ -279,10 +481,12 @@ public class Informations {
 		for (int idx=0; idx<kingNum+1; idx++) {
             
 			KingInfo kInfo = GetKingInfo(idx);
+			if (kInfo == null) continue;
 			kInfo.cities = new List<int>();
 			
 			for (int i=0; i<cityNum; i++) {
 				CityInfo cInfo = GetCityInfo(i);
+				if (cInfo == null) continue;
 				
 				if (cInfo.king == idx) {
 					kInfo.cities.Add(i);
@@ -295,10 +499,12 @@ public class Informations {
 		for (int idx=0; idx<kingNum+1; idx++) {
 			
 			KingInfo kInfo = GetKingInfo(idx);
+			if (kInfo == null) continue;
 			kInfo.generals = new List<int>();
 			
 			for (int i=generalNum-1; i>=0; i--) {
 				GeneralInfo gInfo = GetGeneralInfo(i);
+				if (gInfo == null) continue;
 				
 				if (gInfo.king == idx && gInfo.prisonerIdx == -1) {
 					kInfo.generals.Add(i);
@@ -316,11 +522,14 @@ public class Informations {
 		for (int idx=0; idx<cityNum; idx++) {
 			
 			CityInfo cInfo = GetCityInfo(idx);
+			if (cInfo == null) continue;
 			
 			if (cInfo.king == -1) 	continue;
 				
 			KingInfo kInfo = GetKingInfo(cInfo.king);
-			if (GetGeneralInfo(kInfo.generalIdx).city == idx) {
+			if (kInfo == null) continue;
+			GeneralInfo kingGeneral = GetGeneralInfo(kInfo.generalIdx);
+			if (kingGeneral != null && kingGeneral.city == idx) {
 				cInfo.prefect = kInfo.generalIdx;
 				continue;
 			}
@@ -328,6 +537,7 @@ public class Informations {
 			int gIdx = -1;
 			for (int i=generalNum-1; i>=0; i--) {
 				GeneralInfo gInfo = GetGeneralInfo(i);
+				if (gInfo == null) continue;
 				
 				if (gInfo.city == idx && gInfo.king == cInfo.king && gInfo.prisonerIdx == -1) {
 					if (gIdx == -1) {
@@ -349,6 +559,7 @@ public class Informations {
 		for (int idx=0; idx<cityNum; idx++) {
 			
 			CityInfo cInfo = GetCityInfo(idx);
+			if (cInfo == null) continue;
 			if (cInfo.objects == null) {
 				cInfo.objects = new List<int>();
 			}
@@ -378,12 +589,14 @@ public class Informations {
 		for (int idx=0; idx<cityNum; idx++) {
 			
 			CityInfo cInfo = GetCityInfo(idx);
+			if (cInfo == null) continue;
 			
 			cInfo.generals = new List<int>();
 			cInfo.prisons = new List<int>();
 			
 			for (int i=generalNum-1; i>=0; i--) {
 				GeneralInfo gInfo = GetGeneralInfo(i);
+				if (gInfo == null) continue;
 				
 				if (gInfo.city == idx) {
 					if (cInfo.king == -1) {

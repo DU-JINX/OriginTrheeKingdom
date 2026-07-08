@@ -29,12 +29,15 @@ public class SelectKingSceneController : MonoBehaviour {
     private int kingIndex = -1;
     private bool isConfirmBoxShow = false;
 
-    private int[] kingListNum = new int[5] { 6, 7, 5, 5, 5 };
     private Vector3 kingListFirstPos = new Vector3(-260, 150, 0);
+    private int kingListRowsPerColumn = 11;
+    private float kingListColumnWidth = 180f;
 
 	// Use this for initialization
 	void Start () 
     {
+        SetupMODButtons();
+
         if (PlayerPrefs.HasKey("GamePass"))
         {
             SetSelectMOD();
@@ -43,13 +46,6 @@ public class SelectKingSceneController : MonoBehaviour {
         {
             SetSelectKing();
         }
-
-        for (int i = 0; i < modNames.Length; i++)
-        {
-            modNames[i].SetButtonClickHandler(OnMODButtonClick);
-            modNames[i].SetButtonData(i);
-        }
-
         confirmBox.SetActive(false);
         btnOK.SetButtonClickHandler(OnOKButton);
         btnCancel.SetButtonClickHandler(OnCancelButton);
@@ -89,6 +85,38 @@ public class SelectKingSceneController : MonoBehaviour {
         }
 	}
 
+    /// <summary>
+    /// 方法说明：绑定 MOD 选择按钮，按钮不足时把最后一个入口映射到威力加强版。
+    /// 参数说明：无参数。
+    /// 返回说明：无返回值。
+    /// </summary>
+    void SetupMODButtons()
+    {
+        int modCount = MODLoadController.Instance.GetMODCount();
+        for (int i = 0; i < modNames.Length; i++)
+        {
+            int modIndex = i;
+            if (i == modNames.Length - 1 && modNames.Length < modCount)
+            {
+                modIndex = modCount - 1;
+            }
+
+            modNames[i].SetButtonClickHandler(OnMODButtonClick);
+            modNames[i].SetButtonData(modIndex);
+
+            exSpriteFont font = modNames[i].GetComponent<exSpriteFont>();
+            if (font != null && modIndex == modCount - 1)
+            {
+                font.text = MODLoadController.Instance.GetMODDisplayName(modIndex);
+            }
+        }
+    }
+
+    /// <summary>
+    /// 方法说明：切换到选君主界面。
+    /// 参数说明：无参数。
+    /// 返回说明：无返回值。
+    /// </summary>
     void SetSelectKing()
     {
         if (selectMOD.activeSelf)
@@ -103,6 +131,11 @@ public class SelectKingSceneController : MonoBehaviour {
         }
     }
 
+    /// <summary>
+    /// 方法说明：进入选君主界面并按当前 MOD 动态生成势力按钮。
+    /// 参数说明：无参数。
+    /// 返回说明：无返回值。
+    /// </summary>
     void SelectKingEnter()
     {
         state = 1;
@@ -110,12 +143,14 @@ public class SelectKingSceneController : MonoBehaviour {
         selectMOD.SetActive(false);
         selectKing.SetActive(true);
 
-        int num = kingListNum[Controller.MODSelect];
+        ClearKingButtons();
+        MODLoadController.Instance.LoadMOD(Controller.MODSelect);
+        int num = Informations.Instance.kingNum;
         for (int i = 0; i < num; i++)
         {
             GameObject go = (GameObject)Instantiate(pushbuttonPrefab);
             go.transform.parent = kingListRoot.transform;
-            go.transform.localPosition = new Vector3(kingListFirstPos.x, kingListFirstPos.y - i * 30, 0);
+            go.transform.localPosition = GetKingButtonPosition(i);
             go.GetComponent<PushedButton>().SetButtonDownHandler(OnKingNameSelect);
             go.GetComponent<PushedButton>().SetButtonData(i);
             go.GetComponent<exSpriteFont>().text = ZhongWen.Instance.GetKingName(i);
@@ -132,6 +167,11 @@ public class SelectKingSceneController : MonoBehaviour {
         menuAnim.SetAnim(MenuDisplayAnim.AnimType.InsertFromLeft);
     }
 
+    /// <summary>
+    /// 方法说明：切换到 MOD 选择界面。
+    /// 参数说明：无参数。
+    /// 返回说明：无返回值。
+    /// </summary>
     public void SetSelectMOD()
     {
         if (selectKing.activeSelf)
@@ -148,6 +188,11 @@ public class SelectKingSceneController : MonoBehaviour {
         }
     }
 
+    /// <summary>
+    /// 方法说明：进入 MOD 选择界面并清理已生成的势力按钮。
+    /// 参数说明：无参数。
+    /// 返回说明：无返回值。
+    /// </summary>
     void SelectMODEnter()
     {
         state = 0;
@@ -155,25 +200,31 @@ public class SelectKingSceneController : MonoBehaviour {
         selectMOD.SetActive(true);
         selectKing.SetActive(false);
 
-        for (int i = 0; i < kingNameButtons.Count; i++)
-        {
-            Destroy(kingNameButtons[i]);
-        }
-        kingNameButtons.Clear();
+        ClearKingButtons();
 
         selectMOD.GetComponent<MenuDisplayAnim>().SetAnim(MenuDisplayAnim.AnimType.InsertFromRight);
     }
 
+    /// <summary>
+    /// 方法说明：响应 MOD 按钮点击并加载对应 MOD。
+    /// 参数说明：data 为按钮绑定的 MOD 索引。
+    /// 返回说明：无返回值。
+    /// </summary>
     void OnMODButtonClick(object data)
     {
         int index = (int)data;
 
-        SetSelectKing();
-
         Informations.Reset();
         MODLoadController.Instance.LoadMOD(index);
+        kingIndex = -1;
+        SetSelectKing();
     }
 
+    /// <summary>
+    /// 方法说明：响应势力按钮选择，并刷新地图高亮与势力信息。
+    /// 参数说明：data 为势力索引。
+    /// 返回说明：无返回值。
+    /// </summary>
     void OnKingNameSelect(object data)
     {
         int index = (int)data;
@@ -190,9 +241,11 @@ public class SelectKingSceneController : MonoBehaviour {
         }
 
         mapCtrl.ClearSelect();
-        for (int i = 0; i < Informations.Instance.GetKingInfo(kingIndex).cities.Count; i++)
+        KingInfo kInfo = Informations.Instance.GetKingInfo(kingIndex);
+        if (kInfo == null) return;
+        for (int i = 0; i < kInfo.cities.Count; i++)
         {
-            mapCtrl.SelectCity(Informations.Instance.GetKingInfo(kingIndex).cities[i]);
+            mapCtrl.SelectCity(kInfo.cities[i]);
         }
 
         kingInfoCtrl.SetKing(kingIndex);
@@ -202,17 +255,30 @@ public class SelectKingSceneController : MonoBehaviour {
             confirmBox.SetActive(true);
             isConfirmBoxShow = true;
         }
-        confirmBox.transform.position = new Vector3(confirmBox.transform.position.x, 160 - 30 * kingIndex, confirmBox.transform.position.z);
+        Vector3 buttonPos = GetKingButtonPosition(kingIndex);
+        confirmBox.transform.localPosition = new Vector3(confirmBox.transform.localPosition.x, buttonPos.y, confirmBox.transform.localPosition.z);
     }
 
+    /// <summary>
+    /// 方法说明：确认选中势力并进入内政场景。
+    /// 参数说明：无参数。
+    /// 返回说明：无返回值。
+    /// </summary>
     void OnOKButton()
     {
+        if (kingIndex < 0) return;
+
         Controller.kingIndex = kingIndex;
 
         StrategyController.isFirstEnter = true;
         Misc.LoadLevel("InternalAffairs");
     }
 
+    /// <summary>
+    /// 方法说明：取消当前势力确认框。
+    /// 参数说明：无参数。
+    /// 返回说明：无返回值。
+    /// </summary>
     void OnCancelButton()
     {
         isConfirmBoxShow = false;
@@ -220,7 +286,36 @@ public class SelectKingSceneController : MonoBehaviour {
 
         btnCancel.SetButtonState(Button.ButtonState.Normal);
 
-        kingNameButtons[kingIndex].GetComponent<PushedButton>().SetButtonState(PushedButton.ButtonState.Normal);
+        if (kingIndex >= 0 && kingIndex < kingNameButtons.Count)
+        {
+            kingNameButtons[kingIndex].GetComponent<PushedButton>().SetButtonState(PushedButton.ButtonState.Normal);
+        }
         kingIndex = -1;
+    }
+
+    /// <summary>
+    /// 方法说明：清理动态生成的势力按钮。
+    /// 参数说明：无参数。
+    /// 返回说明：无返回值。
+    /// </summary>
+    private void ClearKingButtons()
+    {
+        for (int i = 0; i < kingNameButtons.Count; i++)
+        {
+            Destroy(kingNameButtons[i]);
+        }
+        kingNameButtons.Clear();
+    }
+
+    /// <summary>
+    /// 方法说明：计算势力按钮位置，超过一列时自动换列。
+    /// 参数说明：index 为势力索引。
+    /// 返回说明：返回按钮本地坐标。
+    /// </summary>
+    private Vector3 GetKingButtonPosition(int index)
+    {
+        int column = index / kingListRowsPerColumn;
+        int row = index % kingListRowsPerColumn;
+        return new Vector3(kingListFirstPos.x + column * kingListColumnWidth, kingListFirstPos.y - row * 30, 0);
     }
 }

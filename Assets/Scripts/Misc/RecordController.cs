@@ -11,6 +11,7 @@ public class RecordHeadInfo {
 	public int cityNum;
 	public int generalNum;
 	public int HistoryTime;
+	public int modIndex;
 }
 
 public class RecordController {
@@ -41,11 +42,46 @@ public class RecordController {
 				headInfoItem.cityNum = PlayerPrefs.GetInt(recordStr + "CitiesNum", -1);
 				headInfoItem.generalNum = PlayerPrefs.GetInt(recordStr + "GeneralsNum", -1);
 				headInfoItem.HistoryTime = PlayerPrefs.GetInt(recordStr + "HistoryTime", -1);
+				headInfoItem.modIndex = GetSavedRecordModIndex(i, PlayerPrefs.GetInt(recordStr + "ModIndex", 1));
 				headInfoList[i] = headInfoItem;
 			}
 		}
 
 		return headInfoList;
+	}
+
+	/// <summary>
+	/// 方法说明：读取存档所属 MOD 索引，优先使用 XML 中的 Mod 节点。
+	/// 参数说明：index 为存档槽位索引，fallback 为无法读取时的默认 MOD。
+	/// 返回说明：返回存档所属 MOD 索引。
+	/// </summary>
+	private int GetSavedRecordModIndex(int index, int fallback) {
+		string path = "";
+		if (Application.isEditor) {
+			path = Application.dataPath + "/../SAVES/";
+		} else {
+			path = Application.persistentDataPath + "/SAVES/";
+		}
+
+		string filePath = path + "SANGO0" + (index+1) + ".SAV.xml";
+		if (!File.Exists(filePath)) {
+			return fallback;
+		}
+
+		XmlDocument xmlDoc = new XmlDocument();
+		StreamReader sr = File.OpenText(filePath);
+		xmlDoc.LoadXml(sr.ReadToEnd().Trim());
+		sr.Close();
+
+		XmlElement root = xmlDoc.DocumentElement;
+		if (root == null) return fallback;
+
+		XmlElement node = (XmlElement)root.SelectSingleNode("Mod");
+		if (node == null || !node.HasAttribute("Index")) {
+			return fallback;
+		}
+
+		return int.Parse(node.GetAttribute("Index"));
 	}
 
 	public void LoadRecord(int index, RecordCallback recordCallback) {
@@ -84,7 +120,7 @@ public class RecordController {
         {
             Controller.MODSelect = 1;
         }
-        Informations.Instance.kingNum = Informations.Instance.modKingNum[Controller.MODSelect];
+        MODLoadController.Instance.LoadMOD(Controller.MODSelect);
 
         node = (XmlElement)root.SelectSingleNode("HeadInfo");
 		Controller.kingIndex 	= int.Parse(node.GetAttribute("SelectKing"));
@@ -247,6 +283,7 @@ public class RecordController {
 		PlayerPrefs.SetInt(recordStr + "CitiesNum", kInfo.cities.Count);
 		PlayerPrefs.SetInt(recordStr + "GeneralsNum", kInfo.generals.Count);
 		PlayerPrefs.SetInt(recordStr + "HistoryTime", Controller.historyTime);
+		PlayerPrefs.SetInt(recordStr + "ModIndex", Controller.MODSelect);
         PlayerPrefs.Save();
 
 		string path = "";
@@ -397,5 +434,3 @@ public class RecordController {
 		}
 	}
 }
-
-
