@@ -24,6 +24,7 @@ public class SelectKingSceneController : MonoBehaviour {
     public Button[] modNames;
 
     private List<GameObject> kingNameButtons = new List<GameObject>();
+    private List<GameObject> runtimeModButtons = new List<GameObject>();
 
     private int state = 0;
     private int kingIndex = -1;
@@ -32,6 +33,7 @@ public class SelectKingSceneController : MonoBehaviour {
     private Vector3 kingListFirstPos = new Vector3(-260, 150, 0);
     private int kingListRowsPerColumn = 11;
     private float kingListColumnWidth = 180f;
+    private Vector3 modListFirstPos = new Vector3(-210, 120, 0);
 
 	// Use this for initialization
 	void Start () 
@@ -109,6 +111,8 @@ public class SelectKingSceneController : MonoBehaviour {
             {
                 font.text = MODLoadController.Instance.GetMODDisplayName(modIndex);
             }
+
+            modNames[i].gameObject.SetActive(false);
         }
     }
 
@@ -201,6 +205,7 @@ public class SelectKingSceneController : MonoBehaviour {
         selectKing.SetActive(false);
 
         ClearKingButtons();
+        CreateRuntimeModButtons();
 
         selectMOD.GetComponent<MenuDisplayAnim>().SetAnim(MenuDisplayAnim.AnimType.InsertFromRight);
     }
@@ -217,6 +222,7 @@ public class SelectKingSceneController : MonoBehaviour {
         Informations.Reset();
         MODLoadController.Instance.LoadMOD(index);
         kingIndex = -1;
+        ClearRuntimeModButtons();
         SetSelectKing();
     }
 
@@ -305,6 +311,55 @@ public class SelectKingSceneController : MonoBehaviour {
             Destroy(kingNameButtons[i]);
         }
         kingNameButtons.Clear();
+    }
+
+    /// <summary>
+    /// 方法说明：创建副本选择按钮，避免旧场景按钮被背景遮挡或缺失时无法进入威力加强版。
+    /// 参数说明：无参数。
+    /// 返回说明：无返回值。
+    /// </summary>
+    private void CreateRuntimeModButtons()
+    {
+        ClearRuntimeModButtons();
+
+        int modCount = MODLoadController.Instance.GetMODCount();
+        for (int i = 0; i < modCount; i++)
+        {
+            GameObject go = (GameObject)Instantiate(pushbuttonPrefab);
+            go.transform.parent = selectMOD.transform;
+            go.transform.localPosition = GetModButtonPosition(i);
+            go.transform.localScale = Vector3.one;
+            go.transform.localRotation = Quaternion.identity;
+            go.GetComponent<PushedButton>().SetButtonDownHandler(OnMODButtonClick);
+            go.GetComponent<PushedButton>().SetButtonData(i);
+            go.GetComponent<exSpriteFont>().text = MODLoadController.Instance.GetMODDisplayName(i);
+            runtimeModButtons.Add(go);
+        }
+    }
+
+    /// <summary>
+    /// 方法说明：清理运行时创建的副本选择按钮。
+    /// 参数说明：无参数。
+    /// 返回说明：无返回值。
+    /// </summary>
+    private void ClearRuntimeModButtons()
+    {
+        for (int i = 0; i < runtimeModButtons.Count; i++)
+        {
+            Destroy(runtimeModButtons[i]);
+        }
+
+        runtimeModButtons.Clear();
+    }
+
+    /// <summary>
+    /// 方法说明：计算副本选择按钮位置。
+    /// 参数说明：index 为副本索引。
+    /// 返回说明：返回按钮本地坐标。
+    /// </summary>
+    private Vector3 GetModButtonPosition(int index)
+    {
+        return new Vector3(modListFirstPos.x, modListFirstPos.y - index * 42, 0);
     }
 
     /// <summary>
