@@ -1,0 +1,1745 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="960" viewBox="-640 -480 1280 960" role="img" aria-labelledby="title desc">
+  <title id="title">放大战略场景风格地图</title>
+  <desc id="desc">以用户提供的放大战略场景为视觉参考重绘的 SVG 地图；没有州界线和州名；城池与道路保持项目 MyPathfinding 原始坐标。</desc>
+  <defs>
+    <linearGradient id="sea" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#16323a"/>
+      <stop offset="0.55" stop-color="#234b50"/>
+      <stop offset="1" stop-color="#0b1b21"/>
+    </linearGradient>
+    <radialGradient id="ground" cx="52%" cy="44%" r="82%">
+      <stop offset="0" stop-color="#94b36d"/>
+      <stop offset="0.34" stop-color="#7fa864"/>
+      <stop offset="0.62" stop-color="#b9a265"/>
+      <stop offset="1" stop-color="#795f43"/>
+    </radialGradient>
+    <linearGradient id="mountainLight" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#e2e5da"/>
+      <stop offset="0.46" stop-color="#7c867c"/>
+      <stop offset="1" stop-color="#2f3d37"/>
+    </linearGradient>
+    <filter id="terrainNoise" x="-10%" y="-10%" width="120%" height="120%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.009 0.015" numOctaves="5" seed="45"/>
+      <feColorMatrix type="saturate" values="0.48"/>
+      <feComponentTransfer><feFuncA type="table" tableValues="0 0.2"/></feComponentTransfer>
+      <feBlend mode="multiply" in2="SourceGraphic"/>
+    </filter>
+    <filter id="softShadow" x="-35%" y="-35%" width="170%" height="170%">
+      <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#1b1008" flood-opacity="0.42"/>
+    </filter>
+    <filter id="labelShadow" x="-30%" y="-80%" width="160%" height="260%">
+      <feDropShadow dx="0" dy="1.4" stdDeviation="1.1" flood-color="#160d08" flood-opacity="0.84"/>
+    </filter>
+    <clipPath id="landClip"><path d="M -628 306 C -602 395 -488 442 -382 400 C -270 446 -124 430 -12 376 C 86 426 242 420 350 352 C 472 382 574 302 604 190 C 638 60 560 18 588 -92 C 622 -218 552 -354 454 -414 C 344 -462 238 -424 126 -450 C 18 -424 -90 -462 -210 -420 C -334 -448 -478 -392 -562 -284 C -520 -180 -604 -88 -596 28 C -638 118 -664 216 -628 306 Z"/></clipPath>
+    <g id="tree">
+      <ellipse cx="0" cy="0" rx="5" ry="8" fill="#315f3c" opacity="0.92"/>
+      <ellipse cx="-3" cy="-2" rx="4" ry="6" fill="#4b7e4d" opacity="0.82"/>
+      <ellipse cx="3" cy="-1" rx="3" ry="5" fill="#244f35" opacity="0.8"/>
+      <path d="M 0 1 L 0 -8" stroke="#3a2918" stroke-width="1.2"/>
+    </g>
+    <g id="mountain">
+      <path d="M -54 -24 L -10 58 L 18 -24 Z" fill="#38453d" opacity="0.88"/>
+      <path d="M -18 -24 L 16 70 L 66 -24 Z" fill="url(#mountainLight)" opacity="0.96"/>
+      <path d="M 16 70 L 5 -24 L 66 -24 Z" fill="#263631" opacity="0.43"/>
+      <path d="M -4 42 L 16 70 L 34 36 L 22 46 L 14 24 L 6 44 Z" fill="#f1f0df" opacity="0.68"/>
+      <path d="M -24 -2 L -6 32" stroke="#dde1d5" stroke-width="2" opacity="0.34"/>
+    </g>
+    <style>
+      .sea { fill:url(#sea); }
+      .land { fill:url(#ground); stroke:#1b2418; stroke-width:4; filter:url(#terrainNoise); vector-effect:non-scaling-stroke; }
+      .shore { fill:url(#sea); opacity:.48; stroke:#92b4a3; stroke-width:2; vector-effect:non-scaling-stroke; }
+      .coast { fill:none; stroke:#d2c590; stroke-width:5; stroke-opacity:.34; vector-effect:non-scaling-stroke; }
+      .lake { fill:#2b6670; fill-opacity:.78; stroke:#6fa0a0; stroke-width:3; vector-effect:non-scaling-stroke; }
+      .lake-edge { fill:none; stroke:#d2c590; stroke-width:2; stroke-opacity:.38; vector-effect:non-scaling-stroke; }
+      .river-bed { fill:none; stroke:#2a7477; stroke-width:9; stroke-linecap:round; stroke-linejoin:round; stroke-opacity:.72; vector-effect:non-scaling-stroke; }
+      .river-highlight { fill:none; stroke:#8ac5bd; stroke-width:2.4; stroke-linecap:round; stroke-linejoin:round; stroke-opacity:.58; vector-effect:non-scaling-stroke; }
+      .road-shadow { fill:none; stroke:#664b34; stroke-width:8; stroke-linecap:round; stroke-linejoin:round; stroke-opacity:.14; vector-effect:non-scaling-stroke; }
+      .road { fill:none; stroke:#d0ad86; stroke-width:5; stroke-linecap:round; stroke-linejoin:round; stroke-opacity:.68; vector-effect:non-scaling-stroke; }
+      .field { fill:#8aa961; fill-opacity:.36; stroke:#d7c78b; stroke-width:1; stroke-opacity:.38; vector-effect:non-scaling-stroke; }
+      .city-building { filter:url(#softShadow); }
+      .city-ground { fill:#1a1009; opacity:.24; }
+      .city-wall { fill:#75624c; stroke:#2b1c10; stroke-width:1.4; vector-effect:non-scaling-stroke; }
+      .city-roof { fill:#b9882d; stroke:#38230f; stroke-width:1; vector-effect:non-scaling-stroke; }
+      .city-roof.main { fill:#d3a33d; }
+      .coord-pin { fill:#fff6c9; stroke:#2a180c; stroke-width:1.2; vector-effect:non-scaling-stroke; }
+      .city-label { font-family:"Songti SC","Noto Serif CJK SC","STSong",serif; font-size:22px; font-weight:900; letter-spacing:0; fill:#211208; stroke:#fff0bf; stroke-width:4.4; paint-order:stroke; filter:url(#labelShadow); }
+      .faction-badge { stroke:#301b0f; stroke-width:1.4; vector-effect:non-scaling-stroke; filter:url(#labelShadow); }
+      .neutral .faction-badge { fill:#6d6255; }
+      .king-0 .faction-badge { fill:#d7a733; }
+      .king-1 .faction-badge { fill:#d6ca4f; }
+      .king-2 .faction-badge { fill:#c94d42; }
+      .king-3 .faction-badge { fill:#754390; }
+      .king-4 .faction-badge { fill:#946035; }
+      .king-5 .faction-badge { fill:#4a84c2; }
+      .king-6 .faction-badge { fill:#3f8b58; }
+      .king-7 .faction-badge { fill:#55a5a1; }
+      .king-8 .faction-badge { fill:#5c71b4; }
+      .king-9 .faction-badge { fill:#bc7a54; }
+      .king-10 .faction-badge { fill:#68afa0; }
+      .king-11 .faction-badge { fill:#9b8e48; }
+      .king-12 .faction-badge { fill:#b96083; }
+      .king-13 .faction-badge { fill:#a86438; }
+      .note { font-family:"Menlo","Consolas",monospace; font-size:10px; fill:#f1db9f; opacity:.62; }
+    </style>
+  </defs>
+  <rect class="sea" x="-640" y="-480" width="1280" height="960"/>
+  <g id="unity-map-layer" transform="scale(1 -1)">
+    <path class="land" d="M -628 306 C -602 395 -488 442 -382 400 C -270 446 -124 430 -12 376 C 86 426 242 420 350 352 C 472 382 574 302 604 190 C 638 60 560 18 588 -92 C 622 -218 552 -354 454 -414 C 344 -462 238 -424 126 -450 C 18 -424 -90 -462 -210 -420 C -334 -448 -478 -392 -562 -284 C -520 -180 -604 -88 -596 28 C -638 118 -664 216 -628 306 Z"/>
+    <path class="shore" d="M 604 190 C 638 60 560 18 588 -92 C 622 -218 552 -354 454 -414 C 420 -390 400 -346 410 -304 C 428 -230 492 -202 496 -134 C 502 -58 452 -32 486 24 C 520 80 596 100 604 190 Z"/>
+    <path class="coast" d="M -628 306 C -602 395 -488 442 -382 400 C -270 446 -124 430 -12 376 C 86 426 242 420 350 352 C 472 382 574 302 604 190 C 638 60 560 18 588 -92 C 622 -218 552 -354 454 -414 C 344 -462 238 -424 126 -450 C 18 -424 -90 -462 -210 -420 C -334 -448 -478 -392 -562 -284 C -520 -180 -604 -88 -596 28 C -638 118 -664 216 -628 306 Z"/>
+    <g clip-path="url(#landClip)">
+      <g class="fields">
+      <rect class="field" x="-215.362" y="-84.235" width="45.171" height="17.825" rx="3" transform="rotate(-17.148 -192.777 -75.322)"/>
+      <rect class="field" x="55.525" y="-123.605" width="26.971" height="18.192" rx="3" transform="rotate(0.064 69.011 -114.509)"/>
+      <rect class="field" x="218.577" y="45.652" width="34.327" height="22.894" rx="3" transform="rotate(22.855 235.741 57.099)"/>
+      <rect class="field" x="-364.918" y="46.414" width="20.703" height="9.474" rx="3" transform="rotate(-0.569 -354.567 51.151)"/>
+      <rect class="field" x="168.821" y="228.023" width="36.833" height="18.26" rx="3" transform="rotate(-16.542 187.237 237.153)"/>
+      <rect class="field" x="-29.803" y="226.843" width="17.242" height="26.946" rx="3" transform="rotate(-25.58 -21.182 240.315)"/>
+      <rect class="field" x="-79.326" y="-0.549" width="45.912" height="26.414" rx="3" transform="rotate(-17.39 -56.37 12.658)"/>
+      <rect class="field" x="103.365" y="-121.386" width="43.012" height="9.467" rx="3" transform="rotate(22.192 124.871 -116.652)"/>
+      <rect class="field" x="229.821" y="-36.066" width="20.348" height="15.227" rx="3" transform="rotate(-24.173 239.995 -28.453)"/>
+      <rect class="field" x="-385.99" y="30.605" width="18.088" height="17.035" rx="3" transform="rotate(-15.408 -376.946 39.123)"/>
+      <rect class="field" x="158.907" y="111.714" width="27.118" height="19.756" rx="3" transform="rotate(16.486 172.466 121.592)"/>
+      <rect class="field" x="-43.668" y="180.78" width="44.388" height="16.856" rx="3" transform="rotate(21.584 -21.474 189.208)"/>
+      <rect class="field" x="-234.169" y="-85.094" width="31.866" height="22.007" rx="3" transform="rotate(-6.553 -218.236 -74.091)"/>
+      <rect class="field" x="159.25" y="-117.891" width="46.933" height="17.207" rx="3" transform="rotate(-25.652 182.716 -109.287)"/>
+      <rect class="field" x="413.456" y="21.758" width="19.167" height="24.789" rx="3" transform="rotate(27.173 423.04 34.152)"/>
+      <rect class="field" x="-291.593" y="-89.645" width="38.079" height="16.944" rx="3" transform="rotate(-26.698 -272.554 -81.173)"/>
+      <rect class="field" x="303.534" y="128.783" width="24.07" height="26.683" rx="3" transform="rotate(-2.772 315.569 142.125)"/>
+      <rect class="field" x="35.706" y="171.935" width="40.183" height="21.621" rx="3" transform="rotate(3.411 55.798 182.745)"/>
+      <rect class="field" x="-88.589" y="2.134" width="17.712" height="24.497" rx="3" transform="rotate(1.94 -79.733 14.383)"/>
+      <rect class="field" x="217.015" y="-167.551" width="24.72" height="9.145" rx="3" transform="rotate(-14.271 229.375 -162.978)"/>
+      <rect class="field" x="270.513" y="-23.61" width="42.315" height="9.599" rx="3" transform="rotate(24.609 291.671 -18.81)"/>
+      <rect class="field" x="-390.427" y="-81.522" width="37.5" height="10.186" rx="3" transform="rotate(9.58 -371.677 -76.429)"/>
+      <rect class="field" x="254.129" y="222.202" width="28.866" height="12.842" rx="3" transform="rotate(-10.613 268.562 228.623)"/>
+      <rect class="field" x="-95.007" y="224.387" width="17.065" height="20.043" rx="3" transform="rotate(-6.266 -86.474 234.409)"/>
+      <rect class="field" x="-195.467" y="-85.934" width="23.797" height="20.657" rx="3" transform="rotate(27.445 -183.568 -75.605)"/>
+      <rect class="field" x="148.896" y="-157.466" width="18.524" height="23.896" rx="3" transform="rotate(26.794 158.158 -145.518)"/>
+      <rect class="field" x="239.036" y="-78.959" width="23.191" height="11.99" rx="3" transform="rotate(-26.323 250.632 -72.964)"/>
+      <rect class="field" x="-272.945" y="-10.526" width="24.912" height="26.151" rx="3" transform="rotate(-3.673 -260.489 2.55)"/>
+      <rect class="field" x="241.8" y="181.609" width="33.984" height="9.181" rx="3" transform="rotate(1.533 258.792 186.2)"/>
+      <rect class="field" x="-150.292" y="165.41" width="24.392" height="10.487" rx="3" transform="rotate(-25.516 -138.097 170.653)"/>
+      <rect class="field" x="-250.368" y="-77.516" width="35.622" height="27.503" rx="3" transform="rotate(-23.912 -232.557 -63.764)"/>
+      <rect class="field" x="119.825" y="-181.158" width="21.301" height="17.037" rx="3" transform="rotate(-11.429 130.476 -172.639)"/>
+      <rect class="field" x="421.242" y="1.156" width="22.011" height="15.846" rx="3" transform="rotate(16.671 432.248 9.079)"/>
+      <rect class="field" x="-390.891" y="55.189" width="33.89" height="15.45" rx="3" transform="rotate(-4.378 -373.946 62.914)"/>
+      <rect class="field" x="266.707" y="144.47" width="36.78" height="11.874" rx="3" transform="rotate(-0.216 285.097 150.407)"/>
+      <rect class="field" x="-140.189" y="167.136" width="38.588" height="16.232" rx="3" transform="rotate(-15.902 -120.895 175.252)"/>
+      <rect class="field" x="-236.516" y="-79.415" width="44.286" height="10.896" rx="3" transform="rotate(-5.895 -214.374 -73.967)"/>
+      <rect class="field" x="107.474" y="-85.581" width="31.601" height="25.197" rx="3" transform="rotate(-17.19 123.274 -72.983)"/>
+      <rect class="field" x="215.751" y="55.286" width="18.65" height="25.484" rx="3" transform="rotate(7.669 225.076 68.028)"/>
+      <rect class="field" x="-450.921" y="19.258" width="40.484" height="15.109" rx="3" transform="rotate(-21.379 -430.679 26.812)"/>
+      <rect class="field" x="98.708" y="211.114" width="22.987" height="16.639" rx="3" transform="rotate(-11.74 110.201 219.434)"/>
+      <rect class="field" x="-22.495" y="262.933" width="22.861" height="27.931" rx="3" transform="rotate(25.808 -11.065 276.898)"/>
+      <rect class="field" x="-106.448" y="-102.442" width="25.099" height="9.879" rx="3" transform="rotate(25.207 -93.898 -97.503)"/>
+      <rect class="field" x="109.436" y="-51.94" width="33.661" height="26.63" rx="3" transform="rotate(-1.18 126.267 -38.625)"/>
+      <rect class="field" x="413.01" y="33.655" width="33.711" height="16.951" rx="3" transform="rotate(7.613 429.866 42.13)"/>
+      <rect class="field" x="-365.439" y="-108.003" width="27.899" height="26.516" rx="3" transform="rotate(-0.137 -351.489 -94.745)"/>
+      <rect class="field" x="168.735" y="123.84" width="45.192" height="17.943" rx="3" transform="rotate(26.066 191.331 132.811)"/>
+      <rect class="field" x="-27.513" y="219.707" width="20.002" height="14.659" rx="3" transform="rotate(2.959 -17.512 227.037)"/>
+      </g>
+      <g class="forests">
+      <use href="#tree" transform="translate(-27.194 20.481) rotate(353.139) scale(1.372)"/>
+      <use href="#tree" transform="translate(13.682 86.097) rotate(12.604) scale(0.801)"/>
+      <use href="#tree" transform="translate(33.34 93.002) rotate(332.876) scale(1.211)"/>
+      <use href="#tree" transform="translate(76.655 94.311) rotate(195.134) scale(0.829)"/>
+      <use href="#tree" transform="translate(-111.408 77.38) rotate(19.677) scale(1.281)"/>
+      <use href="#tree" transform="translate(121.288 54.911) rotate(331.044) scale(0.859)"/>
+      <use href="#tree" transform="translate(29.841 111.998) rotate(334.735) scale(1.003)"/>
+      <use href="#tree" transform="translate(42.045 100.756) rotate(246.158) scale(0.981)"/>
+      <use href="#tree" transform="translate(-24.665 88.692) rotate(42.429) scale(0.762)"/>
+      <use href="#tree" transform="translate(62.181 79.483) rotate(357.648) scale(1.262)"/>
+      <use href="#tree" transform="translate(45.19 43.304) rotate(172.278) scale(0.864)"/>
+      <use href="#tree" transform="translate(103.153 86.37) rotate(77.243) scale(1.06)"/>
+      <use href="#tree" transform="translate(93.304 71.856) rotate(183.392) scale(0.766)"/>
+      <use href="#tree" transform="translate(-80.976 108.824) rotate(196.925) scale(1.178)"/>
+      <use href="#tree" transform="translate(92.257 48.353) rotate(271.429) scale(1.154)"/>
+      <use href="#tree" transform="translate(-4.13 24.491) rotate(257.137) scale(1.131)"/>
+      <use href="#tree" transform="translate(123.221 110.208) rotate(98.042) scale(1.13)"/>
+      <use href="#tree" transform="translate(-47.816 90.999) rotate(257.483) scale(0.987)"/>
+      <use href="#tree" transform="translate(42.866 117.292) rotate(62.838) scale(0.826)"/>
+      <use href="#tree" transform="translate(152.287 -4.679) rotate(229.935) scale(0.885)"/>
+      <use href="#tree" transform="translate(-84.738 16.612) rotate(77.828) scale(0.85)"/>
+      <use href="#tree" transform="translate(4.73 50.758) rotate(194.533) scale(0.834)"/>
+      <use href="#tree" transform="translate(120.792 8.608) rotate(164.381) scale(1.136)"/>
+      <use href="#tree" transform="translate(17.702 -12.441) rotate(137.588) scale(0.77)"/>
+      <use href="#tree" transform="translate(54.054 101.082) rotate(352.678) scale(0.928)"/>
+      <use href="#tree" transform="translate(-4.565 29.155) rotate(12.387) scale(0.893)"/>
+      <use href="#tree" transform="translate(34.767 16.748) rotate(243.662) scale(0.75)"/>
+      <use href="#tree" transform="translate(-96.387 114.024) rotate(122.395) scale(0.541)"/>
+      <use href="#tree" transform="translate(-96.321 6.407) rotate(33.496) scale(1.202)"/>
+      <use href="#tree" transform="translate(139.775 23.178) rotate(86.958) scale(0.78)"/>
+      <use href="#tree" transform="translate(15.473 83.748) rotate(120.511) scale(1.172)"/>
+      <use href="#tree" transform="translate(120.723 -0.723) rotate(349.508) scale(1.245)"/>
+      <use href="#tree" transform="translate(4.671 27.776) rotate(14.662) scale(0.611)"/>
+      <use href="#tree" transform="translate(82.929 63.369) rotate(108.262) scale(0.678)"/>
+      <use href="#tree" transform="translate(-51.455 14.858) rotate(149.483) scale(0.997)"/>
+      <use href="#tree" transform="translate(111.938 99.249) rotate(309.431) scale(1.193)"/>
+      <use href="#tree" transform="translate(119.018 86.403) rotate(116.534) scale(0.91)"/>
+      <use href="#tree" transform="translate(-63.222 15.453) rotate(182.916) scale(0.748)"/>
+      <use href="#tree" transform="translate(139.574 108.163) rotate(162.362) scale(1.336)"/>
+      <use href="#tree" transform="translate(33.365 -15.134) rotate(280.519) scale(0.527)"/>
+      <use href="#tree" transform="translate(-4.84 83.155) rotate(187.946) scale(0.915)"/>
+      <use href="#tree" transform="translate(-43.091 71.963) rotate(136.638) scale(0.536)"/>
+      <use href="#tree" transform="translate(-96.9 -9.786) rotate(210.656) scale(0.924)"/>
+      <use href="#tree" transform="translate(159.318 75.672) rotate(271.478) scale(0.632)"/>
+      <use href="#tree" transform="translate(132.992 114.171) rotate(128.706) scale(1.069)"/>
+      <use href="#tree" transform="translate(-52.391 1.862) rotate(256.748) scale(0.964)"/>
+      <use href="#tree" transform="translate(-40.38 73.649) rotate(228.103) scale(0.694)"/>
+      <use href="#tree" transform="translate(15.31 61.455) rotate(43.867) scale(0.959)"/>
+      <use href="#tree" transform="translate(100.859 -3.508) rotate(272.102) scale(1.137)"/>
+      <use href="#tree" transform="translate(26.869 56.169) rotate(234.668) scale(1.157)"/>
+      <use href="#tree" transform="translate(-63.418 116.817) rotate(53.163) scale(0.599)"/>
+      <use href="#tree" transform="translate(-40.94 83.873) rotate(214.596) scale(1.018)"/>
+      <use href="#tree" transform="translate(116.563 35.685) rotate(327.398) scale(1.331)"/>
+      <use href="#tree" transform="translate(31.385 79.586) rotate(268.42) scale(1.293)"/>
+      <use href="#tree" transform="translate(-50.612 -8.593) rotate(171.527) scale(0.746)"/>
+      <use href="#tree" transform="translate(41.489 -13.922) rotate(118.426) scale(0.646)"/>
+      <use href="#tree" transform="translate(-91.644 -0.534) rotate(122.333) scale(0.859)"/>
+      <use href="#tree" transform="translate(9.555 2.121) rotate(5.129) scale(1.149)"/>
+      <use href="#tree" transform="translate(6.392 36.071) rotate(298.611) scale(0.801)"/>
+      <use href="#tree" transform="translate(-44.28 80.341) rotate(350.47) scale(1.136)"/>
+      <use href="#tree" transform="translate(23.945 23.328) rotate(345.624) scale(0.774)"/>
+      <use href="#tree" transform="translate(-101.522 54.714) rotate(3.522) scale(1.235)"/>
+      <use href="#tree" transform="translate(-42.098 30.047) rotate(122.055) scale(1.122)"/>
+      <use href="#tree" transform="translate(74.083 -16.324) rotate(268.692) scale(1.205)"/>
+      <use href="#tree" transform="translate(147.489 -1.837) rotate(49.463) scale(0.804)"/>
+      <use href="#tree" transform="translate(16.959 18.862) rotate(316.426) scale(1.338)"/>
+      <use href="#tree" transform="translate(-10.821 98.789) rotate(44.23) scale(1.303)"/>
+      <use href="#tree" transform="translate(37.106 75.468) rotate(176.409) scale(0.701)"/>
+      <use href="#tree" transform="translate(136.6 61.889) rotate(272.021) scale(1.337)"/>
+      <use href="#tree" transform="translate(-73.495 -5.758) rotate(153.27) scale(0.791)"/>
+      <use href="#tree" transform="translate(25.438 101.584) rotate(124.73) scale(1.305)"/>
+      <use href="#tree" transform="translate(62.525 57.095) rotate(264.787) scale(0.876)"/>
+      <use href="#tree" transform="translate(-28.655 -12.926) rotate(99.942) scale(1.116)"/>
+      <use href="#tree" transform="translate(12.327 62.34) rotate(62.586) scale(1.326)"/>
+      <use href="#tree" transform="translate(-47.155 -14.812) rotate(102.878) scale(0.868)"/>
+      <use href="#tree" transform="translate(78.274 -4.445) rotate(275.347) scale(1.211)"/>
+      <use href="#tree" transform="translate(-24.758 86.561) rotate(290.851) scale(0.941)"/>
+      <use href="#tree" transform="translate(72.337 88.072) rotate(154.506) scale(1.317)"/>
+      <use href="#tree" transform="translate(111.521 -0.561) rotate(140.221) scale(0.632)"/>
+      <use href="#tree" transform="translate(-56.505 -12.911) rotate(242.459) scale(0.548)"/>
+      <use href="#tree" transform="translate(-51.737 49.096) rotate(55.846) scale(1.362)"/>
+      <use href="#tree" transform="translate(82.152 73.41) rotate(123.264) scale(1.212)"/>
+      <use href="#tree" transform="translate(156.54 84.892) rotate(123.035) scale(0.693)"/>
+      <use href="#tree" transform="translate(-58.469 96.808) rotate(155.845) scale(0.796)"/>
+      <use href="#tree" transform="translate(-68.168 -17.053) rotate(322.003) scale(1.228)"/>
+      <use href="#tree" transform="translate(144.091 97.011) rotate(349.695) scale(1.224)"/>
+      <use href="#tree" transform="translate(94.928 88.439) rotate(44.822) scale(0.869)"/>
+      <use href="#tree" transform="translate(-87.073 22.317) rotate(343.079) scale(1.179)"/>
+      <use href="#tree" transform="translate(157.83 79.534) rotate(154.875) scale(0.533)"/>
+      <use href="#tree" transform="translate(-107.822 115.834) rotate(123.736) scale(0.734)"/>
+      <use href="#tree" transform="translate(-37.336 116.933) rotate(28.809) scale(0.967)"/>
+      <use href="#tree" transform="translate(20.433 -0.66) rotate(52.086) scale(1.09)"/>
+      <use href="#tree" transform="translate(-90.415 1.052) rotate(20.989) scale(0.685)"/>
+      <use href="#tree" transform="translate(73.137 42.773) rotate(186.927) scale(1.145)"/>
+      <use href="#tree" transform="translate(45.682 62.817) rotate(350.451) scale(1.056)"/>
+      <use href="#tree" transform="translate(154.001 51.345) rotate(353.644) scale(1.212)"/>
+      <use href="#tree" transform="translate(-81.116 62.097) rotate(10.353) scale(1.339)"/>
+      <use href="#tree" transform="translate(47.399 100.278) rotate(234.907) scale(0.986)"/>
+      <use href="#tree" transform="translate(12.867 95.747) rotate(19.93) scale(0.871)"/>
+      <use href="#tree" transform="translate(151.786 67.17) rotate(203.881) scale(1.214)"/>
+      <use href="#tree" transform="translate(138.963 65.29) rotate(218.948) scale(0.659)"/>
+      <use href="#tree" transform="translate(-85.905 69.98) rotate(19.919) scale(1.345)"/>
+      <use href="#tree" transform="translate(-46.94 50.215) rotate(44.653) scale(0.945)"/>
+      <use href="#tree" transform="translate(21.148 16.645) rotate(66.776) scale(0.877)"/>
+      <use href="#tree" transform="translate(-34.487 68.902) rotate(51.232) scale(0.754)"/>
+      <use href="#tree" transform="translate(-83.939 60.316) rotate(93.306) scale(0.978)"/>
+      <use href="#tree" transform="translate(52.051 55.177) rotate(211.755) scale(1.157)"/>
+      <use href="#tree" transform="translate(159.648 28.222) rotate(136.663) scale(1.219)"/>
+      <use href="#tree" transform="translate(89.678 50.481) rotate(42.64) scale(1.06)"/>
+      <use href="#tree" transform="translate(116.834 32.156) rotate(28.012) scale(0.871)"/>
+      <use href="#tree" transform="translate(-2.414 59.677) rotate(190.597) scale(1.001)"/>
+      <use href="#tree" transform="translate(-55.949 52.595) rotate(0.724) scale(1.331)"/>
+      <use href="#tree" transform="translate(-0.944 -15.527) rotate(82.086) scale(1.195)"/>
+      <use href="#tree" transform="translate(77.656 14.427) rotate(241.084) scale(1.079)"/>
+      <use href="#tree" transform="translate(16.364 48.472) rotate(275.266) scale(0.712)"/>
+      <use href="#tree" transform="translate(127.326 78.328) rotate(101.493) scale(1.221)"/>
+      <use href="#tree" transform="translate(102.695 57.85) rotate(154.455) scale(1.22)"/>
+      <use href="#tree" transform="translate(-105.528 43.737) rotate(216.17) scale(0.984)"/>
+      <use href="#tree" transform="translate(7.037 119.657) rotate(327.077) scale(0.679)"/>
+      <use href="#tree" transform="translate(67.642 71.479) rotate(319.358) scale(1.221)"/>
+      <use href="#tree" transform="translate(48.099 57.737) rotate(3.115) scale(1.058)"/>
+      <use href="#tree" transform="translate(146.929 103.999) rotate(326.021) scale(1.294)"/>
+      <use href="#tree" transform="translate(33.209 10.288) rotate(157.069) scale(0.851)"/>
+      <use href="#tree" transform="translate(125.375 53.225) rotate(355.055) scale(0.542)"/>
+      <use href="#tree" transform="translate(30.225 1.031) rotate(232.406) scale(0.753)"/>
+      <use href="#tree" transform="translate(-56.622 66.059) rotate(54.986) scale(0.864)"/>
+      <use href="#tree" transform="translate(0.438 2.012) rotate(268.511) scale(1.008)"/>
+      <use href="#tree" transform="translate(-19.899 39.488) rotate(112.175) scale(0.978)"/>
+      <use href="#tree" transform="translate(-75.519 74.03) rotate(170.145) scale(0.745)"/>
+      <use href="#tree" transform="translate(133.874 41.321) rotate(181.52) scale(1.267)"/>
+      <use href="#tree" transform="translate(149.234 32.686) rotate(79.395) scale(1.026)"/>
+      <use href="#tree" transform="translate(-60.398 118.558) rotate(79.659) scale(1.155)"/>
+      <use href="#tree" transform="translate(51.731 20.06) rotate(50.128) scale(1.276)"/>
+      <use href="#tree" transform="translate(-4.827 45.37) rotate(280.675) scale(1.046)"/>
+      <use href="#tree" transform="translate(-83.937 50.008) rotate(104.943) scale(1.149)"/>
+      <use href="#tree" transform="translate(72.861 114.719) rotate(274.298) scale(1.102)"/>
+      <use href="#tree" transform="translate(39.29 45.094) rotate(314.626) scale(0.938)"/>
+      <use href="#tree" transform="translate(-100.265 75.595) rotate(186.609) scale(1.138)"/>
+      <use href="#tree" transform="translate(58.341 89.135) rotate(180.101) scale(0.537)"/>
+      <use href="#tree" transform="translate(159.065 79.876) rotate(263.238) scale(0.797)"/>
+      <use href="#tree" transform="translate(129.927 67.382) rotate(196.886) scale(1.246)"/>
+      <use href="#tree" transform="translate(-95.276 50.819) rotate(15.078) scale(0.844)"/>
+      <use href="#tree" transform="translate(155.439 74.316) rotate(202.043) scale(0.974)"/>
+      <use href="#tree" transform="translate(-91.397 95.175) rotate(266.475) scale(1.298)"/>
+      <use href="#tree" transform="translate(42.863 71.076) rotate(263.633) scale(0.882)"/>
+      <use href="#tree" transform="translate(-26.993 26.923) rotate(185.941) scale(0.682)"/>
+      <use href="#tree" transform="translate(-82.32 34.509) rotate(152.669) scale(1.119)"/>
+      <use href="#tree" transform="translate(0.069 72.635) rotate(99.354) scale(0.712)"/>
+      <use href="#tree" transform="translate(10.775 45.849) rotate(277.568) scale(1.126)"/>
+      <use href="#tree" transform="translate(-77.848 -1.534) rotate(5.66) scale(0.93)"/>
+      <use href="#tree" transform="translate(197.739 -33.416) rotate(121.105) scale(1.07)"/>
+      <use href="#tree" transform="translate(328.816 97.614) rotate(275.076) scale(1.342)"/>
+      <use href="#tree" transform="translate(168.683 9.461) rotate(299.867) scale(0.963)"/>
+      <use href="#tree" transform="translate(172.183 108.676) rotate(209.795) scale(1.036)"/>
+      <use href="#tree" transform="translate(291.429 -81.092) rotate(326.204) scale(0.917)"/>
+      <use href="#tree" transform="translate(254.136 -98.807) rotate(227.19) scale(1.355)"/>
+      <use href="#tree" transform="translate(264.173 49.691) rotate(352.685) scale(0.797)"/>
+      <use href="#tree" transform="translate(346.578 10.946) rotate(105.512) scale(0.75)"/>
+      <use href="#tree" transform="translate(300.58 43.445) rotate(59.046) scale(1.012)"/>
+      <use href="#tree" transform="translate(225.375 3.04) rotate(132.099) scale(1.074)"/>
+      <use href="#tree" transform="translate(199.672 -66.49) rotate(81.652) scale(0.991)"/>
+      <use href="#tree" transform="translate(207.285 -139.666) rotate(114.075) scale(1.249)"/>
+      <use href="#tree" transform="translate(222.282 29.449) rotate(225.438) scale(1.371)"/>
+      <use href="#tree" transform="translate(213.444 -123.444) rotate(211.556) scale(0.663)"/>
+      <use href="#tree" transform="translate(289.076 -143.739) rotate(218.375) scale(1.285)"/>
+      <use href="#tree" transform="translate(229.409 -120.894) rotate(353.351) scale(1.11)"/>
+      <use href="#tree" transform="translate(165.129 -1.724) rotate(128.413) scale(1.09)"/>
+      <use href="#tree" transform="translate(316.779 -18.455) rotate(35.166) scale(1.261)"/>
+      <use href="#tree" transform="translate(221.072 -27.263) rotate(82.938) scale(1.057)"/>
+      <use href="#tree" transform="translate(176.36 115.774) rotate(300.308) scale(0.872)"/>
+      <use href="#tree" transform="translate(310.791 108.076) rotate(10.728) scale(1.19)"/>
+      <use href="#tree" transform="translate(312.906 -6.102) rotate(342.886) scale(0.945)"/>
+      <use href="#tree" transform="translate(250.7 1.867) rotate(126.402) scale(1.317)"/>
+      <use href="#tree" transform="translate(291.415 49.782) rotate(253.516) scale(0.732)"/>
+      <use href="#tree" transform="translate(260.569 -116.522) rotate(357.372) scale(0.586)"/>
+      <use href="#tree" transform="translate(234.996 60.286) rotate(187.524) scale(1.02)"/>
+      <use href="#tree" transform="translate(340.915 -68.599) rotate(153.302) scale(0.674)"/>
+      <use href="#tree" transform="translate(234.284 -153.805) rotate(275.647) scale(0.809)"/>
+      <use href="#tree" transform="translate(226.96 20.277) rotate(118.055) scale(0.657)"/>
+      <use href="#tree" transform="translate(333.434 -147.161) rotate(197.24) scale(1.133)"/>
+      <use href="#tree" transform="translate(329.147 -102.398) rotate(64.152) scale(0.763)"/>
+      <use href="#tree" transform="translate(272.667 -39.614) rotate(215.974) scale(0.556)"/>
+      <use href="#tree" transform="translate(175.222 65.124) rotate(329.718) scale(1.214)"/>
+      <use href="#tree" transform="translate(217.38 98.842) rotate(78.045) scale(1.254)"/>
+      <use href="#tree" transform="translate(298.871 64.929) rotate(237.942) scale(1.357)"/>
+      <use href="#tree" transform="translate(218.822 -82.278) rotate(92.872) scale(0.744)"/>
+      <use href="#tree" transform="translate(194.932 -54.789) rotate(179.026) scale(0.768)"/>
+      <use href="#tree" transform="translate(251.33 -14.582) rotate(76.303) scale(1.089)"/>
+      <use href="#tree" transform="translate(336.159 -44.27) rotate(114.639) scale(0.634)"/>
+      <use href="#tree" transform="translate(211.126 118.252) rotate(116.316) scale(1.158)"/>
+      <use href="#tree" transform="translate(256.552 -152.039) rotate(264.871) scale(1.1)"/>
+      <use href="#tree" transform="translate(286.68 64.216) rotate(281.227) scale(1.21)"/>
+      <use href="#tree" transform="translate(286.252 -20.076) rotate(17.685) scale(0.605)"/>
+      <use href="#tree" transform="translate(265.634 66.397) rotate(350.385) scale(0.858)"/>
+      <use href="#tree" transform="translate(172.991 100.711) rotate(100.872) scale(0.649)"/>
+      <use href="#tree" transform="translate(238.287 -68.902) rotate(287.384) scale(0.741)"/>
+      <use href="#tree" transform="translate(330.116 -60.31) rotate(96.5) scale(1.365)"/>
+      <use href="#tree" transform="translate(237.645 -99.365) rotate(15.758) scale(1.032)"/>
+      <use href="#tree" transform="translate(176.165 -49.595) rotate(297.874) scale(0.802)"/>
+      <use href="#tree" transform="translate(251.033 30.83) rotate(297.191) scale(1.067)"/>
+      <use href="#tree" transform="translate(331.01 9.157) rotate(348.98) scale(1.358)"/>
+      <use href="#tree" transform="translate(193.266 -1.812) rotate(32.215) scale(0.967)"/>
+      <use href="#tree" transform="translate(263.563 -81.722) rotate(66.449) scale(1)"/>
+      <use href="#tree" transform="translate(251.387 -113.237) rotate(63.417) scale(0.945)"/>
+      <use href="#tree" transform="translate(206.042 64.089) rotate(283.998) scale(1.091)"/>
+      <use href="#tree" transform="translate(165.968 29.712) rotate(161.14) scale(0.89)"/>
+      <use href="#tree" transform="translate(159.806 29.546) rotate(119.395) scale(0.73)"/>
+      <use href="#tree" transform="translate(318.968 -94.471) rotate(351.684) scale(1.069)"/>
+      <use href="#tree" transform="translate(297.739 111.574) rotate(23.903) scale(0.818)"/>
+      <use href="#tree" transform="translate(323.157 -61.019) rotate(108.015) scale(0.526)"/>
+      <use href="#tree" transform="translate(303.212 -31.91) rotate(174.239) scale(0.652)"/>
+      <use href="#tree" transform="translate(238.105 -118.28) rotate(82.963) scale(0.903)"/>
+      <use href="#tree" transform="translate(310.6 -105.291) rotate(327.021) scale(0.811)"/>
+      <use href="#tree" transform="translate(312.729 97.581) rotate(264.928) scale(1.079)"/>
+      <use href="#tree" transform="translate(167.359 56.145) rotate(55.73) scale(1.147)"/>
+      <use href="#tree" transform="translate(279.404 -22.42) rotate(316.079) scale(0.667)"/>
+      <use href="#tree" transform="translate(297.671 -127.709) rotate(90.154) scale(0.768)"/>
+      <use href="#tree" transform="translate(249.637 84.588) rotate(293.064) scale(1.207)"/>
+      <use href="#tree" transform="translate(272.646 33.991) rotate(78.348) scale(0.868)"/>
+      <use href="#tree" transform="translate(341.305 52.695) rotate(310.206) scale(0.745)"/>
+      <use href="#tree" transform="translate(212.094 -1.498) rotate(331.081) scale(0.944)"/>
+      <use href="#tree" transform="translate(267.452 -58.736) rotate(225.212) scale(0.725)"/>
+      <use href="#tree" transform="translate(302.853 39.635) rotate(348.797) scale(1.308)"/>
+      <use href="#tree" transform="translate(321.65 93.673) rotate(67.372) scale(1.099)"/>
+      <use href="#tree" transform="translate(278.681 -122.404) rotate(251.058) scale(0.697)"/>
+      <use href="#tree" transform="translate(274.925 50.74) rotate(128.264) scale(0.878)"/>
+      <use href="#tree" transform="translate(296.71 -61.498) rotate(68.508) scale(1.045)"/>
+      <use href="#tree" transform="translate(284.241 93.839) rotate(354.956) scale(0.669)"/>
+      <use href="#tree" transform="translate(340.468 18.591) rotate(137.316) scale(1.335)"/>
+      <use href="#tree" transform="translate(327.551 -82.296) rotate(125.71) scale(1.17)"/>
+      <use href="#tree" transform="translate(199.454 28.121) rotate(76.139) scale(1.179)"/>
+      <use href="#tree" transform="translate(215.407 -67.083) rotate(208.186) scale(1.09)"/>
+      <use href="#tree" transform="translate(230.283 64.951) rotate(305.565) scale(1.231)"/>
+      <use href="#tree" transform="translate(179.132 -26.91) rotate(60.144) scale(1.348)"/>
+      <use href="#tree" transform="translate(234.393 92.813) rotate(350.075) scale(1.291)"/>
+      <use href="#tree" transform="translate(190.56 81.723) rotate(192.646) scale(0.938)"/>
+      <use href="#tree" transform="translate(347.307 49.275) rotate(42.489) scale(1.247)"/>
+      <use href="#tree" transform="translate(268.334 78.765) rotate(235.761) scale(0.814)"/>
+      <use href="#tree" transform="translate(249.469 108.379) rotate(30.926) scale(0.579)"/>
+      <use href="#tree" transform="translate(335.765 106.846) rotate(266.768) scale(1.155)"/>
+      <use href="#tree" transform="translate(183.634 -2.014) rotate(148.251) scale(0.703)"/>
+      <use href="#tree" transform="translate(245.259 -42.786) rotate(0.858) scale(0.617)"/>
+      <use href="#tree" transform="translate(293.822 -153.213) rotate(324.031) scale(0.705)"/>
+      <use href="#tree" transform="translate(174.298 -74.659) rotate(164.337) scale(1.024)"/>
+      <use href="#tree" transform="translate(335.837 86.019) rotate(78.988) scale(1.088)"/>
+      <use href="#tree" transform="translate(162.997 -103.767) rotate(290.332) scale(1.135)"/>
+      <use href="#tree" transform="translate(169.348 -144.141) rotate(201.952) scale(0.901)"/>
+      <use href="#tree" transform="translate(228.207 -40.586) rotate(136.989) scale(1.012)"/>
+      <use href="#tree" transform="translate(211.528 -33.493) rotate(129.315) scale(1.165)"/>
+      <use href="#tree" transform="translate(234.197 78.61) rotate(48.183) scale(0.628)"/>
+      <use href="#tree" transform="translate(212.266 -36.041) rotate(26.981) scale(0.821)"/>
+      <use href="#tree" transform="translate(339.881 -83.891) rotate(256.713) scale(1.325)"/>
+      <use href="#tree" transform="translate(245.924 25.466) rotate(14.824) scale(0.686)"/>
+      <use href="#tree" transform="translate(177.625 -88.183) rotate(210.012) scale(0.666)"/>
+      <use href="#tree" transform="translate(229.678 -15.32) rotate(133.636) scale(0.807)"/>
+      <use href="#tree" transform="translate(248.605 41.997) rotate(78.348) scale(1.31)"/>
+      <use href="#tree" transform="translate(223.404 -113.512) rotate(334.583) scale(0.653)"/>
+      <use href="#tree" transform="translate(204.729 107.697) rotate(125.523) scale(1.238)"/>
+      <use href="#tree" transform="translate(281.134 -128.466) rotate(131.159) scale(1.302)"/>
+      <use href="#tree" transform="translate(167.127 -97.137) rotate(102.084) scale(0.588)"/>
+      <use href="#tree" transform="translate(264.075 -59.574) rotate(73.636) scale(1.013)"/>
+      <use href="#tree" transform="translate(161.198 87.148) rotate(101.019) scale(1.019)"/>
+      <use href="#tree" transform="translate(230.19 -127.365) rotate(6.021) scale(0.533)"/>
+      <use href="#tree" transform="translate(333.221 -86.606) rotate(355.965) scale(1.042)"/>
+      <use href="#tree" transform="translate(170.337 -149.921) rotate(225.505) scale(0.924)"/>
+      <use href="#tree" transform="translate(308.528 59.816) rotate(341.907) scale(1.081)"/>
+      <use href="#tree" transform="translate(320.976 -139.609) rotate(144.419) scale(0.806)"/>
+      <use href="#tree" transform="translate(151.245 116.864) rotate(58.384) scale(1.065)"/>
+      <use href="#tree" transform="translate(208.439 79.883) rotate(214.687) scale(0.744)"/>
+      <use href="#tree" transform="translate(260.584 78.777) rotate(255.193) scale(0.862)"/>
+      <use href="#tree" transform="translate(319.754 36.189) rotate(274.777) scale(1.028)"/>
+      <use href="#tree" transform="translate(203.708 64.824) rotate(160.588) scale(0.99)"/>
+      <use href="#tree" transform="translate(250.046 -149.402) rotate(79.156) scale(0.578)"/>
+      <use href="#tree" transform="translate(175.158 -79.771) rotate(271.987) scale(1.011)"/>
+      <use href="#tree" transform="translate(296.483 -14.919) rotate(210.244) scale(1.281)"/>
+      <use href="#tree" transform="translate(162.832 71.79) rotate(129.173) scale(0.776)"/>
+      <use href="#tree" transform="translate(348.802 43.993) rotate(132.864) scale(0.552)"/>
+      <use href="#tree" transform="translate(305.54 63.178) rotate(69.999) scale(1.081)"/>
+      <use href="#tree" transform="translate(176.381 -69.524) rotate(231.197) scale(1.37)"/>
+      <use href="#tree" transform="translate(187.112 -5.07) rotate(128.589) scale(1.142)"/>
+      <use href="#tree" transform="translate(464.968 -6.312) rotate(268.237) scale(1.077)"/>
+      <use href="#tree" transform="translate(517.459 -197.575) rotate(36.042) scale(0.655)"/>
+      <use href="#tree" transform="translate(488.365 2.376) rotate(27.74) scale(1.089)"/>
+      <use href="#tree" transform="translate(442.129 -170.459) rotate(323.635) scale(1.25)"/>
+      <use href="#tree" transform="translate(355.297 -245.993) rotate(338.68) scale(0.537)"/>
+      <use href="#tree" transform="translate(395.365 -207.767) rotate(208.529) scale(1.338)"/>
+      <use href="#tree" transform="translate(412.968 -259.504) rotate(162.201) scale(1.353)"/>
+      <use href="#tree" transform="translate(368.872 -279.584) rotate(181.965) scale(0.695)"/>
+      <use href="#tree" transform="translate(346.043 -97.48) rotate(181.072) scale(0.724)"/>
+      <use href="#tree" transform="translate(405.733 -111.238) rotate(299.975) scale(1.002)"/>
+      <use href="#tree" transform="translate(400.35 -150.049) rotate(291.638) scale(1.023)"/>
+      <use href="#tree" transform="translate(489.582 -90.989) rotate(296.581) scale(0.639)"/>
+      <use href="#tree" transform="translate(425.012 56.032) rotate(358.272) scale(1.079)"/>
+      <use href="#tree" transform="translate(397.209 -63.981) rotate(79.498) scale(0.935)"/>
+      <use href="#tree" transform="translate(438.03 -154.69) rotate(270.333) scale(0.62)"/>
+      <use href="#tree" transform="translate(489.61 -192.433) rotate(248.338) scale(0.632)"/>
+      <use href="#tree" transform="translate(375.293 -224.687) rotate(21.613) scale(0.686)"/>
+      <use href="#tree" transform="translate(516.464 -82.086) rotate(115.315) scale(0.954)"/>
+      <use href="#tree" transform="translate(388.032 51.981) rotate(172.295) scale(0.869)"/>
+      <use href="#tree" transform="translate(334.053 25.101) rotate(68.444) scale(0.607)"/>
+      <use href="#tree" transform="translate(518.706 -81.153) rotate(173.404) scale(1.119)"/>
+      <use href="#tree" transform="translate(391.626 -207.992) rotate(357.247) scale(0.528)"/>
+      <use href="#tree" transform="translate(340.327 -80.036) rotate(313.76) scale(1.249)"/>
+      <use href="#tree" transform="translate(426.184 -78.843) rotate(260.956) scale(1.144)"/>
+      <use href="#tree" transform="translate(509.229 -183.415) rotate(89.433) scale(0.692)"/>
+      <use href="#tree" transform="translate(460.723 -296.734) rotate(159.215) scale(0.772)"/>
+      <use href="#tree" transform="translate(381.264 -242.404) rotate(195.692) scale(1.123)"/>
+      <use href="#tree" transform="translate(400.893 -280.444) rotate(25.284) scale(1.162)"/>
+      <use href="#tree" transform="translate(466.444 -236.309) rotate(221.463) scale(0.743)"/>
+      <use href="#tree" transform="translate(375.116 -182.196) rotate(101.742) scale(1.271)"/>
+      <use href="#tree" transform="translate(362.014 -194.695) rotate(326.278) scale(0.868)"/>
+      <use href="#tree" transform="translate(453.123 -37.852) rotate(158.69) scale(0.767)"/>
+      <use href="#tree" transform="translate(353.969 -285.706) rotate(59.733) scale(0.751)"/>
+      <use href="#tree" transform="translate(522.94 -223.358) rotate(214.453) scale(1.214)"/>
+      <use href="#tree" transform="translate(447.004 69.361) rotate(83.435) scale(1.277)"/>
+      <use href="#tree" transform="translate(521.308 -177.44) rotate(198.786) scale(0.66)"/>
+      <use href="#tree" transform="translate(332.9 -124.762) rotate(315.461) scale(1.177)"/>
+      <use href="#tree" transform="translate(432.54 49.45) rotate(358.574) scale(1.377)"/>
+      <use href="#tree" transform="translate(492.355 -224.381) rotate(257.305) scale(1.258)"/>
+      <use href="#tree" transform="translate(445.813 -20.056) rotate(246.037) scale(0.686)"/>
+      <use href="#tree" transform="translate(335.244 -220.167) rotate(63.339) scale(1.157)"/>
+      <use href="#tree" transform="translate(490.907 -131.697) rotate(249.433) scale(0.956)"/>
+      <use href="#tree" transform="translate(399.322 -136.721) rotate(192.757) scale(0.672)"/>
+      <use href="#tree" transform="translate(517.367 -207.268) rotate(266.259) scale(0.964)"/>
+      <use href="#tree" transform="translate(417.36 21.602) rotate(4.037) scale(1.35)"/>
+      <use href="#tree" transform="translate(347.117 -278.573) rotate(198.958) scale(1.274)"/>
+      <use href="#tree" transform="translate(467.725 -221.373) rotate(331.886) scale(0.612)"/>
+      <use href="#tree" transform="translate(465.502 -207.617) rotate(113.12) scale(1.294)"/>
+      <use href="#tree" transform="translate(333.393 -191.966) rotate(326.7) scale(0.765)"/>
+      <use href="#tree" transform="translate(435.771 46.949) rotate(58.182) scale(0.891)"/>
+      <use href="#tree" transform="translate(384.396 -31.208) rotate(76.514) scale(1.083)"/>
+      <use href="#tree" transform="translate(396.994 -2.868) rotate(270.638) scale(0.565)"/>
+      <use href="#tree" transform="translate(473.715 -165.667) rotate(11.452) scale(1.333)"/>
+      <use href="#tree" transform="translate(380.427 -73.349) rotate(319.736) scale(1.029)"/>
+      <use href="#tree" transform="translate(356.607 -184.511) rotate(330.688) scale(1.276)"/>
+      <use href="#tree" transform="translate(369.296 -254.258) rotate(75.685) scale(1.329)"/>
+      <use href="#tree" transform="translate(463.362 -162.833) rotate(91.892) scale(1.292)"/>
+      <use href="#tree" transform="translate(517.042 -40.285) rotate(340.355) scale(0.686)"/>
+      <use href="#tree" transform="translate(490.514 -251.223) rotate(283.186) scale(0.695)"/>
+      <use href="#tree" transform="translate(353.978 -188.745) rotate(260.483) scale(0.601)"/>
+      <use href="#tree" transform="translate(490.47 -51.582) rotate(77.596) scale(0.619)"/>
+      <use href="#tree" transform="translate(492.407 -183.523) rotate(163.374) scale(1.203)"/>
+      <use href="#tree" transform="translate(364.592 -59.198) rotate(310.007) scale(1.147)"/>
+      <use href="#tree" transform="translate(395.162 -45.263) rotate(95.105) scale(1.317)"/>
+      <use href="#tree" transform="translate(489.711 -231.064) rotate(136.615) scale(1.297)"/>
+      <use href="#tree" transform="translate(397.587 -27.825) rotate(181.229) scale(1.371)"/>
+      <use href="#tree" transform="translate(358.074 -240.448) rotate(196.881) scale(0.989)"/>
+      <use href="#tree" transform="translate(377.962 -100.967) rotate(289.977) scale(0.557)"/>
+      <use href="#tree" transform="translate(495.735 -277.717) rotate(37.98) scale(0.704)"/>
+      <use href="#tree" transform="translate(341.356 20.699) rotate(77.961) scale(1.139)"/>
+      <use href="#tree" transform="translate(444.384 -117.399) rotate(241.761) scale(0.556)"/>
+      <use href="#tree" transform="translate(381.922 -77.483) rotate(138.376) scale(0.993)"/>
+      <use href="#tree" transform="translate(411.605 -251.512) rotate(254.195) scale(1.342)"/>
+      <use href="#tree" transform="translate(413.635 28.341) rotate(291.708) scale(1.028)"/>
+      <use href="#tree" transform="translate(349.582 -149.132) rotate(197.329) scale(0.713)"/>
+      <use href="#tree" transform="translate(449.452 -67.162) rotate(58.931) scale(0.843)"/>
+      <use href="#tree" transform="translate(362.234 -102.209) rotate(183.742) scale(0.785)"/>
+      <use href="#tree" transform="translate(453.93 -12.454) rotate(237.214) scale(0.673)"/>
+      <use href="#tree" transform="translate(490.794 -197.642) rotate(13.494) scale(0.543)"/>
+      <use href="#tree" transform="translate(354.264 60.674) rotate(178.122) scale(1.016)"/>
+      <use href="#tree" transform="translate(462.822 -215.598) rotate(333.58) scale(0.55)"/>
+      <use href="#tree" transform="translate(404.771 30.661) rotate(128.321) scale(0.818)"/>
+      <use href="#tree" transform="translate(379.655 -74.082) rotate(219.888) scale(1.052)"/>
+      <use href="#tree" transform="translate(344.812 -266.522) rotate(352.779) scale(1.081)"/>
+      <use href="#tree" transform="translate(392.296 -59.758) rotate(181.645) scale(1.203)"/>
+      <use href="#tree" transform="translate(470.146 -116.315) rotate(280.473) scale(1.001)"/>
+      <use href="#tree" transform="translate(340.742 -85.017) rotate(148.374) scale(1.143)"/>
+      <use href="#tree" transform="translate(522.729 -210.767) rotate(192.588) scale(1.255)"/>
+      <use href="#tree" transform="translate(331.746 -251.301) rotate(359.348) scale(0.908)"/>
+      <use href="#tree" transform="translate(493.942 -159.979) rotate(53.219) scale(0.681)"/>
+      <use href="#tree" transform="translate(500.017 -58.671) rotate(115.539) scale(1.321)"/>
+      <use href="#tree" transform="translate(416.265 30.198) rotate(162.581) scale(0.956)"/>
+      <use href="#tree" transform="translate(342.862 -61.626) rotate(154.077) scale(0.859)"/>
+      <use href="#tree" transform="translate(508.38 -165.778) rotate(32.706) scale(1.233)"/>
+      <use href="#tree" transform="translate(358.259 -271.178) rotate(5.197) scale(0.523)"/>
+      <use href="#tree" transform="translate(503.722 -183.341) rotate(165.647) scale(0.785)"/>
+      <use href="#tree" transform="translate(331.373 -243.166) rotate(51.697) scale(1.243)"/>
+      <use href="#tree" transform="translate(502.454 35.745) rotate(254.183) scale(1.051)"/>
+      <use href="#tree" transform="translate(509.505 -92.832) rotate(10.888) scale(0.687)"/>
+      <use href="#tree" transform="translate(421.894 -199.319) rotate(285.021) scale(1.081)"/>
+      <use href="#tree" transform="translate(400.482 -155.639) rotate(319.049) scale(0.657)"/>
+      <use href="#tree" transform="translate(385.368 -77.302) rotate(224.501) scale(0.98)"/>
+      <use href="#tree" transform="translate(459.484 -54.339) rotate(298.38) scale(1)"/>
+      <use href="#tree" transform="translate(489.505 -140.145) rotate(86.795) scale(1.327)"/>
+      <use href="#tree" transform="translate(424.307 -212.298) rotate(306.453) scale(0.666)"/>
+      <use href="#tree" transform="translate(-376.193 40.068) rotate(24.614) scale(1.142)"/>
+      <use href="#tree" transform="translate(-370.531 -51.684) rotate(308.167) scale(0.749)"/>
+      <use href="#tree" transform="translate(-153.726 79.616) rotate(82.409) scale(1.278)"/>
+      <use href="#tree" transform="translate(-291.257 -75.304) rotate(270.201) scale(0.923)"/>
+      <use href="#tree" transform="translate(-298.335 -105.772) rotate(332.076) scale(1.208)"/>
+      <use href="#tree" transform="translate(-150.924 -113.17) rotate(217.968) scale(1.306)"/>
+      <use href="#tree" transform="translate(-198.647 -124.982) rotate(311.156) scale(1.232)"/>
+      <use href="#tree" transform="translate(-268.485 74.329) rotate(315.066) scale(1.15)"/>
+      <use href="#tree" transform="translate(-300.666 -45.387) rotate(283.542) scale(0.663)"/>
+      <use href="#tree" transform="translate(-200.668 27.221) rotate(245.231) scale(1.24)"/>
+      <use href="#tree" transform="translate(-303.724 -159.428) rotate(2.68) scale(0.575)"/>
+      <use href="#tree" transform="translate(-270.746 47.342) rotate(56.794) scale(0.548)"/>
+      <use href="#tree" transform="translate(-377.069 -56.754) rotate(17.271) scale(0.799)"/>
+      <use href="#tree" transform="translate(-177.927 -168.837) rotate(309.63) scale(0.884)"/>
+      <use href="#tree" transform="translate(-267.064 17.071) rotate(119.476) scale(0.635)"/>
+      <use href="#tree" transform="translate(-357.379 -34.951) rotate(84.611) scale(0.648)"/>
+      <use href="#tree" transform="translate(-345.028 -148.7) rotate(335.62) scale(0.682)"/>
+      <use href="#tree" transform="translate(-150.872 49.964) rotate(55.564) scale(0.884)"/>
+      <use href="#tree" transform="translate(-275.687 -157.826) rotate(139.392) scale(0.646)"/>
+      <use href="#tree" transform="translate(-348.045 -40.389) rotate(183.717) scale(1.28)"/>
+      <use href="#tree" transform="translate(-166.258 -179.469) rotate(207.551) scale(0.856)"/>
+      <use href="#tree" transform="translate(-378.308 -103.997) rotate(314.659) scale(0.748)"/>
+      <use href="#tree" transform="translate(-146.157 -71.155) rotate(238.127) scale(0.601)"/>
+      <use href="#tree" transform="translate(-143.353 55.481) rotate(77.789) scale(0.838)"/>
+      <use href="#tree" transform="translate(-267.327 24.717) rotate(31.126) scale(1.042)"/>
+      <use href="#tree" transform="translate(-280.302 -94.837) rotate(248.27) scale(0.835)"/>
+      <use href="#tree" transform="translate(-185.202 49.787) rotate(231.731) scale(0.655)"/>
+      <use href="#tree" transform="translate(-315.481 50.835) rotate(171.482) scale(0.853)"/>
+      <use href="#tree" transform="translate(-240.281 9.098) rotate(216.008) scale(1.256)"/>
+      <use href="#tree" transform="translate(-378.806 -78.727) rotate(249.975) scale(0.905)"/>
+      <use href="#tree" transform="translate(-160.341 -168.116) rotate(319.107) scale(0.54)"/>
+      <use href="#tree" transform="translate(-268.808 -58.988) rotate(132.925) scale(1.099)"/>
+      <use href="#tree" transform="translate(-243.268 -73.191) rotate(125.963) scale(1.225)"/>
+      <use href="#tree" transform="translate(-188.279 61.542) rotate(168.082) scale(1.244)"/>
+      <use href="#tree" transform="translate(-160.511 -7.366) rotate(24.507) scale(0.69)"/>
+      <use href="#tree" transform="translate(-180.534 70.953) rotate(356.226) scale(0.723)"/>
+      <use href="#tree" transform="translate(-241.168 -121.677) rotate(261.358) scale(0.654)"/>
+      <use href="#tree" transform="translate(-156.316 56.002) rotate(48.122) scale(1.216)"/>
+      <use href="#tree" transform="translate(-376.689 53.591) rotate(20.036) scale(0.791)"/>
+      <use href="#tree" transform="translate(-241.306 -67.364) rotate(183.969) scale(1.092)"/>
+      <use href="#tree" transform="translate(-326.211 63.883) rotate(121.66) scale(1.211)"/>
+      <use href="#tree" transform="translate(-364.274 -58.063) rotate(155.355) scale(1.25)"/>
+      <use href="#tree" transform="translate(-342.516 -152.202) rotate(348.152) scale(0.908)"/>
+      <use href="#tree" transform="translate(-165.844 -56.485) rotate(89.713) scale(0.906)"/>
+      <use href="#tree" transform="translate(-228.608 -148.058) rotate(27.941) scale(0.782)"/>
+      <use href="#tree" transform="translate(-307.891 -54.671) rotate(277.268) scale(0.531)"/>
+      <use href="#tree" transform="translate(-334.927 -56.772) rotate(84.163) scale(0.899)"/>
+      <use href="#tree" transform="translate(-323.563 -27.043) rotate(260.495) scale(0.761)"/>
+      <use href="#tree" transform="translate(-177.173 -171.397) rotate(65.37) scale(0.614)"/>
+      <use href="#tree" transform="translate(-297.918 -179.709) rotate(106.072) scale(0.707)"/>
+      <use href="#tree" transform="translate(-344.771 -101.779) rotate(238.729) scale(0.674)"/>
+      <use href="#tree" transform="translate(-169.203 36.68) rotate(259.33) scale(0.842)"/>
+      <use href="#tree" transform="translate(-139.947 53.05) rotate(105.723) scale(1.289)"/>
+      <use href="#tree" transform="translate(-160.739 85.505) rotate(341.207) scale(0.996)"/>
+      <use href="#tree" transform="translate(-127.439 39.918) rotate(180.36) scale(1.336)"/>
+      <use href="#tree" transform="translate(-183.45 -92.81) rotate(127.706) scale(1.191)"/>
+      <use href="#tree" transform="translate(-144.827 -61.007) rotate(189.872) scale(1.268)"/>
+      <use href="#tree" transform="translate(-368.998 8.659) rotate(191.839) scale(1.038)"/>
+      <use href="#tree" transform="translate(-333.489 -9.296) rotate(177.92) scale(1.138)"/>
+      <use href="#tree" transform="translate(-303.562 79.218) rotate(48.089) scale(1.113)"/>
+      <use href="#tree" transform="translate(-330.186 33.1) rotate(190.294) scale(0.603)"/>
+      <use href="#tree" transform="translate(-202.225 -73.114) rotate(279.359) scale(1.164)"/>
+      <use href="#tree" transform="translate(-129.267 -95.358) rotate(343.123) scale(0.922)"/>
+      <use href="#tree" transform="translate(-243.996 25.158) rotate(6.424) scale(1.169)"/>
+      <use href="#tree" transform="translate(-185.502 -0.563) rotate(193.568) scale(1.204)"/>
+      <use href="#tree" transform="translate(-227.457 44.202) rotate(139.887) scale(0.942)"/>
+      <use href="#tree" transform="translate(-217.538 77.909) rotate(293.035) scale(0.939)"/>
+      <use href="#tree" transform="translate(-357.029 -26.495) rotate(174.63) scale(0.862)"/>
+      <use href="#tree" transform="translate(-221.982 -144.095) rotate(162.872) scale(1.087)"/>
+      <use href="#tree" transform="translate(-189.868 41.941) rotate(46.767) scale(1.165)"/>
+      <use href="#tree" transform="translate(-188.107 17.24) rotate(252.574) scale(1.125)"/>
+      <use href="#tree" transform="translate(-333.386 -22.708) rotate(213.102) scale(0.627)"/>
+      <use href="#tree" transform="translate(-133.185 -144.322) rotate(320.487) scale(0.668)"/>
+      <use href="#tree" transform="translate(-143.392 44.194) rotate(313.073) scale(0.686)"/>
+      <use href="#tree" transform="translate(-188.443 -52.643) rotate(357.009) scale(1.363)"/>
+      <use href="#tree" transform="translate(-332.865 66.528) rotate(13.213) scale(1.237)"/>
+      <use href="#tree" transform="translate(-195.649 -173.361) rotate(90.296) scale(1.303)"/>
+      <use href="#tree" transform="translate(-231.347 -42.753) rotate(234.101) scale(0.98)"/>
+      <use href="#tree" transform="translate(-164.31 -120.587) rotate(314.461) scale(0.897)"/>
+      <use href="#tree" transform="translate(-224.961 -141.365) rotate(79.813) scale(0.635)"/>
+      <use href="#tree" transform="translate(-239.516 -134.181) rotate(280.282) scale(1.265)"/>
+      <use href="#tree" transform="translate(-197.06 -106.984) rotate(269.877) scale(1.254)"/>
+      <use href="#tree" transform="translate(-180.386 34.426) rotate(148.402) scale(1.181)"/>
+      <use href="#tree" transform="translate(-179.491 65.885) rotate(113.727) scale(1.084)"/>
+      <use href="#tree" transform="translate(-239.156 -50.166) rotate(225.032) scale(1.168)"/>
+      <use href="#tree" transform="translate(-244.494 50.489) rotate(267.654) scale(1.3)"/>
+      <use href="#tree" transform="translate(-200.888 -88.28) rotate(220.156) scale(0.981)"/>
+      <use href="#tree" transform="translate(-177.219 -62.161) rotate(114.258) scale(0.829)"/>
+      <use href="#tree" transform="translate(-363.794 -183.679) rotate(328.232) scale(0.797)"/>
+      <use href="#tree" transform="translate(-278.871 55.16) rotate(204.408) scale(0.898)"/>
+      <use href="#tree" transform="translate(-140.202 67.357) rotate(171.398) scale(0.953)"/>
+      <use href="#tree" transform="translate(-330.482 -147.218) rotate(41.685) scale(1.254)"/>
+      <use href="#tree" transform="translate(280.239 201.167) rotate(285.172) scale(1.098)"/>
+      <use href="#tree" transform="translate(269.984 197.249) rotate(209.344) scale(0.95)"/>
+      <use href="#tree" transform="translate(318.97 120.026) rotate(26.656) scale(1.325)"/>
+      <use href="#tree" transform="translate(385.736 133.244) rotate(199.763) scale(1.125)"/>
+      <use href="#tree" transform="translate(252.452 262.241) rotate(185.24) scale(1.003)"/>
+      <use href="#tree" transform="translate(122.233 216.984) rotate(226.395) scale(1.165)"/>
+      <use href="#tree" transform="translate(191.591 162.005) rotate(215.807) scale(1.308)"/>
+      <use href="#tree" transform="translate(127.631 276.609) rotate(178.224) scale(1.161)"/>
+      <use href="#tree" transform="translate(361.08 242.732) rotate(174.43) scale(1.145)"/>
+      <use href="#tree" transform="translate(235.748 283.819) rotate(36.717) scale(1.188)"/>
+      <use href="#tree" transform="translate(210.501 248.105) rotate(156.582) scale(1.084)"/>
+      <use href="#tree" transform="translate(285.36 195.665) rotate(315.277) scale(0.861)"/>
+      <use href="#tree" transform="translate(186.805 170.618) rotate(117.835) scale(0.68)"/>
+      <use href="#tree" transform="translate(278.873 133.849) rotate(1.196) scale(0.872)"/>
+      <use href="#tree" transform="translate(128.171 221.63) rotate(77.063) scale(1.218)"/>
+      <use href="#tree" transform="translate(182.359 253.519) rotate(280.107) scale(1.358)"/>
+      <use href="#tree" transform="translate(319.234 274.903) rotate(342.149) scale(1)"/>
+      <use href="#tree" transform="translate(272.978 301.566) rotate(2.941) scale(0.542)"/>
+      <use href="#tree" transform="translate(375.69 295.656) rotate(318.183) scale(1.202)"/>
+      <use href="#tree" transform="translate(221.771 160.424) rotate(175.376) scale(1.379)"/>
+      <use href="#tree" transform="translate(186.279 243.11) rotate(218.169) scale(0.84)"/>
+      <use href="#tree" transform="translate(233.827 297.361) rotate(189.791) scale(1.269)"/>
+      <use href="#tree" transform="translate(194.137 310.534) rotate(276.226) scale(0.586)"/>
+      <use href="#tree" transform="translate(319.826 175.283) rotate(199.722) scale(0.963)"/>
+      <use href="#tree" transform="translate(111.53 206.791) rotate(343.293) scale(0.848)"/>
+      <use href="#tree" transform="translate(114.956 241.024) rotate(276.81) scale(0.834)"/>
+      <use href="#tree" transform="translate(295.955 287.387) rotate(225.329) scale(0.968)"/>
+      <use href="#tree" transform="translate(151.209 147.148) rotate(310.26) scale(0.862)"/>
+      <use href="#tree" transform="translate(351.627 215.017) rotate(44.02) scale(1.274)"/>
+      <use href="#tree" transform="translate(355.047 119.243) rotate(288.788) scale(0.88)"/>
+      <use href="#tree" transform="translate(90.329 117.611) rotate(259.98) scale(1.1)"/>
+      <use href="#tree" transform="translate(300.444 284.718) rotate(245.081) scale(1.095)"/>
+      <use href="#tree" transform="translate(133.642 139.884) rotate(278.453) scale(1.376)"/>
+      <use href="#tree" transform="translate(311.304 123.103) rotate(222.743) scale(1.158)"/>
+      <use href="#tree" transform="translate(344.557 116.378) rotate(317.519) scale(0.6)"/>
+      <use href="#tree" transform="translate(91.259 197.841) rotate(265.754) scale(1.215)"/>
+      <use href="#tree" transform="translate(316.447 230.012) rotate(58.794) scale(0.55)"/>
+      <use href="#tree" transform="translate(316.829 121.589) rotate(70.418) scale(0.658)"/>
+      <use href="#tree" transform="translate(107.429 280.13) rotate(200.635) scale(1.076)"/>
+      <use href="#tree" transform="translate(247.97 315.013) rotate(99.822) scale(0.576)"/>
+      <use href="#tree" transform="translate(314.091 152.044) rotate(73.846) scale(1.182)"/>
+      <use href="#tree" transform="translate(113.991 215.085) rotate(200.784) scale(1.318)"/>
+      <use href="#tree" transform="translate(276.599 192.085) rotate(319.873) scale(1.241)"/>
+      <use href="#tree" transform="translate(120.849 276.88) rotate(43.308) scale(1.185)"/>
+      <use href="#tree" transform="translate(153.177 192.147) rotate(191.516) scale(1.173)"/>
+      <use href="#tree" transform="translate(307.811 208.873) rotate(302.537) scale(0.55)"/>
+      <use href="#tree" transform="translate(219.962 223.734) rotate(276.126) scale(0.617)"/>
+      <use href="#tree" transform="translate(347.504 137.735) rotate(263.208) scale(1.088)"/>
+      <use href="#tree" transform="translate(114.236 297.509) rotate(201.312) scale(1.088)"/>
+      <use href="#tree" transform="translate(195.328 166.632) rotate(126.602) scale(0.973)"/>
+      <use href="#tree" transform="translate(135.029 144.34) rotate(323.14) scale(0.664)"/>
+      <use href="#tree" transform="translate(380.251 271.019) rotate(99.998) scale(0.662)"/>
+      <use href="#tree" transform="translate(373.102 197.845) rotate(196.842) scale(0.985)"/>
+      <use href="#tree" transform="translate(124.978 315.941) rotate(228.627) scale(1.216)"/>
+      <use href="#tree" transform="translate(388.3 322.441) rotate(310.012) scale(0.753)"/>
+      <use href="#tree" transform="translate(241.49 194.823) rotate(250.127) scale(1.159)"/>
+      <use href="#tree" transform="translate(340.285 174.891) rotate(238.316) scale(0.687)"/>
+      <use href="#tree" transform="translate(231.969 305.776) rotate(191.49) scale(1.353)"/>
+      <use href="#tree" transform="translate(250.64 119.348) rotate(63.691) scale(1.008)"/>
+      <use href="#tree" transform="translate(165.082 205.386) rotate(268.523) scale(0.678)"/>
+      <use href="#tree" transform="translate(114.349 319.907) rotate(15.048) scale(0.905)"/>
+      <use href="#tree" transform="translate(381.655 192.014) rotate(87.794) scale(0.586)"/>
+      <use href="#tree" transform="translate(256.655 170.645) rotate(131.478) scale(0.861)"/>
+      <use href="#tree" transform="translate(237.717 202.594) rotate(31.09) scale(1.315)"/>
+      <use href="#tree" transform="translate(123.286 223.176) rotate(307.951) scale(0.933)"/>
+      <use href="#tree" transform="translate(112.913 126.927) rotate(142.368) scale(0.96)"/>
+      <use href="#tree" transform="translate(336.066 131.691) rotate(3.524) scale(1.037)"/>
+      <use href="#tree" transform="translate(342.3 243.483) rotate(117.209) scale(0.827)"/>
+      <use href="#tree" transform="translate(161.89 175.507) rotate(132.04) scale(0.63)"/>
+      <use href="#tree" transform="translate(91.515 264.689) rotate(34.769) scale(0.744)"/>
+      <use href="#tree" transform="translate(361.085 311.115) rotate(295.333) scale(1.246)"/>
+      <use href="#tree" transform="translate(101.316 231.737) rotate(32.236) scale(0.647)"/>
+      <use href="#tree" transform="translate(241.134 209.728) rotate(358.931) scale(0.696)"/>
+      <use href="#tree" transform="translate(241.504 234.87) rotate(1.78) scale(0.728)"/>
+      <use href="#tree" transform="translate(89.787 280.324) rotate(250.26) scale(1.306)"/>
+      <use href="#tree" transform="translate(330.21 255.188) rotate(30.006) scale(0.986)"/>
+      <use href="#tree" transform="translate(229.541 222.195) rotate(139.344) scale(1.214)"/>
+      <use href="#tree" transform="translate(292.57 127.938) rotate(139.91) scale(1.045)"/>
+      <use href="#tree" transform="translate(317.491 290.994) rotate(282.011) scale(0.559)"/>
+      <use href="#tree" transform="translate(262.762 275.317) rotate(55.328) scale(1.107)"/>
+      <use href="#tree" transform="translate(98.564 310.284) rotate(165.597) scale(1.063)"/>
+      <use href="#tree" transform="translate(327.426 184.763) rotate(67.895) scale(0.585)"/>
+      <use href="#tree" transform="translate(102.127 316.579) rotate(197.146) scale(0.715)"/>
+      <use href="#tree" transform="translate(212.459 248.754) rotate(126.49) scale(1.312)"/>
+      <use href="#tree" transform="translate(167.959 245.896) rotate(174.114) scale(0.767)"/>
+      <use href="#tree" transform="translate(121.18 270.108) rotate(29.197) scale(0.698)"/>
+      <use href="#tree" transform="translate(331.618 173.801) rotate(297.573) scale(0.96)"/>
+      <use href="#tree" transform="translate(307.874 248.776) rotate(357.754) scale(0.63)"/>
+      <use href="#tree" transform="translate(143.159 244.956) rotate(47.916) scale(1.039)"/>
+      <use href="#tree" transform="translate(292.711 210.14) rotate(194.506) scale(1.168)"/>
+      <use href="#tree" transform="translate(345.251 292.161) rotate(323.055) scale(0.811)"/>
+      <use href="#tree" transform="translate(134.038 154.81) rotate(261.86) scale(0.526)"/>
+      <use href="#tree" transform="translate(266.649 224.91) rotate(199.129) scale(1.337)"/>
+      <use href="#tree" transform="translate(134.046 129.92) rotate(324.237) scale(1.341)"/>
+      <use href="#tree" transform="translate(293.054 323.43) rotate(193.703) scale(1.235)"/>
+      <use href="#tree" transform="translate(185.816 205.929) rotate(212.525) scale(0.872)"/>
+      <use href="#tree" transform="translate(355.342 142.23) rotate(151.478) scale(0.986)"/>
+      <use href="#tree" transform="translate(271.732 142.911) rotate(151.032) scale(1.25)"/>
+      <use href="#tree" transform="translate(173.17 127.152) rotate(32.484) scale(0.629)"/>
+      <use href="#tree" transform="translate(301.281 258.357) rotate(26.941) scale(1.072)"/>
+      <use href="#tree" transform="translate(347.955 113.911) rotate(2.791) scale(1.17)"/>
+      <use href="#tree" transform="translate(194.214 256.471) rotate(122.261) scale(1.027)"/>
+      <use href="#tree" transform="translate(182.013 -116.844) rotate(187.711) scale(1.097)"/>
+      <use href="#tree" transform="translate(55.817 -317.094) rotate(68.279) scale(1.192)"/>
+      <use href="#tree" transform="translate(84.959 -118.015) rotate(87.498) scale(0.902)"/>
+      <use href="#tree" transform="translate(130.074 -163.415) rotate(342.518) scale(1.172)"/>
+      <use href="#tree" transform="translate(-0.075 -182.677) rotate(175.554) scale(0.99)"/>
+      <use href="#tree" transform="translate(181.001 -321.266) rotate(188.185) scale(1.373)"/>
+      <use href="#tree" transform="translate(175.958 -164.818) rotate(279.13) scale(0.728)"/>
+      <use href="#tree" transform="translate(180.412 -290.949) rotate(236.126) scale(1.101)"/>
+      <use href="#tree" transform="translate(11.563 -164.172) rotate(142.531) scale(1.187)"/>
+      <use href="#tree" transform="translate(10.174 -325.568) rotate(109.28) scale(1.232)"/>
+      <use href="#tree" transform="translate(181.389 -220.097) rotate(12.818) scale(1.283)"/>
+      <use href="#tree" transform="translate(167.894 -150.688) rotate(9.632) scale(1.131)"/>
+      <use href="#tree" transform="translate(16.923 -314.512) rotate(168.013) scale(1.065)"/>
+      <use href="#tree" transform="translate(-33.393 -143.054) rotate(167.665) scale(0.997)"/>
+      <use href="#tree" transform="translate(-2.83 -253.902) rotate(107.798) scale(0.971)"/>
+      <use href="#tree" transform="translate(172.463 -238.375) rotate(314.313) scale(1.038)"/>
+      <use href="#tree" transform="translate(165.347 -290.381) rotate(286.722) scale(1.351)"/>
+      <use href="#tree" transform="translate(0.415 -223.168) rotate(255.415) scale(0.914)"/>
+      <use href="#tree" transform="translate(71.565 -116.818) rotate(269.904) scale(0.542)"/>
+      <use href="#tree" transform="translate(115.906 -120.671) rotate(108.669) scale(1.175)"/>
+      <use href="#tree" transform="translate(17.52 -321.028) rotate(151.233) scale(0.949)"/>
+      <use href="#tree" transform="translate(-5.443 -240.808) rotate(203.083) scale(0.654)"/>
+      <use href="#tree" transform="translate(19.18 -279.023) rotate(194.074) scale(0.775)"/>
+      <use href="#tree" transform="translate(167.853 -249.226) rotate(280.929) scale(1.028)"/>
+      <use href="#tree" transform="translate(71.471 -227.326) rotate(134.47) scale(0.646)"/>
+      <use href="#tree" transform="translate(170.834 -265.39) rotate(162.197) scale(1.305)"/>
+      <use href="#tree" transform="translate(146.967 -204.35) rotate(306.846) scale(1.03)"/>
+      <use href="#tree" transform="translate(31.779 -119.738) rotate(71.547) scale(1.202)"/>
+      <use href="#tree" transform="translate(152.573 -160.837) rotate(272.211) scale(0.805)"/>
+      <use href="#tree" transform="translate(151.893 -209.907) rotate(267.763) scale(1.336)"/>
+      <use href="#tree" transform="translate(68.219 -164.356) rotate(348.861) scale(1.235)"/>
+      <use href="#tree" transform="translate(23 -301.012) rotate(335.705) scale(1.11)"/>
+      <use href="#tree" transform="translate(43.541 -267.874) rotate(285.583) scale(0.772)"/>
+      <use href="#tree" transform="translate(39.224 -139.995) rotate(300.763) scale(1.171)"/>
+      <use href="#tree" transform="translate(4.575 -257.378) rotate(117.36) scale(1.295)"/>
+      <use href="#tree" transform="translate(130.679 -164.029) rotate(325.81) scale(0.964)"/>
+      <use href="#tree" transform="translate(114.437 -138.565) rotate(323.568) scale(0.865)"/>
+      <use href="#tree" transform="translate(147.159 -152.994) rotate(70.656) scale(0.875)"/>
+      <use href="#tree" transform="translate(72.016 -287.596) rotate(208.687) scale(1.362)"/>
+      <use href="#tree" transform="translate(-24.179 -126.005) rotate(233.997) scale(1.18)"/>
+      <use href="#tree" transform="translate(160.662 -190.911) rotate(265.497) scale(0.92)"/>
+      <use href="#tree" transform="translate(64.877 -257.011) rotate(157.876) scale(1.282)"/>
+      <use href="#tree" transform="translate(14.87 -289.102) rotate(240.787) scale(1.241)"/>
+      <use href="#tree" transform="translate(113.276 -239.453) rotate(134.628) scale(0.927)"/>
+      <use href="#tree" transform="translate(32.967 -259.855) rotate(103.553) scale(0.565)"/>
+      <use href="#tree" transform="translate(182.398 -249.982) rotate(136.336) scale(0.827)"/>
+      <use href="#tree" transform="translate(59.804 -189.953) rotate(315.706) scale(0.664)"/>
+      <use href="#tree" transform="translate(-26.264 -286.245) rotate(6.788) scale(0.98)"/>
+      <use href="#tree" transform="translate(43.44 -121.338) rotate(325.271) scale(1.206)"/>
+      <use href="#tree" transform="translate(80.586 -243.732) rotate(35.924) scale(0.971)"/>
+      <use href="#tree" transform="translate(-22.168 -121.24) rotate(322.093) scale(1.271)"/>
+      <use href="#tree" transform="translate(61.737 -301.679) rotate(116.793) scale(0.546)"/>
+      <use href="#tree" transform="translate(27.518 -231.366) rotate(136.037) scale(1.132)"/>
+      <use href="#tree" transform="translate(57.151 -328.044) rotate(5.005) scale(1.312)"/>
+      <use href="#tree" transform="translate(162.311 -296.15) rotate(317.696) scale(0.866)"/>
+      <use href="#tree" transform="translate(121.66 -238.537) rotate(320.683) scale(0.97)"/>
+      <use href="#tree" transform="translate(-26.02 -315.07) rotate(1.589) scale(0.953)"/>
+      <use href="#tree" transform="translate(188.645 -234.716) rotate(332.92) scale(0.712)"/>
+      <use href="#tree" transform="translate(18.942 -244.025) rotate(191.868) scale(0.563)"/>
+      <use href="#tree" transform="translate(-8.27 -276.147) rotate(86.726) scale(0.849)"/>
+      <use href="#tree" transform="translate(-17.052 -320.771) rotate(230.517) scale(1.278)"/>
+      <use href="#tree" transform="translate(64.464 -291.624) rotate(32.487) scale(1.008)"/>
+      <use href="#tree" transform="translate(163.769 -194.428) rotate(48.061) scale(0.752)"/>
+      <use href="#tree" transform="translate(10.013 -269.45) rotate(317.914) scale(0.598)"/>
+      <use href="#tree" transform="translate(-0.113 -299.04) rotate(276.762) scale(1.272)"/>
+      <use href="#tree" transform="translate(88.847 -226.787) rotate(102.5) scale(1.261)"/>
+      <use href="#tree" transform="translate(141.18 -311.204) rotate(226.329) scale(1.373)"/>
+      <use href="#tree" transform="translate(76.423 -273.059) rotate(134.469) scale(0.998)"/>
+      <use href="#tree" transform="translate(-2.391 -281.76) rotate(202.116) scale(0.64)"/>
+      <use href="#tree" transform="translate(94.877 -122.428) rotate(310.232) scale(0.6)"/>
+      <use href="#tree" transform="translate(173.908 -141.543) rotate(245.828) scale(1.321)"/>
+      <use href="#tree" transform="translate(58.713 -205.322) rotate(136.338) scale(0.886)"/>
+      <use href="#tree" transform="translate(158.268 -161.194) rotate(338.723) scale(0.761)"/>
+      <use href="#tree" transform="translate(-25.517 -294.035) rotate(293.929) scale(1.076)"/>
+      <use href="#tree" transform="translate(1.027 -215.042) rotate(267.316) scale(1.296)"/>
+      <use href="#tree" transform="translate(-25.516 -157.384) rotate(265.693) scale(0.865)"/>
+      <use href="#tree" transform="translate(159.36 -214.039) rotate(231.579) scale(0.648)"/>
+      <use href="#tree" transform="translate(84.436 -309.428) rotate(305.316) scale(1.05)"/>
+      <use href="#tree" transform="translate(179.958 -202.767) rotate(35.651) scale(0.631)"/>
+      <use href="#tree" transform="translate(173.177 -272.253) rotate(189.435) scale(0.989)"/>
+      <use href="#tree" transform="translate(27.726 -120.496) rotate(101.032) scale(0.665)"/>
+      <use href="#tree" transform="translate(84.349 -157.816) rotate(152.093) scale(0.619)"/>
+      <use href="#tree" transform="translate(-464.229 -43.318) rotate(342.295) scale(1.002)"/>
+      <use href="#tree" transform="translate(-334.214 56.645) rotate(41.69) scale(1.035)"/>
+      <use href="#tree" transform="translate(-402.542 112.951) rotate(145.281) scale(1.073)"/>
+      <use href="#tree" transform="translate(-476.535 117.103) rotate(300.438) scale(1.027)"/>
+      <use href="#tree" transform="translate(-447.991 2.664) rotate(167.808) scale(0.676)"/>
+      <use href="#tree" transform="translate(-517.925 17.338) rotate(86.312) scale(0.771)"/>
+      <use href="#tree" transform="translate(-425.028 -53.185) rotate(202.875) scale(0.577)"/>
+      <use href="#tree" transform="translate(-462.201 -6.513) rotate(97.505) scale(0.632)"/>
+      <use href="#tree" transform="translate(-415.563 -36.814) rotate(304.356) scale(0.799)"/>
+      <use href="#tree" transform="translate(-510.285 63.044) rotate(19.381) scale(1.085)"/>
+      <use href="#tree" transform="translate(-397.637 63.616) rotate(135.216) scale(0.897)"/>
+      <use href="#tree" transform="translate(-367.628 28.382) rotate(313.925) scale(1.198)"/>
+      <use href="#tree" transform="translate(-321.594 63.763) rotate(138.204) scale(1.367)"/>
+      <use href="#tree" transform="translate(-389.133 -7.237) rotate(71.701) scale(0.813)"/>
+      <use href="#tree" transform="translate(-423.749 105.374) rotate(209.059) scale(1.016)"/>
+      <use href="#tree" transform="translate(-361.575 -11.142) rotate(286.304) scale(1.281)"/>
+      <use href="#tree" transform="translate(-377.566 91.045) rotate(192.217) scale(0.632)"/>
+      <use href="#tree" transform="translate(-323.523 119.756) rotate(311.308) scale(1.306)"/>
+      <use href="#tree" transform="translate(-482.327 31.491) rotate(39.008) scale(0.889)"/>
+      <use href="#tree" transform="translate(-422.763 12.49) rotate(99.726) scale(0.796)"/>
+      <use href="#tree" transform="translate(-489.301 105.311) rotate(348.365) scale(0.533)"/>
+      <use href="#tree" transform="translate(-411.217 -15.959) rotate(305.959) scale(0.683)"/>
+      <use href="#tree" transform="translate(-465.421 31.253) rotate(50.021) scale(0.849)"/>
+      <use href="#tree" transform="translate(-377.371 119.863) rotate(250.251) scale(1.292)"/>
+      <use href="#tree" transform="translate(-494.453 -47.022) rotate(230.217) scale(0.943)"/>
+      <use href="#tree" transform="translate(-516.19 64.892) rotate(225.64) scale(0.978)"/>
+      <use href="#tree" transform="translate(-415.668 36.328) rotate(59.904) scale(1.023)"/>
+      <use href="#tree" transform="translate(-336.544 127.068) rotate(227.416) scale(1.054)"/>
+      <use href="#tree" transform="translate(-400.015 -20.909) rotate(305.445) scale(0.799)"/>
+      <use href="#tree" transform="translate(-506.127 93.344) rotate(145.066) scale(0.666)"/>
+      <use href="#tree" transform="translate(-363.79 33.267) rotate(21.819) scale(0.73)"/>
+      <use href="#tree" transform="translate(-333.882 -41.794) rotate(336.734) scale(0.536)"/>
+      <use href="#tree" transform="translate(-419.812 -60.169) rotate(108.322) scale(0.952)"/>
+      <use href="#tree" transform="translate(-489.922 -35.313) rotate(66.173) scale(0.956)"/>
+      <use href="#tree" transform="translate(-366.094 -23.997) rotate(46.776) scale(1.342)"/>
+      <use href="#tree" transform="translate(-362.95 -42.117) rotate(282.195) scale(0.907)"/>
+      <use href="#tree" transform="translate(-412.01 115.009) rotate(62.223) scale(0.99)"/>
+      <use href="#tree" transform="translate(-455.184 50.97) rotate(300.628) scale(0.896)"/>
+      <use href="#tree" transform="translate(-341.974 98.352) rotate(66.138) scale(0.52)"/>
+      <use href="#tree" transform="translate(-414.773 3.716) rotate(268.766) scale(0.884)"/>
+      <use href="#tree" transform="translate(-516.608 20.572) rotate(62.124) scale(1.235)"/>
+      <use href="#tree" transform="translate(-505.729 113.5) rotate(52.324) scale(1.084)"/>
+      <use href="#tree" transform="translate(-511.411 26.516) rotate(214.12) scale(1.095)"/>
+      <use href="#tree" transform="translate(-515.337 18.827) rotate(304.89) scale(1.294)"/>
+      <use href="#tree" transform="translate(-392.94 121.098) rotate(217.102) scale(1.285)"/>
+      <use href="#tree" transform="translate(-499.087 15.342) rotate(319.879) scale(1.359)"/>
+      <use href="#tree" transform="translate(-432.471 91.574) rotate(130.288) scale(1.008)"/>
+      <use href="#tree" transform="translate(-363.088 84.348) rotate(224.985) scale(1.05)"/>
+      <use href="#tree" transform="translate(-457.178 -57.702) rotate(152.837) scale(1.147)"/>
+      <use href="#tree" transform="translate(-483.997 33.818) rotate(319.138) scale(1.063)"/>
+      <use href="#tree" transform="translate(-438.804 41.993) rotate(62.059) scale(1.321)"/>
+      <use href="#tree" transform="translate(-366.434 -48.084) rotate(71.949) scale(0.854)"/>
+      <use href="#tree" transform="translate(-519.829 -16.485) rotate(114.11) scale(0.642)"/>
+      <use href="#tree" transform="translate(-337.909 -26.992) rotate(25.673) scale(1.035)"/>
+      </g>
+      <g class="mountains">
+      <use href="#mountain" transform="translate(-558 318) scale(0.9)"/>
+      <use href="#mountain" transform="translate(-520 282) scale(1.05)"/>
+      <use href="#mountain" transform="translate(-480 244) scale(0.86)"/>
+      <use href="#mountain" transform="translate(-422 286) scale(0.72)"/>
+      <use href="#mountain" transform="translate(-348 318) scale(0.7)"/>
+      <use href="#mountain" transform="translate(-250 348) scale(0.58)"/>
+      <use href="#mountain" transform="translate(-528 -214) scale(1.15)"/>
+      <use href="#mountain" transform="translate(-482 -258) scale(0.95)"/>
+      <use href="#mountain" transform="translate(-418 -216) scale(0.8)"/>
+      <use href="#mountain" transform="translate(-354 -274) scale(0.82)"/>
+      <use href="#mountain" transform="translate(-286 -204) scale(0.68)"/>
+      <use href="#mountain" transform="translate(-218 -244) scale(0.58)"/>
+      <use href="#mountain" transform="translate(-78 -340) scale(0.7)"/>
+      <use href="#mountain" transform="translate(26 -338) scale(0.88)"/>
+      <use href="#mountain" transform="translate(126 -302) scale(0.68)"/>
+      <use href="#mountain" transform="translate(230 -284) scale(0.62)"/>
+      <use href="#mountain" transform="translate(330 -320) scale(0.58)"/>
+      <use href="#mountain" transform="translate(290 246) scale(0.68)"/>
+      <use href="#mountain" transform="translate(370 214) scale(0.64)"/>
+      <use href="#mountain" transform="translate(460 168) scale(0.58)"/>
+      <use href="#mountain" transform="translate(532 98) scale(0.54)"/>
+      <use href="#mountain" transform="translate(-576 -44) scale(0.62)"/>
+      </g>
+      <g class="lakes">
+      <path class="lake" d="M -586 118 C -548 152 -486 146 -458 112 C -438 82 -466 52 -520 54 C -574 58 -616 88 -586 118 Z"/>
+      <path class="lake-edge" d="M -586 118 C -548 152 -486 146 -458 112 C -438 82 -466 52 -520 54 C -574 58 -616 88 -586 118 Z"/>
+      <path class="lake" d="M -214 238 C -166 270 -88 254 -62 208 C -38 166 -80 132 -146 142 C -208 152 -258 202 -214 238 Z"/>
+      <path class="lake-edge" d="M -214 238 C -166 270 -88 254 -62 208 C -38 166 -80 132 -146 142 C -208 152 -258 202 -214 238 Z"/>
+      <path class="lake" d="M 384 254 C 430 294 508 282 552 226 C 588 178 540 126 470 140 C 404 154 336 212 384 254 Z"/>
+      <path class="lake-edge" d="M 384 254 C 430 294 508 282 552 226 C 588 178 540 126 470 140 C 404 154 336 212 384 254 Z"/>
+      <path class="lake" d="M -456 -48 C -418 -16 -362 -22 -336 -58 C -308 -96 -348 -128 -408 -116 C -460 -106 -492 -78 -456 -48 Z"/>
+      <path class="lake-edge" d="M -456 -48 C -418 -16 -362 -22 -336 -58 C -308 -96 -348 -128 -408 -116 C -460 -106 -492 -78 -456 -48 Z"/>
+      <path class="lake" d="M 54 -72 C 96 -40 152 -50 184 -82 C 214 -114 174 -146 118 -140 C 66 -134 20 -104 54 -72 Z"/>
+      <path class="lake-edge" d="M 54 -72 C 96 -40 152 -50 184 -82 C 214 -114 174 -146 118 -140 C 66 -134 20 -104 54 -72 Z"/>
+      </g>
+      <g class="rivers">
+      <path class="river-bed" d="M -618 102 C -544 78 -488 92 -424 62 C -350 26 -282 34 -212 22 C -134 8 -72 -28 -4 -16 C 78 -2 136 54 210 70 C 292 88 358 74 434 42 C 494 18 542 22 604 -10"/>
+      <path class="river-highlight" d="M -618 102 C -544 78 -488 92 -424 62 C -350 26 -282 34 -212 22 C -134 8 -72 -28 -4 -16 C 78 -2 136 54 210 70 C 292 88 358 74 434 42 C 494 18 542 22 604 -10"/>
+      <path class="river-bed" d="M -520 -236 C -436 -206 -354 -214 -278 -176 C -202 -138 -120 -158 -50 -122 C 38 -76 112 -130 188 -162 C 268 -198 362 -178 452 -206 C 520 -228 556 -274 586 -332"/>
+      <path class="river-highlight" d="M -520 -236 C -436 -206 -354 -214 -278 -176 C -202 -138 -120 -158 -50 -122 C 38 -76 112 -130 188 -162 C 268 -198 362 -178 452 -206 C 520 -228 556 -274 586 -332"/>
+      <path class="river-bed" d="M -352 256 C -308 204 -258 166 -232 112 C -206 56 -150 16 -94 -8"/>
+      <path class="river-highlight" d="M -352 256 C -308 204 -258 166 -232 112 C -206 56 -150 16 -94 -8"/>
+      <path class="river-bed" d="M 36 322 C 70 256 60 198 28 154 C 4 120 -16 82 -8 36"/>
+      <path class="river-highlight" d="M 36 322 C 70 256 60 198 28 154 C 4 120 -16 82 -8 36"/>
+      <path class="river-bed" d="M 188 326 C 238 272 264 214 260 144 C 254 88 284 54 332 36"/>
+      <path class="river-highlight" d="M 188 326 C 238 272 264 214 260 144 C 254 88 284 54 332 36"/>
+      <path class="river-bed" d="M 268 -330 C 284 -256 258 -202 224 -154 C 196 -114 204 -70 252 -38"/>
+      <path class="river-highlight" d="M 268 -330 C 284 -256 258 -202 224 -154 C 196 -114 204 -70 252 -38"/>
+      </g>
+      <g class="roads">
+      <path class="road-shadow" d="M 482.23 401.735 L 471.824 411.034 L 456.767 424.099 L 435.068 429.634 L 415.789 428.906 L 398.531 428.963 L 385.597 417.994 L 369.956 405.626 L 351.79 396.719 L 333.158 388.009 L 316.295 374.634 L 301.182 359.777 L 284.951 352.245 L 268.528 349.083 L 254.1 354.556"/>
+      <path class="road" data-route="0-1" data-name="襄平-北平" d="M 482.23 401.735 L 471.824 411.034 L 456.767 424.099 L 435.068 429.634 L 415.789 428.906 L 398.531 428.963 L 385.597 417.994 L 369.956 405.626 L 351.79 396.719 L 333.158 388.009 L 316.295 374.634 L 301.182 359.777 L 284.951 352.245 L 268.528 349.083 L 254.1 354.556"/>
+      <path class="road-shadow" d="M 254.1 354.556 L 238.179 362.019 L 220.348 362.585 L 195.869 361.2 L 172.581 360.431 L 149.469 358.89 L 125.844 355.809 L 98.629 352.812 L 71.683 346.613"/>
+      <path class="road" data-route="1-2" data-name="北平-代县" d="M 254.1 354.556 L 238.179 362.019 L 220.348 362.585 L 195.869 361.2 L 172.581 360.431 L 149.469 358.89 L 125.844 355.809 L 98.629 352.812 L 71.683 346.613"/>
+      <path class="road-shadow" d="M 254.1 354.556 L 238.179 362.019 L 220.348 362.585 L 195.869 361.2 L 172.581 360.431 L 149.469 358.89 L 157.462 335.753 L 170.954 309.231 L 188.484 296.328 L 204.291 283.155 L 223.087 272.23"/>
+      <path class="road" data-route="1-4" data-name="北平-南皮" d="M 254.1 354.556 L 238.179 362.019 L 220.348 362.585 L 195.869 361.2 L 172.581 360.431 L 149.469 358.89 L 157.462 335.753 L 170.954 309.231 L 188.484 296.328 L 204.291 283.155 L 223.087 272.23"/>
+      <path class="road-shadow" d="M 71.683 346.613 L 98.629 352.812 L 125.844 355.809 L 149.469 358.89 L 157.462 335.753 L 170.954 309.231 L 188.484 296.328 L 204.291 283.155 L 223.087 272.23"/>
+      <path class="road" data-route="2-4" data-name="代县-南皮" d="M 71.683 346.613 L 98.629 352.812 L 125.844 355.809 L 149.469 358.89 L 157.462 335.753 L 170.954 309.231 L 188.484 296.328 L 204.291 283.155 L 223.087 272.23"/>
+      <path class="road-shadow" d="M 71.683 346.613 L 48.47 334.559 L 31.905 321.468 L 19.71 306.274 L 10.188 288.123 L -5.795 272.055 L -24.418 259.044"/>
+      <path class="road" data-route="2-3" data-name="代县-晋阳" d="M 71.683 346.613 L 48.47 334.559 L 31.905 321.468 L 19.71 306.274 L 10.188 288.123 L -5.795 272.055 L -24.418 259.044"/>
+      <path class="road-shadow" d="M -24.418 259.044 L -13.377 236.349 L -16.538 217.747 L -30.375 203.366 L -40.98 186.05 L -50.794 168.568 L -65.515 145.259 L -77.816 123.734 L -74.057 102.55 L -59.707 91.274 L -39.124 79.762"/>
+      <path class="road" data-route="3-10" data-name="晋阳-洛阳" d="M -24.418 259.044 L -13.377 236.349 L -16.538 217.747 L -30.375 203.366 L -40.98 186.05 L -50.794 168.568 L -65.515 145.259 L -77.816 123.734 L -74.057 102.55 L -59.707 91.274 L -39.124 79.762"/>
+      <path class="road-shadow" d="M -24.418 259.044 L -13.377 236.349 L -16.538 217.747 L -30.375 203.366 L -40.98 186.05 L -50.794 168.568 L -29.926 167.732 L -6.248 165.686 L 16.26 156.039 L 34.968 142.593 L 58.353 132.654"/>
+      <path class="road" data-route="3-6" data-name="晋阳-邺" d="M -24.418 259.044 L -13.377 236.349 L -16.538 217.747 L -30.375 203.366 L -40.98 186.05 L -50.794 168.568 L -29.926 167.732 L -6.248 165.686 L 16.26 156.039 L 34.968 142.593 L 58.353 132.654"/>
+      <path class="road-shadow" d="M 223.087 272.23 L 231.67 248.741 L 218.57 232.028 L 206.447 222.083 L 191.471 211.886 L 173.309 197.866"/>
+      <path class="road" data-route="4-5" data-name="南皮-平原" d="M 223.087 272.23 L 231.67 248.741 L 218.57 232.028 L 206.447 222.083 L 191.471 211.886 L 173.309 197.866"/>
+      <path class="road-shadow" d="M 223.087 272.23 L 231.67 248.741 L 218.57 232.028 L 206.447 222.083 L 226.841 213.914 L 243.636 207.986 L 260.653 199.949 L 289.11 191.818 L 318.923 191.818 L 341.961 195.431 L 365.902 188.204"/>
+      <path class="road" data-route="4-7" data-name="南皮-北海" d="M 223.087 272.23 L 231.67 248.741 L 218.57 232.028 L 206.447 222.083 L 226.841 213.914 L 243.636 207.986 L 260.653 199.949 L 289.11 191.818 L 318.923 191.818 L 341.961 195.431 L 365.902 188.204"/>
+      <path class="road-shadow" d="M 173.309 197.866 L 191.471 211.886 L 206.447 222.083 L 226.841 213.914 L 243.636 207.986 L 260.653 199.949 L 289.11 191.818 L 318.923 191.818 L 341.961 195.431 L 365.902 188.204"/>
+      <path class="road" data-route="5-7" data-name="平原-北海" d="M 173.309 197.866 L 191.471 211.886 L 206.447 222.083 L 226.841 213.914 L 243.636 207.986 L 260.653 199.949 L 289.11 191.818 L 318.923 191.818 L 341.961 195.431 L 365.902 188.204"/>
+      <path class="road-shadow" d="M 173.309 197.866 L 153.625 186.782 L 137.035 180.372 L 128.504 166.052 L 123.467 148.555 L 101.727 148.555 L 79.193 144.843 L 58.353 132.654"/>
+      <path class="road" data-route="5-6" data-name="平原-邺" d="M 173.309 197.866 L 153.625 186.782 L 137.035 180.372 L 128.504 166.052 L 123.467 148.555 L 101.727 148.555 L 79.193 144.843 L 58.353 132.654"/>
+      <path class="road-shadow" d="M 173.309 197.866 L 153.625 186.782 L 137.035 180.372 L 128.504 166.052 L 123.467 148.555 L 143.328 140.105 L 168.089 134.734 L 191.751 144.313 L 216.546 149.076 L 246.091 144.7"/>
+      <path class="road" data-route="5-8" data-name="平原-濮阳" d="M 173.309 197.866 L 153.625 186.782 L 137.035 180.372 L 128.504 166.052 L 123.467 148.555 L 143.328 140.105 L 168.089 134.734 L 191.751 144.313 L 216.546 149.076 L 246.091 144.7"/>
+      <path class="road-shadow" d="M 58.353 132.654 L 73.097 111.524 L 84.197 89.719 L 108.534 88.255 L 128.263 84.352 L 145.871 81.169 L 164.752 81.169 L 186.603 85.2"/>
+      <path class="road" data-route="6-9" data-name="邺-陈留" d="M 58.353 132.654 L 73.097 111.524 L 84.197 89.719 L 108.534 88.255 L 128.263 84.352 L 145.871 81.169 L 164.752 81.169 L 186.603 85.2"/>
+      <path class="road-shadow" d="M 58.353 132.654 L 73.097 111.524 L 84.197 89.719 L 94.434 76.684 L 103.507 65.36 L 103.507 46.051"/>
+      <path class="road" data-route="6-18" data-name="邺-许昌" d="M 58.353 132.654 L 73.097 111.524 L 84.197 89.719 L 94.434 76.684 L 103.507 65.36 L 103.507 46.051"/>
+      <path class="road-shadow" d="M 58.353 132.654 L 34.968 142.593 L 16.26 156.039 L -6.248 165.686 L -29.926 167.732 L -50.794 168.568 L -65.515 145.259 L -77.816 123.734 L -74.057 102.55 L -59.707 91.274 L -39.124 79.762"/>
+      <path class="road" data-route="6-10" data-name="邺-洛阳" d="M 58.353 132.654 L 34.968 142.593 L 16.26 156.039 L -6.248 165.686 L -29.926 167.732 L -50.794 168.568 L -65.515 145.259 L -77.816 123.734 L -74.057 102.55 L -59.707 91.274 L -39.124 79.762"/>
+      <path class="road-shadow" d="M 58.353 132.654 L 79.193 144.843 L 101.727 148.555 L 123.467 148.555 L 143.328 140.105 L 168.089 134.734 L 191.751 144.313 L 216.546 149.076 L 246.091 144.7"/>
+      <path class="road" data-route="6-8" data-name="邺-濮阳" d="M 58.353 132.654 L 79.193 144.843 L 101.727 148.555 L 123.467 148.555 L 143.328 140.105 L 168.089 134.734 L 191.751 144.313 L 216.546 149.076 L 246.091 144.7"/>
+      <path class="road-shadow" d="M 365.902 188.204 L 371.939 175.554 L 357.852 167.505 L 344.053 151.693 L 340.603 129.844 L 353.139 112.03 L 362.045 93.886 L 363.401 79.516 L 380.437 73.372 L 391.888 64.434 L 401.384 51.029"/>
+      <path class="road" data-route="7-16" data-name="北海-下邳" d="M 365.902 188.204 L 371.939 175.554 L 357.852 167.505 L 344.053 151.693 L 340.603 129.844 L 353.139 112.03 L 362.045 93.886 L 363.401 79.516 L 380.437 73.372 L 391.888 64.434 L 401.384 51.029"/>
+      <path class="road-shadow" d="M 365.902 188.204 L 371.939 175.554 L 357.852 167.505 L 344.053 151.693 L 340.603 129.844 L 353.139 112.03 L 362.045 93.886 L 363.401 79.516 L 341.368 80.84 L 325.997 76.182 L 309.22 70.41"/>
+      <path class="road" data-route="7-17" data-name="北海-徐州" d="M 365.902 188.204 L 371.939 175.554 L 357.852 167.505 L 344.053 151.693 L 340.603 129.844 L 353.139 112.03 L 362.045 93.886 L 363.401 79.516 L 341.368 80.84 L 325.997 76.182 L 309.22 70.41"/>
+      <path class="road-shadow" d="M 246.091 144.7 L 257.18 125.193 L 253.894 108.971 L 247.734 93.57 L 241.984 78.991 L 224.352 78.991 L 206.719 78.991 L 186.603 85.2"/>
+      <path class="road" data-route="8-9" data-name="濮阳-陈留" d="M 246.091 144.7 L 257.18 125.193 L 253.894 108.971 L 247.734 93.57 L 241.984 78.991 L 224.352 78.991 L 206.719 78.991 L 186.603 85.2"/>
+      <path class="road-shadow" d="M 246.091 144.7 L 257.18 125.193 L 253.894 108.971 L 247.734 93.57 L 241.984 78.991 L 264.073 79.738 L 287.766 77.312 L 309.22 70.41"/>
+      <path class="road" data-route="8-17" data-name="濮阳-徐州" d="M 246.091 144.7 L 257.18 125.193 L 253.894 108.971 L 247.734 93.57 L 241.984 78.991 L 264.073 79.738 L 287.766 77.312 L 309.22 70.41"/>
+      <path class="road-shadow" d="M 246.091 144.7 L 257.18 125.193 L 253.894 108.971 L 247.734 93.57 L 241.984 78.991 L 234.09 60.366 L 226.964 45.616 L 216.357 32.027 L 203.596 21.917"/>
+      <path class="road" data-route="8-19" data-name="濮阳-谯" d="M 246.091 144.7 L 257.18 125.193 L 253.894 108.971 L 247.734 93.57 L 241.984 78.991 L 234.09 60.366 L 226.964 45.616 L 216.357 32.027 L 203.596 21.917"/>
+      <path class="road-shadow" d="M 186.603 85.2 L 206.719 78.991 L 224.352 78.991 L 241.984 78.991 L 264.073 79.738 L 287.766 77.312 L 309.22 70.41"/>
+      <path class="road" data-route="9-17" data-name="陈留-徐州" d="M 186.603 85.2 L 206.719 78.991 L 224.352 78.991 L 241.984 78.991 L 264.073 79.738 L 287.766 77.312 L 309.22 70.41"/>
+      <path class="road-shadow" d="M 186.603 85.2 L 206.719 78.991 L 224.352 78.991 L 241.984 78.991 L 234.09 60.366 L 226.964 45.616 L 216.357 32.027 L 203.596 21.917"/>
+      <path class="road" data-route="9-19" data-name="陈留-谯" d="M 186.603 85.2 L 206.719 78.991 L 224.352 78.991 L 241.984 78.991 L 234.09 60.366 L 226.964 45.616 L 216.357 32.027 L 203.596 21.917"/>
+      <path class="road-shadow" d="M 186.603 85.2 L 164.752 81.169 L 145.871 81.169 L 128.263 84.352 L 108.534 88.255 L 84.197 89.719 L 94.434 76.684 L 103.507 65.36 L 103.507 46.051"/>
+      <path class="road" data-route="9-18" data-name="陈留-许昌" d="M 186.603 85.2 L 164.752 81.169 L 145.871 81.169 L 128.263 84.352 L 108.534 88.255 L 84.197 89.719 L 94.434 76.684 L 103.507 65.36 L 103.507 46.051"/>
+      <path class="road-shadow" d="M -39.124 79.762 L -17.145 84.297 L 9.716 83.251 L 31.878 68.608 L 51.269 54.361 L 65.912 45.951 L 84.708 43.535 L 103.507 46.051"/>
+      <path class="road" data-route="10-18" data-name="洛阳-许昌" d="M -39.124 79.762 L -17.145 84.297 L 9.716 83.251 L 31.878 68.608 L 51.269 54.361 L 65.912 45.951 L 84.708 43.535 L 103.507 46.051"/>
+      <path class="road-shadow" d="M -39.124 79.762 L -25.496 63.823 L -10.953 46.646 L 5.336 30.412 L 18.585 21.137"/>
+      <path class="road" data-route="10-21" data-name="洛阳-宛" d="M -39.124 79.762 L -25.496 63.823 L -10.953 46.646 L 5.336 30.412 L 18.585 21.137"/>
+      <path class="road-shadow" d="M -39.124 79.762 L -56.336 70.315 L -75.145 67.204 L -91.549 67.204 L -110.216 69.325 L -129.267 69.325 L -147.225 62.044"/>
+      <path class="road" data-route="10-11" data-name="洛阳-弘农" d="M -39.124 79.762 L -56.336 70.315 L -75.145 67.204 L -91.549 67.204 L -110.216 69.325 L -129.267 69.325 L -147.225 62.044"/>
+      <path class="road-shadow" d="M -147.225 62.044 L -134.277 52.988 L -121.08 41.654 L -109.712 30.483 L -93.92 18.731 L -76.662 9.052"/>
+      <path class="road" data-route="11-22" data-name="弘农-新野" d="M -147.225 62.044 L -134.277 52.988 L -121.08 41.654 L -109.712 30.483 L -93.92 18.731 L -76.662 9.052"/>
+      <path class="road-shadow" d="M -147.225 62.044 L -162.827 55.427 L -179.791 53.61 L -197.361 52.247 L -217.96 48.309 L -237.65 40.584"/>
+      <path class="road" data-route="11-12" data-name="弘农-长安" d="M -147.225 62.044 L -162.827 55.427 L -179.791 53.61 L -197.361 52.247 L -217.96 48.309 L -237.65 40.584"/>
+      <path class="road-shadow" d="M -237.65 40.584 L -251.844 51.326 L -263.041 68.721 L -275.699 80.518 L -287.955 93.186 L -295.409 112.33 L -309.704 127.817"/>
+      <path class="road" data-route="12-13" data-name="长安-安定" d="M -237.65 40.584 L -251.844 51.326 L -263.041 68.721 L -275.699 80.518 L -287.955 93.186 L -295.409 112.33 L -309.704 127.817"/>
+      <path class="road-shadow" d="M -237.65 40.584 L -260.362 32.263 L -286.694 32.942 L -310.923 35.473 L -333.707 36.377 L -354.683 32.58"/>
+      <path class="road" data-route="12-37" data-name="长安-汉中" d="M -237.65 40.584 L -260.362 32.263 L -286.694 32.942 L -310.923 35.473 L -333.707 36.377 L -354.683 32.58"/>
+      <path class="road-shadow" d="M -309.704 127.817 L -325.341 134.816 L -343.657 139.581 L -363.017 138.688 L -384.163 137.496 L -405.755 138.241 L -429.047 137.943 L -449.091 129.455"/>
+      <path class="road" data-route="13-14" data-name="安定-天水" d="M -309.704 127.817 L -325.341 134.816 L -343.657 139.581 L -363.017 138.688 L -384.163 137.496 L -405.755 138.241 L -429.047 137.943 L -449.091 129.455"/>
+      <path class="road-shadow" d="M -449.091 129.455 L -461.132 141.171 L -473.662 155.003 L -484.727 169.811 L -490.977 189.613 L -500.999 207.563 L -514.993 223.51 L -531.174 241.205"/>
+      <path class="road" data-route="14-15" data-name="天水-西凉" d="M -449.091 129.455 L -461.132 141.171 L -473.662 155.003 L -484.727 169.811 L -490.977 189.613 L -500.999 207.563 L -514.993 223.51 L -531.174 241.205"/>
+      <path class="road-shadow" d="M -449.091 129.455 L -461.364 116.615 L -468.162 100.376 L -472.694 82.815 L -468.288 62.179 L -467.71 38.865 L -482.583 25.41"/>
+      <path class="road" data-route="14-38" data-name="天水-下弁" d="M -449.091 129.455 L -461.364 116.615 L -468.162 100.376 L -472.694 82.815 L -468.288 62.179 L -467.71 38.865 L -482.583 25.41"/>
+      <path class="road-shadow" d="M 401.384 51.029 L 391.888 64.434 L 380.437 73.372 L 363.401 79.516 L 341.368 80.84 L 325.997 76.182 L 309.22 70.41"/>
+      <path class="road" data-route="16-17" data-name="下邳-徐州" d="M 401.384 51.029 L 391.888 64.434 L 380.437 73.372 L 363.401 79.516 L 341.368 80.84 L 325.997 76.182 L 309.22 70.41"/>
+      <path class="road-shadow" d="M 401.384 51.029 L 389.293 36.852 L 381.663 21.019 L 387.385 2.134 L 393.193 -12.426 L 382.754 -30.773"/>
+      <path class="road" data-route="16-32" data-name="下邳-建业" d="M 401.384 51.029 L 389.293 36.852 L 381.663 21.019 L 387.385 2.134 L 393.193 -12.426 L 382.754 -30.773"/>
+      <path class="road-shadow" d="M 309.22 70.41 L 287.766 77.312 L 264.073 79.738 L 241.984 78.991 L 234.09 60.366 L 226.964 45.616 L 216.357 32.027 L 203.596 21.917"/>
+      <path class="road" data-route="17-19" data-name="徐州-谯" d="M 309.22 70.41 L 287.766 77.312 L 264.073 79.738 L 241.984 78.991 L 234.09 60.366 L 226.964 45.616 L 216.357 32.027 L 203.596 21.917"/>
+      <path class="road-shadow" d="M 309.22 70.41 L 299.661 55.203 L 302.268 37.388 L 312.187 23.942 L 307.999 6.749 L 290.911 0.112"/>
+      <path class="road" data-route="17-31" data-name="徐州-寿春" d="M 309.22 70.41 L 299.661 55.203 L 302.268 37.388 L 312.187 23.942 L 307.999 6.749 L 290.911 0.112"/>
+      <path class="road-shadow" d="M 103.507 46.051 L 122.072 39.936 L 141.409 35.981 L 164.042 29.388 L 185.577 24.994 L 203.596 21.917"/>
+      <path class="road" data-route="18-19" data-name="许昌-谯" d="M 103.507 46.051 L 122.072 39.936 L 141.409 35.981 L 164.042 29.388 L 185.577 24.994 L 203.596 21.917"/>
+      <path class="road-shadow" d="M 203.596 21.917 L 186.968 7.451 L 170.84 -3.856 L 154.877 -13.334 L 140.909 -25.14 L 129.366 -37.898"/>
+      <path class="road" data-route="19-20" data-name="谯-汝南" d="M 203.596 21.917 L 186.968 7.451 L 170.84 -3.856 L 154.877 -13.334 L 140.909 -25.14 L 129.366 -37.898"/>
+      <path class="road-shadow" d="M 129.366 -37.898 L 156.516 -42.876 L 177.332 -42.876 L 198.599 -40.161 L 219.716 -32.317 L 238.269 -25.228 L 256.37 -17.686 L 275.526 -7.731 L 290.911 0.112"/>
+      <path class="road" data-route="20-31" data-name="汝南-寿春" d="M 129.366 -37.898 L 156.516 -42.876 L 177.332 -42.876 L 198.599 -40.161 L 219.716 -32.317 L 238.269 -25.228 L 256.37 -17.686 L 275.526 -7.731 L 290.911 0.112"/>
+      <path class="road-shadow" d="M 129.366 -37.898 L 109.229 -28.264 L 93.73 -17.546 L 77.406 -6.994 L 60.258 4.878 L 37.123 11.94 L 18.585 21.137"/>
+      <path class="road" data-route="20-21" data-name="汝南-宛" d="M 129.366 -37.898 L 109.229 -28.264 L 93.73 -17.546 L 77.406 -6.994 L 60.258 4.878 L 37.123 11.94 L 18.585 21.137"/>
+      <path class="road-shadow" d="M 18.585 21.137 L 0.898 8.306 L -19.61 1.097 L -39.125 -2.756 L -59.385 1.345 L -76.662 9.052"/>
+      <path class="road" data-route="21-22" data-name="宛-新野" d="M 18.585 21.137 L 0.898 8.306 L -19.61 1.097 L -39.125 -2.756 L -59.385 1.345 L -76.662 9.052"/>
+      <path class="road-shadow" d="M -76.662 9.052 L -93.317 -0.643 L -107.86 -8.598 L -125.883 -18.169 L -107.736 -26.248 L -87.724 -33.706 L -68.956 -40.791 L -50.933 -44.768 L -31.294 -47.254 L -12.028 -49.74 L 6.99 -46.237"/>
+      <path class="road" data-route="22-23" data-name="新野-襄阳" d="M -76.662 9.052 L -93.317 -0.643 L -107.86 -8.598 L -125.883 -18.169 L -107.736 -26.248 L -87.724 -33.706 L -68.956 -40.791 L -50.933 -44.768 L -31.294 -47.254 L -12.028 -49.74 L 6.99 -46.237"/>
+      <path class="road-shadow" d="M -76.662 9.052 L -93.317 -0.643 L -107.86 -8.598 L -125.883 -18.169 L -141.609 -25.632 L -159.421 -31.621 L -176.128 -38.556"/>
+      <path class="road" data-route="22-24" data-name="新野-上庸" d="M -76.662 9.052 L -93.317 -0.643 L -107.86 -8.598 L -125.883 -18.169 L -141.609 -25.632 L -159.421 -31.621 L -176.128 -38.556"/>
+      <path class="road-shadow" d="M 6.99 -46.237 L 27.909 -52.876 L 45.822 -60.392 L 64.093 -65.882 L 80.333 -68.057 L 96.138 -71.392 L 108.511 -82.952 L 113.564 -99.856 L 129.771 -111.009"/>
+      <path class="road" data-route="23-25" data-name="襄阳-江夏" d="M 6.99 -46.237 L 27.909 -52.876 L 45.822 -60.392 L 64.093 -65.882 L 80.333 -68.057 L 96.138 -71.392 L 108.511 -82.952 L 113.564 -99.856 L 129.771 -111.009"/>
+      <path class="road-shadow" d="M 6.99 -46.237 L 27.909 -52.876 L 45.822 -60.392 L 64.093 -65.882 L 43.728 -82.956 L 30.295 -99.673 L 10.244 -110.759"/>
+      <path class="road" data-route="23-26" data-name="襄阳-江陵" d="M 6.99 -46.237 L 27.909 -52.876 L 45.822 -60.392 L 64.093 -65.882 L 43.728 -82.956 L 30.295 -99.673 L 10.244 -110.759"/>
+      <path class="road-shadow" d="M 6.99 -46.237 L -12.028 -49.74 L -31.294 -47.254 L -50.933 -44.768 L -68.956 -40.791 L -87.724 -33.706 L -107.736 -26.248 L -125.883 -18.169 L -141.609 -25.632 L -159.421 -31.621 L -176.128 -38.556"/>
+      <path class="road" data-route="23-24" data-name="襄阳-上庸" d="M 6.99 -46.237 L -12.028 -49.74 L -31.294 -47.254 L -50.933 -44.768 L -68.956 -40.791 L -87.724 -33.706 L -107.736 -26.248 L -125.883 -18.169 L -141.609 -25.632 L -159.421 -31.621 L -176.128 -38.556"/>
+      <path class="road-shadow" d="M -176.128 -38.556 L -195.844 -34.626 L -215.37 -31.81 L -235.459 -29.745 L -256.487 -27.116 L -277.891 -23.361 L -296.666 -16.602 L -314.314 -7.215 L -329.522 3.111 L -343.039 17.332 L -354.683 32.58"/>
+      <path class="road" data-route="24-37" data-name="上庸-汉中" d="M -176.128 -38.556 L -195.844 -34.626 L -215.37 -31.81 L -235.459 -29.745 L -256.487 -27.116 L -277.891 -23.361 L -296.666 -16.602 L -314.314 -7.215 L -329.522 3.111 L -343.039 17.332 L -354.683 32.58"/>
+      <path class="road-shadow" d="M -176.128 -38.556 L -166.555 -54.525 L -163.25 -71.051 L -167.457 -87.426 L -177.673 -100.497 L -191.98 -120.034 L -186.688 -145.049"/>
+      <path class="road" data-route="24-41" data-name="上庸-永安" d="M -176.128 -38.556 L -166.555 -54.525 L -163.25 -71.051 L -167.457 -87.426 L -177.673 -100.497 L -191.98 -120.034 L -186.688 -145.049"/>
+      <path class="road-shadow" d="M 129.771 -111.009 L 156.802 -100.539 L 176.98 -92.677 L 198.597 -87.896 L 221.203 -81.451 L 242.938 -71.68"/>
+      <path class="road" data-route="25-35" data-name="江夏-庐江" d="M 129.771 -111.009 L 156.802 -100.539 L 176.98 -92.677 L 198.597 -87.896 L 221.203 -81.451 L 242.938 -71.68"/>
+      <path class="road-shadow" d="M 129.771 -111.009 L 113.564 -99.856 L 108.511 -82.952 L 96.138 -71.392 L 80.333 -68.057 L 64.093 -65.882 L 43.728 -82.956 L 30.295 -99.673 L 10.244 -110.759"/>
+      <path class="road" data-route="25-26" data-name="江夏-江陵" d="M 129.771 -111.009 L 113.564 -99.856 L 108.511 -82.952 L 96.138 -71.392 L 80.333 -68.057 L 64.093 -65.882 L 43.728 -82.956 L 30.295 -99.673 L 10.244 -110.759"/>
+      <path class="road-shadow" d="M 129.771 -111.009 L 109.445 -126.171 L 93.197 -145.805 L 93.947 -165.059 L 103.699 -180.311 L 92.197 -193.064 L 76.944 -200.565"/>
+      <path class="road" data-route="25-28" data-name="江夏-长沙" d="M 129.771 -111.009 L 109.445 -126.171 L 93.197 -145.805 L 93.947 -165.059 L 103.699 -180.311 L 92.197 -193.064 L 76.944 -200.565"/>
+      <path class="road-shadow" d="M 10.244 -110.759 L -6.614 -117.081 L -20.982 -120.146 L -38.989 -127.425 L -60.445 -128 L -82.667 -130.299 L -107.161 -134.249 L -131.354 -143.632 L -158.502 -151.18 L -186.688 -145.049"/>
+      <path class="road" data-route="26-41" data-name="江陵-永安" d="M 10.244 -110.759 L -6.614 -117.081 L -20.982 -120.146 L -38.989 -127.425 L -60.445 -128 L -82.667 -130.299 L -107.161 -134.249 L -131.354 -143.632 L -158.502 -151.18 L -186.688 -145.049"/>
+      <path class="road-shadow" d="M 10.244 -110.759 L -6.614 -117.081 L -20.982 -120.146 L -38.989 -127.425 L -60.445 -128 L -82.667 -130.299 L -75.748 -148 L -73.13 -166.673 L -59.622 -178.654"/>
+      <path class="road" data-route="26-27" data-name="江陵-武陵" d="M 10.244 -110.759 L -6.614 -117.081 L -20.982 -120.146 L -38.989 -127.425 L -60.445 -128 L -82.667 -130.299 L -75.748 -148 L -73.13 -166.673 L -59.622 -178.654"/>
+      <path class="road-shadow" d="M -59.622 -178.654 L -73.13 -166.673 L -75.748 -148 L -82.667 -130.299 L -107.161 -134.249 L -131.354 -143.632 L -158.502 -151.18 L -186.688 -145.049"/>
+      <path class="road" data-route="27-41" data-name="武陵-永安" d="M -59.622 -178.654 L -73.13 -166.673 L -75.748 -148 L -82.667 -130.299 L -107.161 -134.249 L -131.354 -143.632 L -158.502 -151.18 L -186.688 -145.049"/>
+      <path class="road-shadow" d="M -59.622 -178.654 L -43.756 -190.932 L -27.958 -196.925 L -11.267 -199.432 L 6.489 -200.943 L 25.189 -199.054 L 50.331 -196.976 L 76.944 -200.565"/>
+      <path class="road" data-route="27-28" data-name="武陵-长沙" d="M -59.622 -178.654 L -43.756 -190.932 L -27.958 -196.925 L -11.267 -199.432 L 6.489 -200.943 L 25.189 -199.054 L 50.331 -196.976 L 76.944 -200.565"/>
+      <path class="road-shadow" d="M -59.622 -178.654 L -43.756 -190.932 L -27.958 -196.925 L -11.267 -199.432 L 6.489 -200.943 L -2.826 -220.504 L -14.068 -236.257 L -33.907 -245.721 L -50.675 -250.675 L -64.394 -257.535 L -59.059 -272.969"/>
+      <path class="road" data-route="27-30" data-name="武陵-零陵" d="M -59.622 -178.654 L -43.756 -190.932 L -27.958 -196.925 L -11.267 -199.432 L 6.489 -200.943 L -2.826 -220.504 L -14.068 -236.257 L -33.907 -245.721 L -50.675 -250.675 L -64.394 -257.535 L -59.059 -272.969"/>
+      <path class="road-shadow" d="M 76.944 -200.565 L 50.331 -196.976 L 25.189 -199.054 L 6.489 -200.943 L -2.826 -220.504 L -14.068 -236.257 L -33.907 -245.721 L -50.675 -250.675 L -64.394 -257.535 L -59.059 -272.969"/>
+      <path class="road" data-route="28-30" data-name="长沙-零陵" d="M 76.944 -200.565 L 50.331 -196.976 L 25.189 -199.054 L 6.489 -200.943 L -2.826 -220.504 L -14.068 -236.257 L -33.907 -245.721 L -50.675 -250.675 L -64.394 -257.535 L -59.059 -272.969"/>
+      <path class="road-shadow" d="M 76.944 -200.565 L 66.298 -223.321 L 67.734 -238.911 L 68.965 -257.577 L 68.965 -276.039 L 66.468 -295.905 L 62.904 -314.685 L 58.357 -330.999 L 50.445 -345.687 L 32.201 -368.626"/>
+      <path class="road" data-route="28-29" data-name="长沙-桂阳" d="M 76.944 -200.565 L 66.298 -223.321 L 67.734 -238.911 L 68.965 -257.577 L 68.965 -276.039 L 66.468 -295.905 L 62.904 -314.685 L 58.357 -330.999 L 50.445 -345.687 L 32.201 -368.626"/>
+      <path class="road-shadow" d="M 76.944 -200.565 L 98.786 -216.513 L 111.96 -223.909 L 127.215 -230.612 L 142.354 -240.32 L 155.99 -248.64 L 173.21 -251.298 L 193.202 -258.81"/>
+      <path class="road" data-route="28-36" data-name="长沙-予章" d="M 76.944 -200.565 L 98.786 -216.513 L 111.96 -223.909 L 127.215 -230.612 L 142.354 -240.32 L 155.99 -248.64 L 173.21 -251.298 L 193.202 -258.81"/>
+      <path class="road-shadow" d="M 32.201 -368.626 L 14.225 -361.918 L 2.649 -355.685 L -10.857 -344.999 L -21.098 -330.752 L -29.557 -314.723 L -36.236 -297.359 L -46.292 -284.592 L -59.059 -272.969"/>
+      <path class="road" data-route="29-30" data-name="桂阳-零陵" d="M 32.201 -368.626 L 14.225 -361.918 L 2.649 -355.685 L -10.857 -344.999 L -21.098 -330.752 L -29.557 -314.723 L -36.236 -297.359 L -46.292 -284.592 L -59.059 -272.969"/>
+      <path class="road-shadow" d="M 290.911 0.112 L 308.25 -13.976 L 323.921 -21.438 L 343.741 -28.606 L 362.164 -33.482 L 382.754 -30.773"/>
+      <path class="road" data-route="31-32" data-name="寿春-建业" d="M 290.911 0.112 L 308.25 -13.976 L 323.921 -21.438 L 343.741 -28.606 L 362.164 -33.482 L 382.754 -30.773"/>
+      <path class="road-shadow" d="M 290.911 0.112 L 308.25 -13.976 L 323.921 -21.438 L 306.951 -31.753 L 292.079 -40.159 L 277.854 -50.827 L 262.82 -61.981 L 242.938 -71.68"/>
+      <path class="road" data-route="31-35" data-name="寿春-庐江" d="M 290.911 0.112 L 308.25 -13.976 L 323.921 -21.438 L 306.951 -31.753 L 292.079 -40.159 L 277.854 -50.827 L 262.82 -61.981 L 242.938 -71.68"/>
+      <path class="road-shadow" d="M 382.754 -30.773 L 405.376 -33.631 L 416.568 -21.724 L 433.237 -13.628 L 452.108 -14.104 L 469.334 -17.016 L 488.244 -21.248"/>
+      <path class="road" data-route="32-33" data-name="建业-吴" d="M 382.754 -30.773 L 405.376 -33.631 L 416.568 -21.724 L 433.237 -13.628 L 452.108 -14.104 L 469.334 -17.016 L 488.244 -21.248"/>
+      <path class="road-shadow" d="M 382.754 -30.773 L 362.164 -33.482 L 343.741 -28.606 L 323.921 -21.438 L 306.951 -31.753 L 292.079 -40.159 L 277.854 -50.827 L 262.82 -61.981 L 242.938 -71.68"/>
+      <path class="road" data-route="32-35" data-name="建业-庐江" d="M 382.754 -30.773 L 362.164 -33.482 L 343.741 -28.606 L 323.921 -21.438 L 306.951 -31.753 L 292.079 -40.159 L 277.854 -50.827 L 262.82 -61.981 L 242.938 -71.68"/>
+      <path class="road-shadow" d="M 488.244 -21.248 L 496.112 -32.142 L 488.1 -46.633 L 480.429 -61.635 L 472.757 -79.023 L 463.381 -94.366 L 452.38 -112.439 L 445.111 -132.477 L 442.165 -152.121 L 434.896 -178.052"/>
+      <path class="road" data-route="33-34" data-name="吴-会稽" d="M 488.244 -21.248 L 496.112 -32.142 L 488.1 -46.633 L 480.429 -61.635 L 472.757 -79.023 L 463.381 -94.366 L 452.38 -112.439 L 445.111 -132.477 L 442.165 -152.121 L 434.896 -178.052"/>
+      <path class="road-shadow" d="M 434.896 -178.052 L 441.45 -196.402 L 438.391 -215.189 L 431.619 -233.321 L 430.309 -254.293 L 430.309 -276.575 L 438.391 -296.455 L 450.742 -314.165 L 465.656 -328.613 L 482.667 -341.895 L 497.581 -353.645 L 509.402 -368.63"/>
+      <path class="road" data-route="34-47" data-name="会稽-夷州" d="M 434.896 -178.052 L 441.45 -196.402 L 438.391 -215.189 L 431.619 -233.321 L 430.309 -254.293 L 430.309 -276.575 L 438.391 -296.455 L 450.742 -314.165 L 465.656 -328.613 L 482.667 -341.895 L 497.581 -353.645 L 509.402 -368.63"/>
+      <path class="road-shadow" d="M 434.896 -178.052 L 408.286 -187.286 L 382.983 -189.688 L 357.865 -188.356 L 333.641 -187.769 L 311.767 -187.035 L 291.067 -183.805 L 271.102 -177.052"/>
+      <path class="road" data-route="34-46" data-name="会稽-鄱阳" d="M 434.896 -178.052 L 408.286 -187.286 L 382.983 -189.688 L 357.865 -188.356 L 333.641 -187.769 L 311.767 -187.035 L 291.067 -183.805 L 271.102 -177.052"/>
+      <path class="road-shadow" d="M 242.938 -71.68 L 258.484 -85.672 L 277.038 -93.448 L 287.406 -109.273 L 283.843 -124.791 L 271.62 -140.415 L 261.707 -157.036 L 271.102 -177.052"/>
+      <path class="road" data-route="35-46" data-name="庐江-鄱阳" d="M 242.938 -71.68 L 258.484 -85.672 L 277.038 -93.448 L 287.406 -109.273 L 283.843 -124.791 L 271.62 -140.415 L 261.707 -157.036 L 271.102 -177.052"/>
+      <path class="road-shadow" d="M 193.202 -258.81 L 208.072 -280.093 L 216.823 -299.555 L 224.72 -316.036 L 222.145 -332.689 L 213.561 -346.251 L 199.656 -357.238"/>
+      <path class="road" data-route="36-45" data-name="予章-庐陵" d="M 193.202 -258.81 L 208.072 -280.093 L 216.823 -299.555 L 224.72 -316.036 L 222.145 -332.689 L 213.561 -346.251 L 199.656 -357.238"/>
+      <path class="road-shadow" d="M 193.202 -258.81 L 208.642 -249.33 L 220.572 -239.92 L 230.653 -224.798 L 241.407 -210.684 L 251.993 -197.074 L 271.102 -177.052"/>
+      <path class="road" data-route="36-46" data-name="予章-鄱阳" d="M 193.202 -258.81 L 208.642 -249.33 L 220.572 -239.92 L 230.653 -224.798 L 241.407 -210.684 L 251.993 -197.074 L 271.102 -177.052"/>
+      <path class="road-shadow" d="M -354.683 32.58 L -378.106 22.613 L -400.69 20.235 L -423.636 19.641 L -448.199 15.257 L -469.199 17.795 L -482.583 25.41"/>
+      <path class="road" data-route="37-38" data-name="汉中-下弁" d="M -354.683 32.58 L -378.106 22.613 L -400.69 20.235 L -423.636 19.641 L -448.199 15.257 L -469.199 17.795 L -482.583 25.41"/>
+      <path class="road-shadow" d="M -482.583 25.41 L -493.203 13.02 L -480.37 -1.731 L -463.702 -9.106 L -448.656 -18.547 L -438.036 -26.659 L -421.883 -34.387"/>
+      <path class="road" data-route="38-39" data-name="下弁-梓潼" d="M -482.583 25.41 L -493.203 13.02 L -480.37 -1.731 L -463.702 -9.106 L -448.656 -18.547 L -438.036 -26.659 L -421.883 -34.387"/>
+      <path class="road-shadow" d="M -421.883 -34.387 L -436.736 -42.797 L -451.231 -50.671 L -464.776 -62.257 L -471.303 -76.618 L -462.001 -92.61 L -461.185 -109.745 L -451.394 -128.022"/>
+      <path class="road" data-route="39-40" data-name="梓潼-成都" d="M -421.883 -34.387 L -436.736 -42.797 L -451.231 -50.671 L -464.776 -62.257 L -471.303 -76.618 L -462.001 -92.61 L -461.185 -109.745 L -451.394 -128.022"/>
+      <path class="road-shadow" d="M -451.394 -128.022 L -461.838 -141.077 L -467.351 -157.615 L -477.952 -169.913 L -493.219 -179.031 L -501.912 -192.177 L -491.098 -203.839 L -480.072 -216.772 L -482.193 -236.068 L -495.127 -247.942"/>
+      <path class="road" data-route="40-43" data-name="成都-建宁" d="M -451.394 -128.022 L -461.838 -141.077 L -467.351 -157.615 L -477.952 -169.913 L -493.219 -179.031 L -501.912 -192.177 L -491.098 -203.839 L -480.072 -216.772 L -482.193 -236.068 L -495.127 -247.942"/>
+      <path class="road-shadow" d="M -451.394 -128.022 L -433.748 -137.555 L -417.724 -146.074 L -402.512 -156.013 L -388.517 -170.616 L -374.724 -184.003 L -359.714 -193.13 L -337.809 -199.418"/>
+      <path class="road" data-route="40-42" data-name="成都-江州" d="M -451.394 -128.022 L -433.748 -137.555 L -417.724 -146.074 L -402.512 -156.013 L -388.517 -170.616 L -374.724 -184.003 L -359.714 -193.13 L -337.809 -199.418"/>
+      <path class="road-shadow" d="M -186.688 -145.049 L -202.147 -155.298 L -220.212 -162.593 L -244.009 -169.715 L -263.811 -174.752 L -285.351 -179.963 L -303.763 -185.348 L -320.439 -193.165 L -337.809 -199.418"/>
+      <path class="road" data-route="41-42" data-name="永安-江州" d="M -186.688 -145.049 L -202.147 -155.298 L -220.212 -162.593 L -244.009 -169.715 L -263.811 -174.752 L -285.351 -179.963 L -303.763 -185.348 L -320.439 -193.165 L -337.809 -199.418"/>
+      <path class="road-shadow" d="M -495.127 -247.942 L -509.497 -257.271 L -517.046 -271.189 L -510.441 -288.173 L -505.958 -307.989 L -507.61 -325.445 L -511.194 -340.335 L -516.433 -356.189 L -525.394 -369.837 L -536.836 -381.969 L -553.656 -392.446"/>
+      <path class="road" data-route="43-44" data-name="建宁-云南" d="M -495.127 -247.942 L -509.497 -257.271 L -517.046 -271.189 L -510.441 -288.173 L -505.958 -307.989 L -507.61 -325.445 L -511.194 -340.335 L -516.433 -356.189 L -525.394 -369.837 L -536.836 -381.969 L -553.656 -392.446"/>
+      </g>
+    </g>
+    <g id="cities">
+      <g class="city neutral" id="city-0" data-index="0" data-name="襄平" data-king="-1" data-king-name="无主" data-unity-x="482.23" data-unity-y="401.735" data-unity-z="0" transform="translate(482.23 401.735)">
+        <g class="city-building">
+          <ellipse class="city-ground" cx="0" cy="7" rx="23" ry="9"/>
+          <path class="city-wall" d="M -17 -6 L 0 -15 L 18 -6 L 18 5 L 0 14 L -17 5 Z"/>
+          <path class="city-roof main" d="M -10 -6 L 0 -12 L 11 -6 L 0 0 Z"/>
+          <path class="city-roof" d="M -14 1 L -6 -3 L 2 1 L -6 7 Z"/>
+          <path class="city-roof" d="M 4 1 L 12 -3 L 18 1 L 10 7 Z"/>
+        </g>
+        <circle class="coord-pin" r="2.6"/>
+        <g class="upright" transform="scale(1 -1)">
+          <rect class="faction-badge" x="-42" y="-7" width="11" height="11" rx="2"/>
+          <text class="city-label" x="-28" y="8" text-anchor="end">襄平</text>
+        </g>
+      </g>
+      <g class="city king-5" id="city-1" data-index="1" data-name="北平" data-king="5" data-king-name="公孙瓒" data-unity-x="254.1" data-unity-y="354.556" data-unity-z="0" transform="translate(254.1 354.556)">
+        <g class="city-building">
+          <ellipse class="city-ground" cx="0" cy="7" rx="23" ry="9"/>
+          <path class="city-wall" d="M -17 -6 L 0 -15 L 18 -6 L 18 5 L 0 14 L -17 5 Z"/>
+          <path class="city-roof main" d="M -10 -6 L 0 -12 L 11 -6 L 0 0 Z"/>
+          <path class="city-roof" d="M -14 1 L -6 -3 L 2 1 L -6 7 Z"/>
+          <path class="city-roof" d="M 4 1 L 12 -3 L 18 1 L 10 7 Z"/>
+        </g>
+        <circle class="coord-pin" r="2.6"/>
+        <g class="upright" transform="scale(1 -1)">
+          <rect class="faction-badge" x="-7" y="-35" width="11" height="11" rx="2"/>
+          <text class="city-label" x="0" y="-20" text-anchor="middle">北平</text>
+        </g>
+      </g>
+      <g class="city king-6" id="city-2" data-index="2" data-name="代县" data-king="6" data-king-name="刘焉" data-unity-x="71.683" data-unity-y="346.613" data-unity-z="0" transform="translate(71.683 346.613)">
+        <g class="city-building">
+          <ellipse class="city-ground" cx="0" cy="7" rx="23" ry="9"/>
+          <path class="city-wall" d="M -17 -6 L 0 -15 L 18 -6 L 18 5 L 0 14 L -17 5 Z"/>
+          <path class="city-roof main" d="M -10 -6 L 0 -12 L 11 -6 L 0 0 Z"/>
+          <path class="city-roof" d="M -14 1 L -6 -3 L 2 1 L -6 7 Z"/>
+          <path class="city-roof" d="M 4 1 L 12 -3 L 18 1 L 10 7 Z"/>
+        </g>
+        <circle class="coord-pin" r="2.6"/>
+        <g class="upright" transform="scale(1 -1)">
+          <rect class="faction-badge" x="-7" y="-35" width="11" height="11" rx="2"/>
+          <text class="city-label" x="0" y="-20" text-anchor="middle">代县</text>
+        </g>
+      </g>
+      <g class="city neutral" id="city-3" data-index="3" data-name="晋阳" data-king="-1" data-king-name="无主" data-unity-x="-24.418" data-unity-y="259.044" data-unity-z="0" transform="translate(-24.418 259.044)">
+        <g class="city-building">
+          <ellipse class="city-ground" cx="0" cy="7" rx="23" ry="9"/>
+          <path class="city-wall" d="M -17 -6 L 0 -15 L 18 -6 L 18 5 L 0 14 L -17 5 Z"/>
+          <path class="city-roof main" d="M -10 -6 L 0 -12 L 11 -6 L 0 0 Z"/>
+          <path class="city-roof" d="M -14 1 L -6 -3 L 2 1 L -6 7 Z"/>
+          <path class="city-roof" d="M 4 1 L 12 -3 L 18 1 L 10 7 Z"/>
+        </g>
+        <circle class="coord-pin" r="2.6"/>
+        <g class="upright" transform="scale(1 -1)">
+          <rect class="faction-badge" x="-7" y="13" width="11" height="11" rx="2"/>
+          <text class="city-label" x="0" y="28" text-anchor="middle">晋阳</text>
+        </g>
+      </g>
+      <g class="city king-1" id="city-4" data-index="4" data-name="南皮" data-king="1" data-king-name="张角" data-unity-x="223.087" data-unity-y="272.23" data-unity-z="0" transform="translate(223.087 272.23)">
+        <g class="city-building">
+          <ellipse class="city-ground" cx="0" cy="7" rx="23" ry="9"/>
+          <path class="city-wall" d="M -17 -6 L 0 -15 L 18 -6 L 18 5 L 0 14 L -17 5 Z"/>
+          <path class="city-roof main" d="M -10 -6 L 0 -12 L 11 -6 L 0 0 Z"/>
+          <path class="city-roof" d="M -14 1 L -6 -3 L 2 1 L -6 7 Z"/>
+          <path class="city-roof" d="M 4 1 L 12 -3 L 18 1 L 10 7 Z"/>
+        </g>
+        <circle class="coord-pin" r="2.6"/>
+        <g class="upright" transform="scale(1 -1)">
+          <rect class="faction-badge" x="-7" y="-35" width="11" height="11" rx="2"/>
+          <text class="city-label" x="0" y="-20" text-anchor="middle">南皮</text>
+        </g>
+      </g>
+      <g class="city king-1" id="city-5" data-index="5" data-name="平原" data-king="1" data-king-name="张角" data-unity-x="173.309" data-unity-y="197.866" data-unity-z="0" transform="translate(173.309 197.866)">
+        <g class="city-building">
+          <ellipse class="city-ground" cx="0" cy="7" rx="23" ry="9"/>
+          <path class="city-wall" d="M -17 -6 L 0 -15 L 18 -6 L 18 5 L 0 14 L -17 5 Z"/>
+          <path class="city-roof main" d="M -10 -6 L 0 -12 L 11 -6 L 0 0 Z"/>
+          <path class="city-roof" d="M -14 1 L -6 -3 L 2 1 L -6 7 Z"/>
+          <path class="city-roof" d="M 4 1 L 12 -3 L 18 1 L 10 7 Z"/>
+        </g>
+        <circle class="coord-pin" r="2.6"/>
+        <g class="upright" transform="scale(1 -1)">
+          <rect class="faction-badge" x="-7" y="-35" width="11" height="11" rx="2"/>
+          <text class="city-label" x="0" y="-20" text-anchor="middle">平原</text>
+        </g>
+      </g>
+      <g class="city king-7" id="city-6" data-index="6" data-name="邺" data-king="7" data-king-name="韩馥" data-unity-x="58.353" data-unity-y="132.654" data-unity-z="0" transform="translate(58.353 132.654)">
+        <g class="city-building">
+          <ellipse class="city-ground" cx="0" cy="7" rx="23" ry="9"/>
+          <path class="city-wall" d="M -17 -6 L 0 -15 L 18 -6 L 18 5 L 0 14 L -17 5 Z"/>
+          <path class="city-roof main" d="M -10 -6 L 0 -12 L 11 -6 L 0 0 Z"/>
+          <path class="city-roof" d="M -14 1 L -6 -3 L 2 1 L -6 7 Z"/>
+          <path class="city-roof" d="M 4 1 L 12 -3 L 18 1 L 10 7 Z"/>
+        </g>
+        <circle class="coord-pin" r="2.6"/>
+        <g class="upright" transform="scale(1 -1)">
+          <rect class="faction-badge" x="-7" y="15" width="11" height="11" rx="2"/>
+          <text class="city-label" x="0" y="30" text-anchor="middle">邺</text>
+        </g>
+      </g>
+      <g class="city king-8" id="city-7" data-index="7" data-name="北海" data-king="8" data-king-name="龚景" data-unity-x="365.902" data-unity-y="188.204" data-unity-z="0" transform="translate(365.902 188.204)">
+        <g class="city-building">
+          <ellipse class="city-ground" cx="0" cy="7" rx="23" ry="9"/>
+          <path class="city-wall" d="M -17 -6 L 0 -15 L 18 -6 L 18 5 L 0 14 L -17 5 Z"/>
+          <path class="city-roof main" d="M -10 -6 L 0 -12 L 11 -6 L 0 0 Z"/>
+          <path class="city-roof" d="M -14 1 L -6 -3 L 2 1 L -6 7 Z"/>
+          <path class="city-roof" d="M 4 1 L 12 -3 L 18 1 L 10 7 Z"/>
+        </g>
+        <circle class="coord-pin" r="2.6"/>
+        <g class="upright" transform="scale(1 -1)">
+          <rect class="faction-badge" x="31" y="-7" width="11" height="11" rx="2"/>
+          <text class="city-label" x="28" y="8" text-anchor="start">北海</text>
+        </g>
+      </g>
+      <g class="city king-9" id="city-8" data-index="8" data-name="濮阳" data-king="9" data-king-name="乔玄" data-unity-x="246.091" data-unity-y="144.7" data-unity-z="0" transform="translate(246.091 144.7)">
+        <g class="city-building">
+          <ellipse class="city-ground" cx="0" cy="7" rx="23" ry="9"/>
+          <path class="city-wall" d="M -17 -6 L 0 -15 L 18 -6 L 18 5 L 0 14 L -17 5 Z"/>
+          <path class="city-roof main" d="M -10 -6 L 0 -12 L 11 -6 L 0 0 Z"/>
+          <path class="city-roof" d="M -14 1 L -6 -3 L 2 1 L -6 7 Z"/>
+          <path class="city-roof" d="M 4 1 L 12 -3 L 18 1 L 10 7 Z"/>
+        </g>
+        <circle class="coord-pin" r="2.6"/>
+        <g class="upright" transform="scale(1 -1)">
+          <rect class="faction-badge" x="33" y="-9" width="11" height="11" rx="2"/>
+          <text class="city-label" x="30" y="6" text-anchor="start">濮阳</text>
+        </g>
+      </g>
+      <g class="city king-1" id="city-9" data-index="9" data-name="陈留" data-king="1" data-king-name="张角" data-unity-x="186.603" data-unity-y="85.2" data-unity-z="0" transform="translate(186.603 85.2)">
+        <g class="city-building">
+          <ellipse class="city-ground" cx="0" cy="7" rx="23" ry="9"/>
+          <path class="city-wall" d="M -17 -6 L 0 -15 L 18 -6 L 18 5 L 0 14 L -17 5 Z"/>
+          <path class="city-roof main" d="M -10 -6 L 0 -12 L 11 -6 L 0 0 Z"/>
+          <path class="city-roof" d="M -14 1 L -6 -3 L 2 1 L -6 7 Z"/>
+          <path class="city-roof" d="M 4 1 L 12 -3 L 18 1 L 10 7 Z"/>
+        </g>
+        <circle class="coord-pin" r="2.6"/>
+        <g class="upright" transform="scale(1 -1)">
+          <rect class="faction-badge" x="-7" y="15" width="11" height="11" rx="2"/>
+          <text class="city-label" x="0" y="30" text-anchor="middle">陈留</text>
+        </g>
+      </g>
+      <g class="city king-0" id="city-10" data-index="10" data-name="洛阳" data-king="0" data-king-name="何进" data-unity-x="-39.124" data-unity-y="79.762" data-unity-z="0" transform="translate(-39.124 79.762)">
+        <g class="city-building">
+          <ellipse class="city-ground" cx="0" cy="7" rx="23" ry="9"/>
+          <path class="city-wall" d="M -17 -6 L 0 -15 L 18 -6 L 18 5 L 0 14 L -17 5 Z"/>
+          <path class="city-roof main" d="M -10 -6 L 0 -12 L 11 -6 L 0 0 Z"/>
+          <path class="city-roof" d="M -14 1 L -6 -3 L 2 1 L -6 7 Z"/>
+          <path class="city-roof" d="M 4 1 L 12 -3 L 18 1 L 10 7 Z"/>
+        </g>
+        <circle class="coord-pin" r="2.6"/>
+        <g class="upright" transform="scale(1 -1)">
+          <rect class="faction-badge" x="-7" y="15" width="11" height="11" rx="2"/>
+          <text class="city-label" x="0" y="30" text-anchor="middle">洛阳</text>
+        </g>
+      </g>
+      <g class="city king-0" id="city-11" data-index="11" data-name="弘农" data-king="0" data-king-name="何进" data-unity-x="-147.225" data-unity-y="62.044" data-unity-z="0" transform="translate(-147.225 62.044)">
+        <g class="city-building">
+          <ellipse class="city-ground" cx="0" cy="7" rx="23" ry="9"/>
+          <path class="city-wall" d="M -17 -6 L 0 -15 L 18 -6 L 18 5 L 0 14 L -17 5 Z"/>
+          <path class="city-roof main" d="M -10 -6 L 0 -12 L 11 -6 L 0 0 Z"/>
+          <path class="city-roof" d="M -14 1 L -6 -3 L 2 1 L -6 7 Z"/>
+          <path class="city-roof" d="M 4 1 L 12 -3 L 18 1 L 10 7 Z"/>
+        </g>
+        <circle class="coord-pin" r="2.6"/>
+        <g class="upright" transform="scale(1 -1)">
+          <rect class="faction-badge" x="-7" y="15" width="11" height="11" rx="2"/>
+          <text class="city-label" x="0" y="30" text-anchor="middle">弘农</text>
+        </g>
+      </g>
+      <g class="city king-0" id="city-12" data-index="12" data-name="长安" data-king="0" data-king-name="何进" data-unity-x="-237.65" data-unity-y="40.584" data-unity-z="0" transform="translate(-237.65 40.584)">
+        <g class="city-building">
+          <ellipse class="city-ground" cx="0" cy="7" rx="23" ry="9"/>
+          <path class="city-wall" d="M -17 -6 L 0 -15 L 18 -6 L 18 5 L 0 14 L -17 5 Z"/>
+          <path class="city-roof main" d="M -10 -6 L 0 -12 L 11 -6 L 0 0 Z"/>
+          <path class="city-roof" d="M -14 1 L -6 -3 L 2 1 L -6 7 Z"/>
+          <path class="city-roof" d="M 4 1 L 12 -3 L 18 1 L 10 7 Z"/>
+        </g>
+        <circle class="coord-pin" r="2.6"/>
+        <g class="upright" transform="scale(1 -1)">
+          <rect class="faction-badge" x="-7" y="15" width="11" height="11" rx="2"/>
+          <text class="city-label" x="0" y="30" text-anchor="middle">长安</text>
+        </g>
+      </g>
+      <g class="city neutral" id="city-13" data-index="13" data-name="安定" data-king="-1" data-king-name="无主" data-unity-x="-309.704" data-unity-y="127.817" data-unity-z="0" transform="translate(-309.704 127.817)">
+        <g class="city-building">
+          <ellipse class="city-ground" cx="0" cy="7" rx="23" ry="9"/>
+          <path class="city-wall" d="M -17 -6 L 0 -15 L 18 -6 L 18 5 L 0 14 L -17 5 Z"/>
+          <path class="city-roof main" d="M -10 -6 L 0 -12 L 11 -6 L 0 0 Z"/>
+          <path class="city-roof" d="M -14 1 L -6 -3 L 2 1 L -6 7 Z"/>
+          <path class="city-roof" d="M 4 1 L 12 -3 L 18 1 L 10 7 Z"/>
+        </g>
+        <circle class="coord-pin" r="2.6"/>
+        <g class="upright" transform="scale(1 -1)">
+          <rect class="faction-badge" x="-7" y="-35" width="11" height="11" rx="2"/>
+          <text class="city-label" x="0" y="-20" text-anchor="middle">安定</text>
+        </g>
+      </g>
+      <g class="city neutral" id="city-14" data-index="14" data-name="天水" data-king="-1" data-king-name="无主" data-unity-x="-449.091" data-unity-y="129.455" data-unity-z="0" transform="translate(-449.091 129.455)">
+        <g class="city-building">
+          <ellipse class="city-ground" cx="0" cy="7" rx="23" ry="9"/>
+          <path class="city-wall" d="M -17 -6 L 0 -15 L 18 -6 L 18 5 L 0 14 L -17 5 Z"/>
+          <path class="city-roof main" d="M -10 -6 L 0 -12 L 11 -6 L 0 0 Z"/>
+          <path class="city-roof" d="M -14 1 L -6 -3 L 2 1 L -6 7 Z"/>
+          <path class="city-roof" d="M 4 1 L 12 -3 L 18 1 L 10 7 Z"/>
+        </g>
+        <circle class="coord-pin" r="2.6"/>
+        <g class="upright" transform="scale(1 -1)">
+          <rect class="faction-badge" x="31" y="-7" width="11" height="11" rx="2"/>
+          <text class="city-label" x="28" y="8" text-anchor="start">天水</text>
+        </g>
+      </g>
+      <g class="city king-3" id="city-15" data-index="15" data-name="西凉" data-king="3" data-king-name="董卓" data-unity-x="-531.174" data-unity-y="241.205" data-unity-z="0" transform="translate(-531.174 241.205)">
+        <g class="city-building">
+          <ellipse class="city-ground" cx="0" cy="7" rx="23" ry="9"/>
+          <path class="city-wall" d="M -17 -6 L 0 -15 L 18 -6 L 18 5 L 0 14 L -17 5 Z"/>
+          <path class="city-roof main" d="M -10 -6 L 0 -12 L 11 -6 L 0 0 Z"/>
+          <path class="city-roof" d="M -14 1 L -6 -3 L 2 1 L -6 7 Z"/>
+          <path class="city-roof" d="M 4 1 L 12 -3 L 18 1 L 10 7 Z"/>
+        </g>
+        <circle class="coord-pin" r="2.6"/>
+        <g class="upright" transform="scale(1 -1)">
+          <rect class="faction-badge" x="33" y="-7" width="11" height="11" rx="2"/>
+          <text class="city-label" x="30" y="8" text-anchor="start">西凉</text>
+        </g>
+      </g>
+      <g class="city king-2" id="city-16" data-index="16" data-name="下邳" data-king="2" data-king-name="孙坚" data-unity-x="401.384" data-unity-y="51.029" data-unity-z="0" transform="translate(401.384 51.029)">
+        <g class="city-building">
+          <ellipse class="city-ground" cx="0" cy="7" rx="23" ry="9"/>
+          <path class="city-wall" d="M -17 -6 L 0 -15 L 18 -6 L 18 5 L 0 14 L -17 5 Z"/>
+          <path class="city-roof main" d="M -10 -6 L 0 -12 L 11 -6 L 0 0 Z"/>
+          <path class="city-roof" d="M -14 1 L -6 -3 L 2 1 L -6 7 Z"/>
+          <path class="city-roof" d="M 4 1 L 12 -3 L 18 1 L 10 7 Z"/>
+        </g>
+        <circle class="coord-pin" r="2.6"/>
+        <g class="upright" transform="scale(1 -1)">
+          <rect class="faction-badge" x="-7" y="15" width="11" height="11" rx="2"/>
+          <text class="city-label" x="0" y="30" text-anchor="middle">下邳</text>
+        </g>
+      </g>
+      <g class="city king-10" id="city-17" data-index="17" data-name="徐州" data-king="10" data-king-name="陶谦" data-unity-x="309.22" data-unity-y="70.41" data-unity-z="0" transform="translate(309.22 70.41)">
+        <g class="city-building">
+          <ellipse class="city-ground" cx="0" cy="7" rx="23" ry="9"/>
+          <path class="city-wall" d="M -17 -6 L 0 -15 L 18 -6 L 18 5 L 0 14 L -17 5 Z"/>
+          <path class="city-roof main" d="M -10 -6 L 0 -12 L 11 -6 L 0 0 Z"/>
+          <path class="city-roof" d="M -14 1 L -6 -3 L 2 1 L -6 7 Z"/>
+          <path class="city-roof" d="M 4 1 L 12 -3 L 18 1 L 10 7 Z"/>
+        </g>
+        <circle class="coord-pin" r="2.6"/>
+        <g class="upright" transform="scale(1 -1)">
+          <rect class="faction-badge" x="29" y="-7" width="11" height="11" rx="2"/>
+          <text class="city-label" x="26" y="8" text-anchor="start">徐州</text>
+        </g>
+      </g>
+      <g class="city king-1" id="city-18" data-index="18" data-name="许昌" data-king="1" data-king-name="张角" data-unity-x="103.507" data-unity-y="46.051" data-unity-z="0" transform="translate(103.507 46.051)">
+        <g class="city-building">
+          <ellipse class="city-ground" cx="0" cy="7" rx="23" ry="9"/>
+          <path class="city-wall" d="M -17 -6 L 0 -15 L 18 -6 L 18 5 L 0 14 L -17 5 Z"/>
+          <path class="city-roof main" d="M -10 -6 L 0 -12 L 11 -6 L 0 0 Z"/>
+          <path class="city-roof" d="M -14 1 L -6 -3 L 2 1 L -6 7 Z"/>
+          <path class="city-roof" d="M 4 1 L 12 -3 L 18 1 L 10 7 Z"/>
+        </g>
+        <circle class="coord-pin" r="2.6"/>
+        <g class="upright" transform="scale(1 -1)">
+          <rect class="faction-badge" x="-7" y="15" width="11" height="11" rx="2"/>
+          <text class="city-label" x="0" y="30" text-anchor="middle">许昌</text>
+        </g>
+      </g>
+      <g class="city king-11" id="city-19" data-index="19" data-name="谯" data-king="11" data-king-name="孔岫" data-unity-x="203.596" data-unity-y="21.917" data-unity-z="0" transform="translate(203.596 21.917)">
+        <g class="city-building">
+          <ellipse class="city-ground" cx="0" cy="7" rx="23" ry="9"/>
+          <path class="city-wall" d="M -17 -6 L 0 -15 L 18 -6 L 18 5 L 0 14 L -17 5 Z"/>
+          <path class="city-roof main" d="M -10 -6 L 0 -12 L 11 -6 L 0 0 Z"/>
+          <path class="city-roof" d="M -14 1 L -6 -3 L 2 1 L -6 7 Z"/>
+          <path class="city-roof" d="M 4 1 L 12 -3 L 18 1 L 10 7 Z"/>
+        </g>
+        <circle class="coord-pin" r="2.6"/>
+        <g class="upright" transform="scale(1 -1)">
+          <rect class="faction-badge" x="33" y="-7" width="11" height="11" rx="2"/>
+          <text class="city-label" x="30" y="8" text-anchor="start">谯</text>
+        </g>
+      </g>
+      <g class="city king-1" id="city-20" data-index="20" data-name="汝南" data-king="1" data-king-name="张角" data-unity-x="129.366" data-unity-y="-37.898" data-unity-z="0" transform="translate(129.366 -37.898)">
+        <g class="city-building">
+          <ellipse class="city-ground" cx="0" cy="7" rx="23" ry="9"/>
+          <path class="city-wall" d="M -17 -6 L 0 -15 L 18 -6 L 18 5 L 0 14 L -17 5 Z"/>
+          <path class="city-roof main" d="M -10 -6 L 0 -12 L 11 -6 L 0 0 Z"/>
+          <path class="city-roof" d="M -14 1 L -6 -3 L 2 1 L -6 7 Z"/>
+          <path class="city-roof" d="M 4 1 L 12 -3 L 18 1 L 10 7 Z"/>
+        </g>
+        <circle class="coord-pin" r="2.6"/>
+        <g class="upright" transform="scale(1 -1)">
+          <rect class="faction-badge" x="-7" y="15" width="11" height="11" rx="2"/>
+          <text class="city-label" x="0" y="30" text-anchor="middle">汝南</text>
+        </g>
+      </g>
+      <g class="city king-1" id="city-21" data-index="21" data-name="宛" data-king="1" data-king-name="张角" data-unity-x="18.585" data-unity-y="21.137" data-unity-z="0" transform="translate(18.585 21.137)">
+        <g class="city-building">
+          <ellipse class="city-ground" cx="0" cy="7" rx="23" ry="9"/>
+          <path class="city-wall" d="M -17 -6 L 0 -15 L 18 -6 L 18 5 L 0 14 L -17 5 Z"/>
+          <path class="city-roof main" d="M -10 -6 L 0 -12 L 11 -6 L 0 0 Z"/>
+          <path class="city-roof" d="M -14 1 L -6 -3 L 2 1 L -6 7 Z"/>
+          <path class="city-roof" d="M 4 1 L 12 -3 L 18 1 L 10 7 Z"/>
+        </g>
+        <circle class="coord-pin" r="2.6"/>
+        <g class="upright" transform="scale(1 -1)">
+          <rect class="faction-badge" x="-40" y="-7" width="11" height="11" rx="2"/>
+          <text class="city-label" x="-26" y="8" text-anchor="end">宛</text>
+        </g>
+      </g>
+      <g class="city king-4" id="city-22" data-index="22" data-name="新野" data-king="4" data-king-name="丁原" data-unity-x="-76.662" data-unity-y="9.052" data-unity-z="0" transform="translate(-76.662 9.052)">
+        <g class="city-building">
+          <ellipse class="city-ground" cx="0" cy="7" rx="23" ry="9"/>
+          <path class="city-wall" d="M -17 -6 L 0 -15 L 18 -6 L 18 5 L 0 14 L -17 5 Z"/>
+          <path class="city-roof main" d="M -10 -6 L 0 -12 L 11 -6 L 0 0 Z"/>
+          <path class="city-roof" d="M -14 1 L -6 -3 L 2 1 L -6 7 Z"/>
+          <path class="city-roof" d="M 4 1 L 12 -3 L 18 1 L 10 7 Z"/>
+        </g>
+        <circle class="coord-pin" r="2.6"/>
+        <g class="upright" transform="scale(1 -1)">
+          <rect class="faction-badge" x="-7" y="15" width="11" height="11" rx="2"/>
+          <text class="city-label" x="0" y="30" text-anchor="middle">新野</text>
+        </g>
+      </g>
+      <g class="city neutral" id="city-23" data-index="23" data-name="襄阳" data-king="-1" data-king-name="无主" data-unity-x="6.99" data-unity-y="-46.237" data-unity-z="0" transform="translate(6.99 -46.237)">
+        <g class="city-building">
+          <ellipse class="city-ground" cx="0" cy="7" rx="23" ry="9"/>
+          <path class="city-wall" d="M -17 -6 L 0 -15 L 18 -6 L 18 5 L 0 14 L -17 5 Z"/>
+          <path class="city-roof main" d="M -10 -6 L 0 -12 L 11 -6 L 0 0 Z"/>
+          <path class="city-roof" d="M -14 1 L -6 -3 L 2 1 L -6 7 Z"/>
+          <path class="city-roof" d="M 4 1 L 12 -3 L 18 1 L 10 7 Z"/>
+        </g>
+        <circle class="coord-pin" r="2.6"/>
+        <g class="upright" transform="scale(1 -1)">
+          <rect class="faction-badge" x="-7" y="15" width="11" height="11" rx="2"/>
+          <text class="city-label" x="0" y="30" text-anchor="middle">襄阳</text>
+        </g>
+      </g>
+      <g class="city neutral" id="city-24" data-index="24" data-name="上庸" data-king="-1" data-king-name="无主" data-unity-x="-176.128" data-unity-y="-38.556" data-unity-z="0" transform="translate(-176.128 -38.556)">
+        <g class="city-building">
+          <ellipse class="city-ground" cx="0" cy="7" rx="23" ry="9"/>
+          <path class="city-wall" d="M -17 -6 L 0 -15 L 18 -6 L 18 5 L 0 14 L -17 5 Z"/>
+          <path class="city-roof main" d="M -10 -6 L 0 -12 L 11 -6 L 0 0 Z"/>
+          <path class="city-roof" d="M -14 1 L -6 -3 L 2 1 L -6 7 Z"/>
+          <path class="city-roof" d="M 4 1 L 12 -3 L 18 1 L 10 7 Z"/>
+        </g>
+        <circle class="coord-pin" r="2.6"/>
+        <g class="upright" transform="scale(1 -1)">
+          <rect class="faction-badge" x="-42" y="-7" width="11" height="11" rx="2"/>
+          <text class="city-label" x="-28" y="8" text-anchor="end">上庸</text>
+        </g>
+      </g>
+      <g class="city neutral" id="city-25" data-index="25" data-name="江夏" data-king="-1" data-king-name="无主" data-unity-x="129.771" data-unity-y="-111.009" data-unity-z="0" transform="translate(129.771 -111.009)">
+        <g class="city-building">
+          <ellipse class="city-ground" cx="0" cy="7" rx="23" ry="9"/>
+          <path class="city-wall" d="M -17 -6 L 0 -15 L 18 -6 L 18 5 L 0 14 L -17 5 Z"/>
+          <path class="city-roof main" d="M -10 -6 L 0 -12 L 11 -6 L 0 0 Z"/>
+          <path class="city-roof" d="M -14 1 L -6 -3 L 2 1 L -6 7 Z"/>
+          <path class="city-roof" d="M 4 1 L 12 -3 L 18 1 L 10 7 Z"/>
+        </g>
+        <circle class="coord-pin" r="2.6"/>
+        <g class="upright" transform="scale(1 -1)">
+          <rect class="faction-badge" x="-7" y="-35" width="11" height="11" rx="2"/>
+          <text class="city-label" x="0" y="-20" text-anchor="middle">江夏</text>
+        </g>
+      </g>
+      <g class="city neutral" id="city-26" data-index="26" data-name="江陵" data-king="-1" data-king-name="无主" data-unity-x="10.244" data-unity-y="-110.759" data-unity-z="0" transform="translate(10.244 -110.759)">
+        <g class="city-building">
+          <ellipse class="city-ground" cx="0" cy="7" rx="23" ry="9"/>
+          <path class="city-wall" d="M -17 -6 L 0 -15 L 18 -6 L 18 5 L 0 14 L -17 5 Z"/>
+          <path class="city-roof main" d="M -10 -6 L 0 -12 L 11 -6 L 0 0 Z"/>
+          <path class="city-roof" d="M -14 1 L -6 -3 L 2 1 L -6 7 Z"/>
+          <path class="city-roof" d="M 4 1 L 12 -3 L 18 1 L 10 7 Z"/>
+        </g>
+        <circle class="coord-pin" r="2.6"/>
+        <g class="upright" transform="scale(1 -1)">
+          <rect class="faction-badge" x="-7" y="15" width="11" height="11" rx="2"/>
+          <text class="city-label" x="0" y="30" text-anchor="middle">江陵</text>
+        </g>
+      </g>
+      <g class="city neutral" id="city-27" data-index="27" data-name="武陵" data-king="-1" data-king-name="无主" data-unity-x="-59.622" data-unity-y="-178.654" data-unity-z="0" transform="translate(-59.622 -178.654)">
+        <g class="city-building">
+          <ellipse class="city-ground" cx="0" cy="7" rx="23" ry="9"/>
+          <path class="city-wall" d="M -17 -6 L 0 -15 L 18 -6 L 18 5 L 0 14 L -17 5 Z"/>
+          <path class="city-roof main" d="M -10 -6 L 0 -12 L 11 -6 L 0 0 Z"/>
+          <path class="city-roof" d="M -14 1 L -6 -3 L 2 1 L -6 7 Z"/>
+          <path class="city-roof" d="M 4 1 L 12 -3 L 18 1 L 10 7 Z"/>
+        </g>
+        <circle class="coord-pin" r="2.6"/>
+        <g class="upright" transform="scale(1 -1)">
+          <rect class="faction-badge" x="-38" y="-7" width="11" height="11" rx="2"/>
+          <text class="city-label" x="-24" y="8" text-anchor="end">武陵</text>
+        </g>
+      </g>
+      <g class="city neutral" id="city-28" data-index="28" data-name="长沙" data-king="-1" data-king-name="无主" data-unity-x="76.944" data-unity-y="-200.565" data-unity-z="0" transform="translate(76.944 -200.565)">
+        <g class="city-building">
+          <ellipse class="city-ground" cx="0" cy="7" rx="23" ry="9"/>
+          <path class="city-wall" d="M -17 -6 L 0 -15 L 18 -6 L 18 5 L 0 14 L -17 5 Z"/>
+          <path class="city-roof main" d="M -10 -6 L 0 -12 L 11 -6 L 0 0 Z"/>
+          <path class="city-roof" d="M -14 1 L -6 -3 L 2 1 L -6 7 Z"/>
+          <path class="city-roof" d="M 4 1 L 12 -3 L 18 1 L 10 7 Z"/>
+        </g>
+        <circle class="coord-pin" r="2.6"/>
+        <g class="upright" transform="scale(1 -1)">
+          <rect class="faction-badge" x="-7" y="-35" width="11" height="11" rx="2"/>
+          <text class="city-label" x="0" y="-20" text-anchor="middle">长沙</text>
+        </g>
+      </g>
+      <g class="city neutral" id="city-29" data-index="29" data-name="桂阳" data-king="-1" data-king-name="无主" data-unity-x="32.201" data-unity-y="-368.626" data-unity-z="0" transform="translate(32.201 -368.626)">
+        <g class="city-building">
+          <ellipse class="city-ground" cx="0" cy="7" rx="23" ry="9"/>
+          <path class="city-wall" d="M -17 -6 L 0 -15 L 18 -6 L 18 5 L 0 14 L -17 5 Z"/>
+          <path class="city-roof main" d="M -10 -6 L 0 -12 L 11 -6 L 0 0 Z"/>
+          <path class="city-roof" d="M -14 1 L -6 -3 L 2 1 L -6 7 Z"/>
+          <path class="city-roof" d="M 4 1 L 12 -3 L 18 1 L 10 7 Z"/>
+        </g>
+        <circle class="coord-pin" r="2.6"/>
+        <g class="upright" transform="scale(1 -1)">
+          <rect class="faction-badge" x="-7" y="-35" width="11" height="11" rx="2"/>
+          <text class="city-label" x="0" y="-20" text-anchor="middle">桂阳</text>
+        </g>
+      </g>
+      <g class="city neutral" id="city-30" data-index="30" data-name="零陵" data-king="-1" data-king-name="无主" data-unity-x="-59.059" data-unity-y="-272.969" data-unity-z="0" transform="translate(-59.059 -272.969)">
+        <g class="city-building">
+          <ellipse class="city-ground" cx="0" cy="7" rx="23" ry="9"/>
+          <path class="city-wall" d="M -17 -6 L 0 -15 L 18 -6 L 18 5 L 0 14 L -17 5 Z"/>
+          <path class="city-roof main" d="M -10 -6 L 0 -12 L 11 -6 L 0 0 Z"/>
+          <path class="city-roof" d="M -14 1 L -6 -3 L 2 1 L -6 7 Z"/>
+          <path class="city-roof" d="M 4 1 L 12 -3 L 18 1 L 10 7 Z"/>
+        </g>
+        <circle class="coord-pin" r="2.6"/>
+        <g class="upright" transform="scale(1 -1)">
+          <rect class="faction-badge" x="-7" y="15" width="11" height="11" rx="2"/>
+          <text class="city-label" x="0" y="30" text-anchor="middle">零陵</text>
+        </g>
+      </g>
+      <g class="city king-12" id="city-31" data-index="31" data-name="寿春" data-king="12" data-king-name="刘繇" data-unity-x="290.911" data-unity-y="0.112" data-unity-z="0" transform="translate(290.911 0.112)">
+        <g class="city-building">
+          <ellipse class="city-ground" cx="0" cy="7" rx="23" ry="9"/>
+          <path class="city-wall" d="M -17 -6 L 0 -15 L 18 -6 L 18 5 L 0 14 L -17 5 Z"/>
+          <path class="city-roof main" d="M -10 -6 L 0 -12 L 11 -6 L 0 0 Z"/>
+          <path class="city-roof" d="M -14 1 L -6 -3 L 2 1 L -6 7 Z"/>
+          <path class="city-roof" d="M 4 1 L 12 -3 L 18 1 L 10 7 Z"/>
+        </g>
+        <circle class="coord-pin" r="2.6"/>
+        <g class="upright" transform="scale(1 -1)">
+          <rect class="faction-badge" x="-7" y="15" width="11" height="11" rx="2"/>
+          <text class="city-label" x="0" y="30" text-anchor="middle">寿春</text>
+        </g>
+      </g>
+      <g class="city neutral" id="city-32" data-index="32" data-name="建业" data-king="-1" data-king-name="无主" data-unity-x="382.754" data-unity-y="-30.773" data-unity-z="0" transform="translate(382.754 -30.773)">
+        <g class="city-building">
+          <ellipse class="city-ground" cx="0" cy="7" rx="23" ry="9"/>
+          <path class="city-wall" d="M -17 -6 L 0 -15 L 18 -6 L 18 5 L 0 14 L -17 5 Z"/>
+          <path class="city-roof main" d="M -10 -6 L 0 -12 L 11 -6 L 0 0 Z"/>
+          <path class="city-roof" d="M -14 1 L -6 -3 L 2 1 L -6 7 Z"/>
+          <path class="city-roof" d="M 4 1 L 12 -3 L 18 1 L 10 7 Z"/>
+        </g>
+        <circle class="coord-pin" r="2.6"/>
+        <g class="upright" transform="scale(1 -1)">
+          <rect class="faction-badge" x="-7" y="15" width="11" height="11" rx="2"/>
+          <text class="city-label" x="0" y="30" text-anchor="middle">建业</text>
+        </g>
+      </g>
+      <g class="city king-13" id="city-33" data-index="33" data-name="吴" data-king="13" data-king-name="严白虎" data-unity-x="488.244" data-unity-y="-21.248" data-unity-z="0" transform="translate(488.244 -21.248)">
+        <g class="city-building">
+          <ellipse class="city-ground" cx="0" cy="7" rx="23" ry="9"/>
+          <path class="city-wall" d="M -17 -6 L 0 -15 L 18 -6 L 18 5 L 0 14 L -17 5 Z"/>
+          <path class="city-roof main" d="M -10 -6 L 0 -12 L 11 -6 L 0 0 Z"/>
+          <path class="city-roof" d="M -14 1 L -6 -3 L 2 1 L -6 7 Z"/>
+          <path class="city-roof" d="M 4 1 L 12 -3 L 18 1 L 10 7 Z"/>
+        </g>
+        <circle class="coord-pin" r="2.6"/>
+        <g class="upright" transform="scale(1 -1)">
+          <rect class="faction-badge" x="-42" y="-7" width="11" height="11" rx="2"/>
+          <text class="city-label" x="-28" y="8" text-anchor="end">吴</text>
+        </g>
+      </g>
+      <g class="city neutral" id="city-34" data-index="34" data-name="会稽" data-king="-1" data-king-name="无主" data-unity-x="434.896" data-unity-y="-178.052" data-unity-z="0" transform="translate(434.896 -178.052)">
+        <g class="city-building">
+          <ellipse class="city-ground" cx="0" cy="7" rx="23" ry="9"/>
+          <path class="city-wall" d="M -17 -6 L 0 -15 L 18 -6 L 18 5 L 0 14 L -17 5 Z"/>
+          <path class="city-roof main" d="M -10 -6 L 0 -12 L 11 -6 L 0 0 Z"/>
+          <path class="city-roof" d="M -14 1 L -6 -3 L 2 1 L -6 7 Z"/>
+          <path class="city-roof" d="M 4 1 L 12 -3 L 18 1 L 10 7 Z"/>
+        </g>
+        <circle class="coord-pin" r="2.6"/>
+        <g class="upright" transform="scale(1 -1)">
+          <rect class="faction-badge" x="-44" y="-7" width="11" height="11" rx="2"/>
+          <text class="city-label" x="-30" y="8" text-anchor="end">会稽</text>
+        </g>
+      </g>
+      <g class="city neutral" id="city-35" data-index="35" data-name="庐江" data-king="-1" data-king-name="无主" data-unity-x="242.938" data-unity-y="-71.68" data-unity-z="0" transform="translate(242.938 -71.68)">
+        <g class="city-building">
+          <ellipse class="city-ground" cx="0" cy="7" rx="23" ry="9"/>
+          <path class="city-wall" d="M -17 -6 L 0 -15 L 18 -6 L 18 5 L 0 14 L -17 5 Z"/>
+          <path class="city-roof main" d="M -10 -6 L 0 -12 L 11 -6 L 0 0 Z"/>
+          <path class="city-roof" d="M -14 1 L -6 -3 L 2 1 L -6 7 Z"/>
+          <path class="city-roof" d="M 4 1 L 12 -3 L 18 1 L 10 7 Z"/>
+        </g>
+        <circle class="coord-pin" r="2.6"/>
+        <g class="upright" transform="scale(1 -1)">
+          <rect class="faction-badge" x="-7" y="-35" width="11" height="11" rx="2"/>
+          <text class="city-label" x="0" y="-20" text-anchor="middle">庐江</text>
+        </g>
+      </g>
+      <g class="city neutral" id="city-36" data-index="36" data-name="予章" data-king="-1" data-king-name="无主" data-unity-x="193.202" data-unity-y="-258.81" data-unity-z="0" transform="translate(193.202 -258.81)">
+        <g class="city-building">
+          <ellipse class="city-ground" cx="0" cy="7" rx="23" ry="9"/>
+          <path class="city-wall" d="M -17 -6 L 0 -15 L 18 -6 L 18 5 L 0 14 L -17 5 Z"/>
+          <path class="city-roof main" d="M -10 -6 L 0 -12 L 11 -6 L 0 0 Z"/>
+          <path class="city-roof" d="M -14 1 L -6 -3 L 2 1 L -6 7 Z"/>
+          <path class="city-roof" d="M 4 1 L 12 -3 L 18 1 L 10 7 Z"/>
+        </g>
+        <circle class="coord-pin" r="2.6"/>
+        <g class="upright" transform="scale(1 -1)">
+          <rect class="faction-badge" x="-7" y="15" width="11" height="11" rx="2"/>
+          <text class="city-label" x="0" y="30" text-anchor="middle">予章</text>
+        </g>
+      </g>
+      <g class="city neutral" id="city-37" data-index="37" data-name="汉中" data-king="-1" data-king-name="无主" data-unity-x="-354.683" data-unity-y="32.58" data-unity-z="0" transform="translate(-354.683 32.58)">
+        <g class="city-building">
+          <ellipse class="city-ground" cx="0" cy="7" rx="23" ry="9"/>
+          <path class="city-wall" d="M -17 -6 L 0 -15 L 18 -6 L 18 5 L 0 14 L -17 5 Z"/>
+          <path class="city-roof main" d="M -10 -6 L 0 -12 L 11 -6 L 0 0 Z"/>
+          <path class="city-roof" d="M -14 1 L -6 -3 L 2 1 L -6 7 Z"/>
+          <path class="city-roof" d="M 4 1 L 12 -3 L 18 1 L 10 7 Z"/>
+        </g>
+        <circle class="coord-pin" r="2.6"/>
+        <g class="upright" transform="scale(1 -1)">
+          <rect class="faction-badge" x="-7" y="-35" width="11" height="11" rx="2"/>
+          <text class="city-label" x="0" y="-20" text-anchor="middle">汉中</text>
+        </g>
+      </g>
+      <g class="city neutral" id="city-38" data-index="38" data-name="下弁" data-king="-1" data-king-name="无主" data-unity-x="-482.583" data-unity-y="25.41" data-unity-z="0" transform="translate(-482.583 25.41)">
+        <g class="city-building">
+          <ellipse class="city-ground" cx="0" cy="7" rx="23" ry="9"/>
+          <path class="city-wall" d="M -17 -6 L 0 -15 L 18 -6 L 18 5 L 0 14 L -17 5 Z"/>
+          <path class="city-roof main" d="M -10 -6 L 0 -12 L 11 -6 L 0 0 Z"/>
+          <path class="city-roof" d="M -14 1 L -6 -3 L 2 1 L -6 7 Z"/>
+          <path class="city-roof" d="M 4 1 L 12 -3 L 18 1 L 10 7 Z"/>
+        </g>
+        <circle class="coord-pin" r="2.6"/>
+        <g class="upright" transform="scale(1 -1)">
+          <rect class="faction-badge" x="31" y="-7" width="11" height="11" rx="2"/>
+          <text class="city-label" x="28" y="8" text-anchor="start">下弁</text>
+        </g>
+      </g>
+      <g class="city neutral" id="city-39" data-index="39" data-name="梓潼" data-king="-1" data-king-name="无主" data-unity-x="-421.883" data-unity-y="-34.387" data-unity-z="0" transform="translate(-421.883 -34.387)">
+        <g class="city-building">
+          <ellipse class="city-ground" cx="0" cy="7" rx="23" ry="9"/>
+          <path class="city-wall" d="M -17 -6 L 0 -15 L 18 -6 L 18 5 L 0 14 L -17 5 Z"/>
+          <path class="city-roof main" d="M -10 -6 L 0 -12 L 11 -6 L 0 0 Z"/>
+          <path class="city-roof" d="M -14 1 L -6 -3 L 2 1 L -6 7 Z"/>
+          <path class="city-roof" d="M 4 1 L 12 -3 L 18 1 L 10 7 Z"/>
+        </g>
+        <circle class="coord-pin" r="2.6"/>
+        <g class="upright" transform="scale(1 -1)">
+          <rect class="faction-badge" x="31" y="-7" width="11" height="11" rx="2"/>
+          <text class="city-label" x="28" y="8" text-anchor="start">梓潼</text>
+        </g>
+      </g>
+      <g class="city neutral" id="city-40" data-index="40" data-name="成都" data-king="-1" data-king-name="无主" data-unity-x="-451.394" data-unity-y="-128.022" data-unity-z="0" transform="translate(-451.394 -128.022)">
+        <g class="city-building">
+          <ellipse class="city-ground" cx="0" cy="7" rx="23" ry="9"/>
+          <path class="city-wall" d="M -17 -6 L 0 -15 L 18 -6 L 18 5 L 0 14 L -17 5 Z"/>
+          <path class="city-roof main" d="M -10 -6 L 0 -12 L 11 -6 L 0 0 Z"/>
+          <path class="city-roof" d="M -14 1 L -6 -3 L 2 1 L -6 7 Z"/>
+          <path class="city-roof" d="M 4 1 L 12 -3 L 18 1 L 10 7 Z"/>
+        </g>
+        <circle class="coord-pin" r="2.6"/>
+        <g class="upright" transform="scale(1 -1)">
+          <rect class="faction-badge" x="33" y="-7" width="11" height="11" rx="2"/>
+          <text class="city-label" x="30" y="8" text-anchor="start">成都</text>
+        </g>
+      </g>
+      <g class="city neutral" id="city-41" data-index="41" data-name="永安" data-king="-1" data-king-name="无主" data-unity-x="-186.688" data-unity-y="-145.049" data-unity-z="0" transform="translate(-186.688 -145.049)">
+        <g class="city-building">
+          <ellipse class="city-ground" cx="0" cy="7" rx="23" ry="9"/>
+          <path class="city-wall" d="M -17 -6 L 0 -15 L 18 -6 L 18 5 L 0 14 L -17 5 Z"/>
+          <path class="city-roof main" d="M -10 -6 L 0 -12 L 11 -6 L 0 0 Z"/>
+          <path class="city-roof" d="M -14 1 L -6 -3 L 2 1 L -6 7 Z"/>
+          <path class="city-roof" d="M 4 1 L 12 -3 L 18 1 L 10 7 Z"/>
+        </g>
+        <circle class="coord-pin" r="2.6"/>
+        <g class="upright" transform="scale(1 -1)">
+          <rect class="faction-badge" x="-7" y="15" width="11" height="11" rx="2"/>
+          <text class="city-label" x="0" y="30" text-anchor="middle">永安</text>
+        </g>
+      </g>
+      <g class="city neutral" id="city-42" data-index="42" data-name="江州" data-king="-1" data-king-name="无主" data-unity-x="-337.809" data-unity-y="-199.418" data-unity-z="0" transform="translate(-337.809 -199.418)">
+        <g class="city-building">
+          <ellipse class="city-ground" cx="0" cy="7" rx="23" ry="9"/>
+          <path class="city-wall" d="M -17 -6 L 0 -15 L 18 -6 L 18 5 L 0 14 L -17 5 Z"/>
+          <path class="city-roof main" d="M -10 -6 L 0 -12 L 11 -6 L 0 0 Z"/>
+          <path class="city-roof" d="M -14 1 L -6 -3 L 2 1 L -6 7 Z"/>
+          <path class="city-roof" d="M 4 1 L 12 -3 L 18 1 L 10 7 Z"/>
+        </g>
+        <circle class="coord-pin" r="2.6"/>
+        <g class="upright" transform="scale(1 -1)">
+          <rect class="faction-badge" x="-7" y="15" width="11" height="11" rx="2"/>
+          <text class="city-label" x="0" y="30" text-anchor="middle">江州</text>
+        </g>
+      </g>
+      <g class="city neutral" id="city-43" data-index="43" data-name="建宁" data-king="-1" data-king-name="无主" data-unity-x="-495.127" data-unity-y="-247.942" data-unity-z="0" transform="translate(-495.127 -247.942)">
+        <g class="city-building">
+          <ellipse class="city-ground" cx="0" cy="7" rx="23" ry="9"/>
+          <path class="city-wall" d="M -17 -6 L 0 -15 L 18 -6 L 18 5 L 0 14 L -17 5 Z"/>
+          <path class="city-roof main" d="M -10 -6 L 0 -12 L 11 -6 L 0 0 Z"/>
+          <path class="city-roof" d="M -14 1 L -6 -3 L 2 1 L -6 7 Z"/>
+          <path class="city-roof" d="M 4 1 L 12 -3 L 18 1 L 10 7 Z"/>
+        </g>
+        <circle class="coord-pin" r="2.6"/>
+        <g class="upright" transform="scale(1 -1)">
+          <rect class="faction-badge" x="33" y="-7" width="11" height="11" rx="2"/>
+          <text class="city-label" x="30" y="8" text-anchor="start">建宁</text>
+        </g>
+      </g>
+      <g class="city neutral" id="city-44" data-index="44" data-name="云南" data-king="-1" data-king-name="无主" data-unity-x="-553.656" data-unity-y="-392.446" data-unity-z="0" transform="translate(-553.656 -392.446)">
+        <g class="city-building">
+          <ellipse class="city-ground" cx="0" cy="7" rx="23" ry="9"/>
+          <path class="city-wall" d="M -17 -6 L 0 -15 L 18 -6 L 18 5 L 0 14 L -17 5 Z"/>
+          <path class="city-roof main" d="M -10 -6 L 0 -12 L 11 -6 L 0 0 Z"/>
+          <path class="city-roof" d="M -14 1 L -6 -3 L 2 1 L -6 7 Z"/>
+          <path class="city-roof" d="M 4 1 L 12 -3 L 18 1 L 10 7 Z"/>
+        </g>
+        <circle class="coord-pin" r="2.6"/>
+        <g class="upright" transform="scale(1 -1)">
+          <rect class="faction-badge" x="33" y="-7" width="11" height="11" rx="2"/>
+          <text class="city-label" x="30" y="8" text-anchor="start">云南</text>
+        </g>
+      </g>
+      <g class="city neutral" id="city-45" data-index="45" data-name="庐陵" data-king="-1" data-king-name="无主" data-unity-x="199.656" data-unity-y="-357.238" data-unity-z="0" transform="translate(199.656 -357.238)">
+        <g class="city-building">
+          <ellipse class="city-ground" cx="0" cy="7" rx="23" ry="9"/>
+          <path class="city-wall" d="M -17 -6 L 0 -15 L 18 -6 L 18 5 L 0 14 L -17 5 Z"/>
+          <path class="city-roof main" d="M -10 -6 L 0 -12 L 11 -6 L 0 0 Z"/>
+          <path class="city-roof" d="M -14 1 L -6 -3 L 2 1 L -6 7 Z"/>
+          <path class="city-roof" d="M 4 1 L 12 -3 L 18 1 L 10 7 Z"/>
+        </g>
+        <circle class="coord-pin" r="2.6"/>
+        <g class="upright" transform="scale(1 -1)">
+          <rect class="faction-badge" x="-7" y="-35" width="11" height="11" rx="2"/>
+          <text class="city-label" x="0" y="-20" text-anchor="middle">庐陵</text>
+        </g>
+      </g>
+      <g class="city neutral" id="city-46" data-index="46" data-name="鄱阳" data-king="-1" data-king-name="无主" data-unity-x="271.102" data-unity-y="-177.052" data-unity-z="0" transform="translate(271.102 -177.052)">
+        <g class="city-building">
+          <ellipse class="city-ground" cx="0" cy="7" rx="23" ry="9"/>
+          <path class="city-wall" d="M -17 -6 L 0 -15 L 18 -6 L 18 5 L 0 14 L -17 5 Z"/>
+          <path class="city-roof main" d="M -10 -6 L 0 -12 L 11 -6 L 0 0 Z"/>
+          <path class="city-roof" d="M -14 1 L -6 -3 L 2 1 L -6 7 Z"/>
+          <path class="city-roof" d="M 4 1 L 12 -3 L 18 1 L 10 7 Z"/>
+        </g>
+        <circle class="coord-pin" r="2.6"/>
+        <g class="upright" transform="scale(1 -1)">
+          <rect class="faction-badge" x="-7" y="-35" width="11" height="11" rx="2"/>
+          <text class="city-label" x="0" y="-20" text-anchor="middle">鄱阳</text>
+        </g>
+      </g>
+      <g class="city neutral" id="city-47" data-index="47" data-name="夷州" data-king="-1" data-king-name="无主" data-unity-x="509.402" data-unity-y="-368.63" data-unity-z="0" transform="translate(509.402 -368.63)">
+        <g class="city-building">
+          <ellipse class="city-ground" cx="0" cy="7" rx="23" ry="9"/>
+          <path class="city-wall" d="M -17 -6 L 0 -15 L 18 -6 L 18 5 L 0 14 L -17 5 Z"/>
+          <path class="city-roof main" d="M -10 -6 L 0 -12 L 11 -6 L 0 0 Z"/>
+          <path class="city-roof" d="M -14 1 L -6 -3 L 2 1 L -6 7 Z"/>
+          <path class="city-roof" d="M 4 1 L 12 -3 L 18 1 L 10 7 Z"/>
+        </g>
+        <circle class="coord-pin" r="2.6"/>
+        <g class="upright" transform="scale(1 -1)">
+          <rect class="faction-badge" x="-7" y="-35" width="11" height="11" rx="2"/>
+          <text class="city-label" x="0" y="-20" text-anchor="middle">夷州</text>
+        </g>
+      </g>
+    </g>
+  </g>
+</svg>
