@@ -6,10 +6,15 @@ using System.Text;
 
 public class MODLoadController {
 
-    private const int RestoredSango2Index = 5;
-    private const float RecoveredMapCenterX = 1500f;
-    private const float RecoveredMapCenterY = 950f;
-    private const float RecoveredMapScale = 0.18f;
+    public const int RestoredSango2Index = 5;
+    public const float RecoveredMapPixelWidth = 3000f;
+    public const float RecoveredMapPixelHeight = 1920f;
+    public const float RecoveredMapWorldWidth = 2560f;
+    public const float RecoveredMapWorldHeight = RecoveredMapWorldWidth * RecoveredMapPixelHeight / RecoveredMapPixelWidth;
+    private const float RecoveredMapCenterX = RecoveredMapPixelWidth / 2f;
+    private const float RecoveredMapCenterY = RecoveredMapPixelHeight / 2f;
+    private const float RecoveredMapScale = RecoveredMapWorldWidth / RecoveredMapPixelWidth;
+    private static readonly string[] MODDisplayNames = new string[] { "01黄巾之乱", "02讨伐董卓", "03群雄割据", "04赤壁之战", "05三国鼎立", "06二代加强" };
 
     private static MODLoadController mInstance;
     public static MODLoadController Instance
@@ -35,18 +40,28 @@ public class MODLoadController {
     }
 
     /// <summary>
+    /// 方法说明：判断指定 MOD 是否为二代 APK 恢复版。
+    /// 参数说明：index 为 MOD 索引。
+    /// 返回说明：二代恢复版返回 true，否则返回 false。
+    /// </summary>
+    public static bool IsRestoredSango2Index(int index)
+    {
+        return index == RestoredSango2Index;
+    }
+
+    /// <summary>
     /// 方法说明：读取 MOD 选择界面显示名称。
     /// 参数说明：index 为 MOD 索引。
     /// 返回说明：返回显示名称。
     /// </summary>
     public string GetMODDisplayName(int index)
     {
-        if (index == RestoredSango2Index)
+        if (index >= 0 && index < MODDisplayNames.Length)
         {
-            return "威力加强版";
+            return MODDisplayNames[index];
         }
 
-        return "MOD0" + (index + 1);
+        return (index + 1).ToString("D2") + " 时期";
     }
 
     /// <summary>

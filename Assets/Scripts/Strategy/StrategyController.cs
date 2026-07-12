@@ -28,12 +28,16 @@ public class StrategyController : MonoBehaviour {
 	
 	private GameObject root;
 	private MyPathfinding pathfinding;
-	
+
 	private bool isMouseMove = false;
 	private bool isSpeedButtonPointerDown = false;
 	private Vector3 mouseDownPos = Vector3.zero;
-	
-	private Vector3 scale = new Vector3 (640f/Screen.width, 480f/Screen.height, 0);
+
+	private const string RecoveredSango2StrategyMapResourcePath = "Sango2Recovered/Map/Sango2WorldMap";
+	private const float DefaultStrategyMapWidth = 1280f;
+	private const float DefaultStrategyMapHeight = 960f;
+	private static bool isStrategyMapBoundsCached = false;
+	private static Bounds strategyMapBounds = new Bounds(Vector3.zero, new Vector3(DefaultStrategyMapWidth, DefaultStrategyMapHeight, 0));
 	
 	// 方法说明：初始化战略地图控制器、军队、胜负状态和顶部加速按钮。
 	// 参数说明：无。
@@ -43,7 +47,8 @@ public class StrategyController : MonoBehaviour {
 		// 1. 初始化战略地图运行状态和寻路依赖。
 		state = State.Normal;
 		pathfinding = GameObject.FindWithTag("Pathfinding").GetComponent<MyPathfinding>();
-		Camera.main.transform.position = strategyCamPos;
+		ApplyRestoredSango2StrategyMap();
+		Camera.main.transform.position = ClampCameraPosition(strategyCamPos);
 		
 		// 2. 挂载主地图加速按钮控制器。
 		EnsureSpeedUpController();
@@ -58,12 +63,14 @@ public class StrategyController : MonoBehaviour {
 		SoundController.Instance.PlayBackgroundMusic("Music03");
 	}
 		
-	// Update is called once per frame
+	// 方法说明：按当前战略地图状态分发每帧逻辑。
+	// 参数说明：无。
+	// 返回说明：无返回值。
 	void Update () {
 
 		if (isFirstEnter) {
 			isFirstEnter = false;
-			
+
 			SetGamePause();
 			choiceTarget.AddCityTarget(Informations.Instance.GetGeneralInfo(
 				Informations.Instance.GetKingInfo(Controller.kingIndex).generalIdx).city);
@@ -93,10 +100,209 @@ public class StrategyController : MonoBehaviour {
 	// 参数说明：无。
 	// 返回说明：无返回值。
 	void EnsureSpeedUpController() {
-		
+
 		if (GetComponent<StrategySpeedUpController>() == null) {
 			gameObject.AddComponent<StrategySpeedUpController>();
 		}
+	}
+
+	// 方法说明：在战略场景主背景上应用 MOD06 无字恢复地图和显示尺寸。
+	// 参数说明：无。
+	// 返回说明：无返回值。
+	void ApplyRestoredSango2StrategyMap() {
+		if (!MODLoadController.IsRestoredSango2Index(Controller.MODSelect)) {
+			return;
+		}
+
+		// 1. 定位战略主背景对象，避免误用菜单里的小地图对象。
+		GameObject mapObject = FindStrategyMapObject();
+		if (mapObject == null) {
+			Debug.LogError("战略场景缺少 Background 地图对象，无法应用二代恢复地图。");
+			return;
+		}
+
+		// 2. 加载 MOD06 无字恢复地图贴图。
+		Texture2D mapTexture = Resources.Load<Texture2D>(RecoveredSango2StrategyMapResourcePath);
+		Renderer mapRenderer = mapObject.GetComponent<Renderer>();
+		if (mapTexture == null) {
+			Debug.LogError("二代恢复地图资源不存在: " + RecoveredSango2StrategyMapResourcePath);
+			if (mapRenderer != null) {
+				mapRenderer.enabled = false;
+			}
+			return;
+		}
+
+		// 3. 替换主背景材质和 exSprite 尺寸。
+		if (mapRenderer == null || mapRenderer.material == null) {
+			Debug.LogError("战略地图主背景 Renderer 缺失，无法切换二代恢复地图。");
+			return;
+		}
+		mapRenderer.material.mainTexture = mapTexture;
+		ApplyRecoveredStrategyMapMesh(mapObject);
+
+		exSprite sprite = mapObject.GetComponent<exSprite>();
+		if (sprite != null) {
+			sprite.trimTexture = true;
+			sprite.trimUV = new Rect(0f, 0f, 1f, 1f);
+			sprite.customSize = true;
+			sprite.width = MODLoadController.RecoveredMapWorldWidth;
+			sprite.height = MODLoadController.RecoveredMapWorldHeight;
+		}
+
+		// 4. 刷新战略相机边界缓存，保证拖动范围读取主背景实际边界。
+		ResetStrategyMapBoundsCache();
+	}
+
+	// 方法说明：把战略主背景重建为和 MOD06 坐标系一致的地图网格。
+	// 参数说明：mapObject 为战略场景主地图对象。
+	// 返回说明：无返回值。
+	void ApplyRecoveredStrategyMapMesh(GameObject mapObject) {
+		MeshFilter meshFilter = mapObject.GetComponent<MeshFilter>();
+		if (meshFilter == null) {
+			Debug.LogError("战略地图主背景 MeshFilter 缺失，无法重建二代恢复地图网格。");
+			return;
+		}
+
+		float halfWidth = MODLoadController.RecoveredMapWorldWidth * 0.5f;
+		float halfHeight = MODLoadController.RecoveredMapWorldHeight * 0.5f;
+		Mesh mesh = new Mesh();
+		mesh.name = "RecoveredSango2StrategyMapMesh";
+		mesh.vertices = new Vector3[] {
+			new Vector3(-halfWidth, -halfHeight, 0f),
+			new Vector3(halfWidth, -halfHeight, 0f),
+			new Vector3(-halfWidth, halfHeight, 0f),
+			new Vector3(halfWidth, halfHeight, 0f)
+		};
+		mesh.uv = new Vector2[] {
+			new Vector2(0f, 0f),
+			new Vector2(1f, 0f),
+			new Vector2(0f, 1f),
+			new Vector2(1f, 1f)
+		};
+		mesh.triangles = new int[] { 0, 2, 1, 2, 3, 1 };
+		mesh.RecalculateBounds();
+		meshFilter.mesh = mesh;
+
+		Vector3 position = mapObject.transform.position;
+		position.x = 0f;
+		position.y = 0f;
+		mapObject.transform.position = position;
+		mapObject.transform.localScale = Vector3.one;
+	}
+
+	// 方法说明：查找战略场景主地图对象。
+	// 参数说明：无。
+	// 返回说明：优先返回激活根节点 Background，缺失时返回激活对象 Background 或 Map，均缺失返回 null。
+	static GameObject FindStrategyMapObject() {
+		GameObject[] rootObjects = UnityEngine.SceneManagement.SceneManager.GetActiveScene().GetRootGameObjects();
+		foreach (GameObject rootObject in rootObjects) {
+			if (rootObject.name == "Background" && rootObject.activeInHierarchy) {
+				return rootObject;
+			}
+		}
+
+		GameObject background = GameObject.Find("Background");
+		if (background != null) {
+			return background;
+		}
+
+		return GameObject.Find("Map");
+	}
+
+	// 方法说明：重置战略地图边界缓存，地图贴图或尺寸改变后调用。
+	// 参数说明：无。
+	// 返回说明：无返回值。
+	public static void ResetStrategyMapBoundsCache() {
+		isStrategyMapBoundsCached = false;
+	}
+
+	// 方法说明：根据两次屏幕坐标计算相机需要移动的世界坐标偏移。
+	// 参数说明：previousScreenPos 为上一帧屏幕坐标，currentScreenPos 为当前屏幕坐标。
+	// 返回说明：返回世界坐标偏移，缺少主相机时返回 Vector3.zero。
+	public static Vector3 GetCameraDragOffset(Vector3 previousScreenPos, Vector3 currentScreenPos) {
+		Camera camera = Camera.main;
+		if (camera == null) {
+			return Vector3.zero;
+		}
+
+		Vector3 previousWorldPos = camera.ScreenToWorldPoint(previousScreenPos);
+		Vector3 currentWorldPos = camera.ScreenToWorldPoint(currentScreenPos);
+		Vector3 offset = previousWorldPos - currentWorldPos;
+		offset.z = 0;
+		return offset;
+	}
+
+	// 方法说明：把战略地图相机位置限制在当前地图边界内。
+	// 参数说明：position 为待限制的相机世界坐标。
+	// 返回说明：返回限制后的相机世界坐标。
+	public static Vector3 ClampCameraPosition(Vector3 position) {
+		Camera camera = Camera.main;
+		if (camera == null) {
+			return position;
+		}
+
+		// 1. 读取当前地图边界和相机视口半径。
+		Bounds mapBounds = GetStrategyMapBounds();
+		float halfHeight = camera.orthographic ? camera.orthographicSize : DefaultStrategyMapHeight * 0.25f;
+		float halfWidth = halfHeight * camera.aspect;
+
+		// 2. 根据地图边界减去视口半径，得到相机中心可移动范围。
+		float minX = mapBounds.min.x + halfWidth;
+		float maxX = mapBounds.max.x - halfWidth;
+		float minY = mapBounds.min.y + halfHeight;
+		float maxY = mapBounds.max.y - halfHeight;
+
+		// 3. 当视口比地图还大时，固定在地图中心，避免露出单侧底色。
+		position.x = ClampCameraAxis(position.x, minX, maxX, mapBounds.center.x);
+		position.y = ClampCameraAxis(position.y, minY, maxY, mapBounds.center.y);
+		return position;
+	}
+
+	// 方法说明：读取战略地图渲染边界，Renderer 不可用时使用当前 MOD 对应的默认地图尺寸。
+	// 参数说明：无。
+	// 返回说明：返回地图世界坐标边界。
+	private static Bounds GetStrategyMapBounds() {
+		if (isStrategyMapBoundsCached) {
+			return strategyMapBounds;
+		}
+
+		// 1. MOD06 使用恢复地图坐标系尺寸，避免旧 exSprite Renderer bounds 返回菜单小图尺寸。
+		if (MODLoadController.IsRestoredSango2Index(Controller.MODSelect)) {
+			strategyMapBounds = new Bounds(
+				Vector3.zero,
+				new Vector3(MODLoadController.RecoveredMapWorldWidth, MODLoadController.RecoveredMapWorldHeight, 0));
+			isStrategyMapBoundsCached = true;
+			return strategyMapBounds;
+		}
+
+		// 2. 旧剧本优先读取场景主地图对象的 Renderer 边界。
+		GameObject mapObject = FindStrategyMapObject();
+		if (mapObject != null) {
+			Renderer mapRenderer = mapObject.GetComponent<Renderer>();
+			if (mapRenderer != null && mapRenderer.bounds.size.x > 0 && mapRenderer.bounds.size.y > 0) {
+				strategyMapBounds = mapRenderer.bounds;
+				isStrategyMapBoundsCached = true;
+				return strategyMapBounds;
+			}
+		}
+
+		// 3. Renderer 不可用时按旧地图尺寸生成默认边界，不生成任何内容数据。
+		Vector3 mapSize = new Vector3(DefaultStrategyMapWidth, DefaultStrategyMapHeight, 0);
+
+		strategyMapBounds = new Bounds(Vector3.zero, mapSize);
+		isStrategyMapBoundsCached = true;
+		return strategyMapBounds;
+	}
+
+	// 方法说明：限制单轴相机位置，视口大于地图时回到地图中心。
+	// 参数说明：value 为当前轴坐标，min 为最小值，max 为最大值，center 为地图中心坐标。
+	// 返回说明：返回限制后的单轴坐标。
+	private static float ClampCameraAxis(float value, float min, float max, float center) {
+		if (min > max) {
+			return center;
+		}
+
+		return Mathf.Clamp(value, min, max);
 	}
 	
 	// 方法说明：处理战略地图普通状态下的点击、拖动和菜单入口。
@@ -130,7 +336,7 @@ public class StrategyController : MonoBehaviour {
 			mouseDownPos = Input.mousePosition;
 			
 		} else if (!isMouseMove && Input.GetMouseButtonUp(0)) {
-				
+
 			// 3. 鼠标松开且没有拖动时，按点击目标打开城市、军队或主菜单。
 			SetGamePause();
 			
@@ -158,36 +364,34 @@ public class StrategyController : MonoBehaviour {
 
 			Input.ResetInputAxes();
 		} else if (Input.GetMouseButton(0)) {
-			
+
 			// 4. 鼠标拖动时移动战略地图相机。
 			if (!isMouseMove) {
 				
-				Vector3 offset = mouseDownPos - Input.mousePosition;
-				offset.Scale(scale);
+				Vector3 offset = GetCameraDragOffset(mouseDownPos, Input.mousePosition);
 				
 				if (Mathf.Abs(offset.x) > 5 || Mathf.Abs(offset.y) > 5) {
-					
 					isMouseMove = true;
 					mouseDownPos = Input.mousePosition;
 				}
 			} else {
 				
-				Vector3 offset = mouseDownPos - Input.mousePosition;
+				Vector3 offset = GetCameraDragOffset(mouseDownPos, Input.mousePosition);
 				mouseDownPos = Input.mousePosition;
-				offset.Scale(scale);
 					
 				Vector3 pos = Camera.main.transform.position;
 				
 				pos += offset;
-				pos.x = Mathf.Clamp(pos.x, -320, 320);
-				pos.y = Mathf.Clamp(pos.y, -240, 240);
+				pos = ClampCameraPosition(pos);
 				
 				Camera.main.transform.position = pos;
-				
 			}
 		}
 	}
 	
+	// 方法说明：处理战略时间流逝结束后的点击确认和进入内政。
+	// 参数说明：无。
+	// 返回说明：无返回值。
 	void OnTimeOverMode() {
 		
 		if (dialog.IsShowingText()) 
@@ -226,6 +430,9 @@ public class StrategyController : MonoBehaviour {
 		}
 	}
 	
+	// 方法说明：处理战争触发后的镜头移动和战斗武将选择场景切换。
+	// 参数说明：无。
+	// 返回说明：无返回值。
 	void OnWarHappenMode() {
 		
 		Camera.main.transform.position = Vector3.MoveTowards(Camera.main.transform.position, strategyCamPos, 500*Time.deltaTime);
@@ -243,6 +450,9 @@ public class StrategyController : MonoBehaviour {
 		}
 	}
 
+	// 方法说明：处理游戏失败对话结束后的失败场景切换。
+	// 参数说明：无。
+	// 返回说明：无返回值。
 	void GameOverHandler() {
 		if (dialog.IsShowingText()) {
 			return;
@@ -254,6 +464,9 @@ public class StrategyController : MonoBehaviour {
 		}
 	}
 
+	// 方法说明：处理游戏胜利对话结束后的胜利结算窗口。
+	// 参数说明：无。
+	// 返回说明：无返回值。
 	void GameVictoryHandler() {
 		if (dialog.IsShowingText()) {
 			return;
@@ -267,6 +480,9 @@ public class StrategyController : MonoBehaviour {
 		}
 	}
 
+	// 方法说明：检查玩家君主存活和统一胜利状态。
+	// 参数说明：无。
+	// 返回说明：无返回值。
 	void CheckGameState() {
 
 		if (Informations.Instance.GetKingInfo(Controller.kingIndex).active == 0) {
@@ -286,8 +502,8 @@ public class StrategyController : MonoBehaviour {
 				}
 			}
 			if (flag) {
-                PlayerPrefs.SetInt("GamePass", 1);
-                PlayerPrefs.Save();
+				PlayerPrefs.SetInt("GamePass", 1);
+				PlayerPrefs.Save();
 
 				SetGamePause();
 				state = State.GameVictory;
@@ -298,6 +514,9 @@ public class StrategyController : MonoBehaviour {
 		}
 	}
 
+	// 方法说明：暂停战略地图交互、顶部时间条、旗帜和部队动画。
+	// 参数说明：无。
+	// 返回说明：无返回值。
 	void SetGamePause() {
 		
 		state = State.Pause;
@@ -308,6 +527,9 @@ public class StrategyController : MonoBehaviour {
 		SetArmyPause();
 	}
 	
+	// 方法说明：在点击位置显示主菜单，并把菜单位置限制在相机视口内。
+	// 参数说明：无。
+	// 返回说明：无返回值。
 	void ShowMainMenu() {
 
 		Vector3 camPos = Camera.main.transform.position;
@@ -321,6 +543,9 @@ public class StrategyController : MonoBehaviour {
 		mainMenuCtrl.transform.position = pos;
 	}
 	
+	// 方法说明：从暂停、菜单或选择状态恢复到战略地图普通状态。
+	// 参数说明：无。
+	// 返回说明：无返回值。
 	public void ReturnMainMode() {
 		
 		state = State.Normal;
@@ -333,6 +558,9 @@ public class StrategyController : MonoBehaviour {
 		Misc.backButton.SetActive(false);
 	}
 	
+	// 方法说明：进入每月时间结束状态并暂停地图对象。
+	// 参数说明：无。
+	// 返回说明：无返回值。
 	public void OnTimeOver() {
 		
 		state = State.TimePass;
@@ -343,6 +571,9 @@ public class StrategyController : MonoBehaviour {
 		dialog.SetDialogue(Informations.Instance.GetKingInfo(Controller.kingIndex).generalIdx, ZhongWen.Instance.niezhengzhongle, MenuDisplayAnim.AnimType.InsertFromBottom);
 	}
 	
+	// 方法说明：暂停所有战略地图部队。
+	// 参数说明：无。
+	// 返回说明：无返回值。
 	void SetArmyPause() {
 		
 		for (int i=0; i<Informations.Instance.armys.Count; i++) {
@@ -351,6 +582,9 @@ public class StrategyController : MonoBehaviour {
 		}
 	}
 	
+	// 方法说明：恢复所有战略地图部队。
+	// 参数说明：无。
+	// 返回说明：无返回值。
 	void SetArmyResume() {
 		
 		for (int i=0; i<Informations.Instance.armys.Count; i++) {
@@ -359,6 +593,9 @@ public class StrategyController : MonoBehaviour {
 		}
 	}
 	
+	// 方法说明：修正城内武将过多的城池，把超额武将拆分成驻军部队。
+	// 参数说明：无。
+	// 返回说明：无返回值。
 	void CheckCorrection() {
 		
 		for (int i=0; i<Informations.Instance.cityNum; i++) {
@@ -400,6 +637,9 @@ public class StrategyController : MonoBehaviour {
 		}
 	}
 	
+	// 方法说明：从武将列表中选出君主或武力最高者作为统帅。
+	// 参数说明：generalList 为候选武将编号列表，king 为所属君主编号。
+	// 返回说明：返回统帅武将编号。
 	int FindCommander(List<int> generalList, int king) {
 		
 		int strengthMax = 0;
@@ -422,6 +662,9 @@ public class StrategyController : MonoBehaviour {
 		return commander;
 	}
 	
+	// 方法说明：初始化并生成战略地图上的所有部队对象。
+	// 参数说明：无。
+	// 返回说明：无返回值。
 	void InitArmys() {
 		
 		root = GameObject.Find("ArmiesRoot");
@@ -432,6 +675,9 @@ public class StrategyController : MonoBehaviour {
 		}
 	}
 	
+	// 方法说明：根据部队数据生成战略地图部队对象并绑定控制器。
+	// 参数说明：armyInfo 为需要生成的部队数据。
+	// 返回说明：无返回值。
 	void SetArmy(ArmyInfo armyInfo) {
 		
 		if (armyInfo.pos == Vector3.zero) {
@@ -445,13 +691,15 @@ public class StrategyController : MonoBehaviour {
 		armyCtrl.InitArmyInfo(armyInfo);
 	}
 	
+	// 方法说明：玩家部队与敌军相遇时进入开战对话。
+	// 参数说明：mine 为玩家部队，enemy 为敌军部队。
+	// 返回说明：无返回值。
 	public void SetWarDialogue(ArmyInfo mine, ArmyInfo enemy) {
 		
 		state = State.OnWar;
 		
 		Vector3 pos = mine.armyCtrl.transform.position;
-		pos.x = Mathf.Clamp(pos.x, -320, 320);
-		pos.y = Mathf.Clamp(pos.y, -240, 240);
+		pos = ClampCameraPosition(pos);
 		strategyCamPos = pos;
 		
 		hTimeCtrl.SetAnim(MenuDisplayAnim.AnimType.OutToLeft);
@@ -469,13 +717,15 @@ public class StrategyController : MonoBehaviour {
 		SelectGeneralToWarController.enemy = enemy;
 	}
 	
+	// 方法说明：玩家城池被敌军攻击时进入开战对话。
+	// 参数说明：cityAttacked 为被攻击城池索引，enemy 为敌军部队。
+	// 返回说明：无返回值。
 	public void SetWarDialogue(int cityAttacked, ArmyInfo enemy) {
 		
 		state = State.OnWar;
 		
 		Vector3 pos = enemy.armyCtrl.transform.position;
-		pos.x = Mathf.Clamp(pos.x, -320, 320);
-		pos.y = Mathf.Clamp(pos.y, -240, 240);
+		pos = ClampCameraPosition(pos);
 		strategyCamPos = pos;
 		
 		hTimeCtrl.SetAnim(MenuDisplayAnim.AnimType.OutToLeft);
@@ -493,13 +743,15 @@ public class StrategyController : MonoBehaviour {
 		SelectGeneralToWarController.enemy = enemy;
 	}
 	
+	// 方法说明：玩家部队攻击城池时进入开战对话。
+	// 参数说明：army 为玩家部队，cityAttacked 为被攻击城池索引。
+	// 返回说明：无返回值。
 	public void SetWarDialogue(ArmyInfo army, int cityAttacked) {
 		
 		state = State.OnWar;
 		
 		Vector3 pos = army.armyCtrl.transform.position;
-		pos.x = Mathf.Clamp(pos.x, -320, 320);
-		pos.y = Mathf.Clamp(pos.y, -240, 240);
+		pos = ClampCameraPosition(pos);
 		strategyCamPos = pos;
 		
 		hTimeCtrl.SetAnim(MenuDisplayAnim.AnimType.OutToLeft);
@@ -517,6 +769,9 @@ public class StrategyController : MonoBehaviour {
 		SelectGeneralToWarController.mine = army;
 	}
 	
+	// 方法说明：为电脑势力城池按资金和上限增加预备兵。
+	// 参数说明：无。
+	// 返回说明：无返回值。
 	public void AddReservist() {
 		
 		for (int i=0; i<Informations.Instance.cityNum; i++) {
@@ -721,6 +976,9 @@ public class StrategyController : MonoBehaviour {
 		cInfo.reservist -= soldierAdd;
 	}
 	
+	// 方法说明：按最大单支部队人数拆分并派出电脑势力部队。
+	// 参数说明：fo 为出发城池，to 为目标城池，num 为计划出征武将数量，maxNum 为单支部队最大武将数量。
+	// 返回说明：无返回值。
 	void SetArmyMove(int fo, int to, int num, int maxNum) {
 		
 		while (num > 0) {
@@ -729,6 +987,9 @@ public class StrategyController : MonoBehaviour {
 		}
 	}
 	
+	// 方法说明：从指定城池抽调武将、资金和俘虏，生成一支电脑势力移动部队。
+	// 参数说明：fo 为出发城池，to 为目标城池，num 为本支部队出征武将数量。
+	// 返回说明：无返回值。
 	void SetArmyMove(int fo, int to, int num) {
 		
 		CityInfo cInfo = Informations.Instance.GetCityInfo(fo);
@@ -817,6 +1078,9 @@ public class StrategyController : MonoBehaviour {
 		Informations.Instance.armys.Add(armyInfo);
 	}
 	
+	// 方法说明：处理单支部队的月度自动入城逻辑。
+	// 参数说明：i 为 Informations.Instance.armys 中的部队索引。
+	// 返回说明：无返回值。
 	void ArmyAct(int i) {
 		
 		ArmyInfo armyInfo = Informations.Instance.armys[i];
@@ -830,6 +1094,9 @@ public class StrategyController : MonoBehaviour {
 		}
 	}
 
+	// 方法说明：重置战略地图控制器的静态运行状态。
+	// 参数说明：无。
+	// 返回说明：无返回值。
 	public static void Reset() {
 		state = State.Normal;
 		isFirstEnter = true;

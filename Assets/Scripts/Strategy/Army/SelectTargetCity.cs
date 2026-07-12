@@ -14,22 +14,26 @@ public class SelectTargetCity : MonoBehaviour {
 	private bool isMouseMove;
 	private Vector3 mouseDownPos;
 	
-	private Vector3 scale = new Vector3(640f/Screen.width, 480f/Screen.height, 0);
-	
-	// Use this for initialization
+	// 方法说明：初始化选城控制器。
+	// 参数说明：无。
+	// 返回说明：无返回值。
 	void Start () {
-	
+
 	}
 	
-	// Update is called once per frame
+	// 方法说明：处理出征目标城选择、返回和地图拖动。
+	// 参数说明：无。
+	// 返回说明：无返回值。
 	void Update () {
 		
+		// 1. 返回按钮优先退出目标城选择。
 		if (Misc.GetBack()) {
 			gameObject.SetActive(false);
 			strCtrl.ReturnMainMode();
 			return;
 		}
 		
+		// 2. 鼠标按下时记录起点，用于区分点击和拖动。
 		if (Input.GetMouseButtonDown(0)) {
 				
 			isMouseMove = false;
@@ -37,6 +41,7 @@ public class SelectTargetCity : MonoBehaviour {
 			
 		} else if (!isMouseMove && Input.GetMouseButtonUp(0)) {
 			
+			// 3. 鼠标松开且没有拖动时，命中城池则改派部队目标。
 			int targetCity = flagsCtrl.GetTouchCityIdx();
 			if (targetCity != -1) {
 				
@@ -54,48 +59,36 @@ public class SelectTargetCity : MonoBehaviour {
 			}
 		} else if (Input.GetMouseButton(0)) {
 			
+			// 4. 鼠标拖动时移动相机，并限制在战略地图边界内。
 			if (!isMouseMove) {
 				
-				Vector3 offset = mouseDownPos - Input.mousePosition;
-				offset.Scale(scale);
-				
+				Vector3 offset = StrategyController.GetCameraDragOffset(mouseDownPos, Input.mousePosition);
 				if (Mathf.Abs(offset.x) > 5 || Mathf.Abs(offset.y) > 5) {
 					
 					isMouseMove = true;
 					mouseDownPos = Input.mousePosition;
-					/*
-					Vector3 pos = Camera.main.transform.position;
-					
-					pos += offset;
-					pos.x = Mathf.Clamp(pos.x, -320, 320);
-					pos.y = Mathf.Clamp(pos.y, -240, 240);
-					
-					Camera.main.transform.position = pos;
-					*/
 				}
 			} else {
 				
-				Vector3 offset = mouseDownPos - Input.mousePosition;
+				Vector3 offset = StrategyController.GetCameraDragOffset(mouseDownPos, Input.mousePosition);
 				mouseDownPos = Input.mousePosition;
-				offset.Scale(scale);
 					
 				Vector3 pos = Camera.main.transform.position;
 				
 				pos += offset;
-				pos.x = Mathf.Clamp(pos.x, -320, 320);
-				pos.y = Mathf.Clamp(pos.y, -240, 240);
+				pos = StrategyController.ClampCameraPosition(pos);
 				
 				Camera.main.transform.position = pos;
-				
 			}
 		}
 	}
 	
+	// 方法说明：进入目标城选择状态并记录当前出征部队。
+	// 参数说明：a 为当前需要重新选择目标城的部队。
+	// 返回说明：无返回值。
 	public void SetArmy(ArmyInfo a) {
 
 		armyInfo = a;
 		gameObject.SetActive(true);
 	}
-	
-	
 }

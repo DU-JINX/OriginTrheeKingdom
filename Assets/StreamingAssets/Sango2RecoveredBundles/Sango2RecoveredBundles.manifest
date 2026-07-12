@@ -1,0 +1,24 @@
+ManifestFileVersion: 0
+UnityVersion: 6000.5.1f1
+CRC: 2222813804
+HashAppended: 0
+AssetBundleManifest:
+  AssetBundleInfos:
+    Info_0:
+      Name: sango2_skill_frames_01
+      Dependencies: {}
+    Info_1:
+      Name: sango2_skill_frames_02
+      Dependencies: {}
+    Info_2:
+      Name: sango2_skill_frames_03
+      Dependencies: {}
+    Info_3:
+      Name: sango2_skill_frames_04
+      Dependencies: {}
+    Info_4:
+      Name: sango2_skill_frames_05
+      Dependencies: {}
+    Info_5:
+      Name: sango2_skill_frames_06
+      Dependencies: {}
