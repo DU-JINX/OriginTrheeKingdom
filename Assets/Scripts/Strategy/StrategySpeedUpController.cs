@@ -28,6 +28,10 @@ public class StrategySpeedUpController : MonoBehaviour {
 	// 参数说明：无。
 	// 返回说明：无返回值。
 	void OnGUI () {
+		if (StrategyMapHudController.IsActive()) {
+			return;
+		}
+
 		if (StrategyController.state != StrategyController.State.Normal) {
 			return;
 		}
@@ -63,6 +67,10 @@ public class StrategySpeedUpController : MonoBehaviour {
 	// 参数说明：无。
 	// 返回说明：鼠标在任一按钮范围内返回 true，否则返回 false。
 	public static bool IsPointerOverSpeedButton () {
+		if (StrategyMapHudController.IsActive()) {
+			return false;
+		}
+
 		Vector2 mousePosition = new Vector2(Input.mousePosition.x, Screen.height - Input.mousePosition.y);
 
 		return GetSpeedButtonRect().Contains(mousePosition) || GetPauseButtonRect().Contains(mousePosition);

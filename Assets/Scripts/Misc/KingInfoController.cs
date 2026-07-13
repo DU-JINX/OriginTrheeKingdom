@@ -234,7 +234,7 @@ public class KingInfoController : MonoBehaviour {
 	{
 		if (infoDynamicFont == null)
 		{
-			infoDynamicFont = Font.CreateDynamicFontFromOSFont(new string[] { "PingFang SC", "Heiti SC", "Arial Unicode MS", "sans-serif" }, infoFontSize);
+			infoDynamicFont = UnifiedGameFontController.CreateChineseDynamicFont(infoFontSize);
 		}
 
 		return infoDynamicFont;

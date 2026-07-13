@@ -202,7 +202,7 @@ public class PowerMap : MonoBehaviour {
 	/// </summary>
 	Font GetKingListLabelFont() {
 		if (kingListLabelFont == null) {
-			kingListLabelFont = Font.CreateDynamicFontFromOSFont(new string[] { "PingFang SC", "Heiti SC", "Arial Unicode MS", "sans-serif" }, kingListLabelFontSize);
+			kingListLabelFont = UnifiedGameFontController.CreateChineseDynamicFont(kingListLabelFontSize);
 		}
 
 		return kingListLabelFont;

@@ -54,12 +54,35 @@ public class FlagsController : MonoBehaviour {
 	/// 返回说明：返回创建出的城池名称对象。
 	/// </summary>
 	private GameObject CreateDefaultCityName(Transform flagTransform, int cityIdx) {
+		string cityName = ZhongWen.Instance.GetCityName(cityIdx);
+		Vector3 localPosition = new Vector3(8f, -8f, 0f);
+		CreateDefaultCityNameOutline(flagTransform, cityIdx, cityName, localPosition);
+
 		GameObject go = (GameObject)Instantiate(cityNamePerfab);
+		go.name = "CityName" + cityIdx;
 		go.transform.parent = flagTransform;
-		go.transform.localPosition = new Vector3(8, -8, 0);
+		go.transform.localPosition = localPosition;
 		exSpriteFont cityNameFont = go.GetComponent<exSpriteFont>();
-		cityNameFont.text = ZhongWen.Instance.GetCityName(cityIdx);
+		cityNameFont.text = cityName;
+		SetCityNameColors(cityNameFont, Color.white, Color.white);
 		return go;
+	}
+
+	/// <summary>
+	/// 方法说明：在原版旗帜本地坐标下为城池名称创建八方向黑色描边。
+	/// 参数说明：flagTransform 为旗帜节点，cityIdx 为城池索引，cityName 为名称，localPosition 为原版名称坐标。
+	/// 返回说明：无返回值。
+	/// </summary>
+	private void CreateDefaultCityNameOutline(Transform flagTransform, int cityIdx, string cityName, Vector3 localPosition) {
+		for (int i = 0; i < RecoveredCityNameShadowOffsets.Length; i++) {
+			GameObject shadow = (GameObject)Instantiate(cityNamePerfab);
+			shadow.name = "CityNameOutline" + cityIdx + "_" + i;
+			shadow.transform.parent = flagTransform;
+			shadow.transform.localPosition = localPosition + RecoveredCityNameShadowOffsets[i];
+			exSpriteFont shadowFont = shadow.GetComponent<exSpriteFont>();
+			shadowFont.text = cityName;
+			SetCityNameColors(shadowFont, new Color(0f, 0f, 0f, 0.92f), new Color(0f, 0f, 0f, 0.92f));
+		}
 	}
 
 	/// <summary>

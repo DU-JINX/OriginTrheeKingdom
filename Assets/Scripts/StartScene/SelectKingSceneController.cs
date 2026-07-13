@@ -981,7 +981,7 @@ public class SelectKingSceneController : MonoBehaviour {
     {
         if (kingListFont == null)
         {
-            kingListFont = Font.CreateDynamicFontFromOSFont(new string[] { "PingFang SC", "Heiti SC", "Arial Unicode MS", "sans-serif" }, kingListFontSize);
+			kingListFont = UnifiedGameFontController.CreateChineseDynamicFont(kingListFontSize);
         }
 
         return kingListFont;

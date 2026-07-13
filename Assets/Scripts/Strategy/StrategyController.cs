@@ -28,9 +28,10 @@ public class StrategyController : MonoBehaviour {
 	
 	private GameObject root;
 	private MyPathfinding pathfinding;
+	private StrategyMapHudController mapHudController;
 
 	private bool isMouseMove = false;
-	private bool isSpeedButtonPointerDown = false;
+	private bool isInterfacePointerDown = false;
 	private Vector3 mouseDownPos = Vector3.zero;
 
 	private const string RecoveredSango2StrategyMapResourcePath = "Sango2Recovered/Map/Sango2WorldMap";
@@ -47,11 +48,13 @@ public class StrategyController : MonoBehaviour {
 		// 1. 初始化战略地图运行状态和寻路依赖。
 		state = State.Normal;
 		pathfinding = GameObject.FindWithTag("Pathfinding").GetComponent<MyPathfinding>();
+		ResetStrategyMapBoundsCache();
 		ApplyRestoredSango2StrategyMap();
 		Camera.main.transform.position = ClampCameraPosition(strategyCamPos);
 		
-		// 2. 挂载主地图加速按钮控制器。
+		// 2. 挂载主地图速度控制和新版战略地图界面。
 		EnsureSpeedUpController();
+		EnsureStrategyMapHudController();
 		
 		// 3. 修正城市军队数据并生成地图军队对象。
 		CheckCorrection();
@@ -104,6 +107,18 @@ public class StrategyController : MonoBehaviour {
 		if (GetComponent<StrategySpeedUpController>() == null) {
 			gameObject.AddComponent<StrategySpeedUpController>();
 		}
+	}
+
+	// 方法说明：确保战略地图对象挂载新版常驻 HUD，并绑定当前控制器。
+	// 参数说明：无。
+	// 返回说明：无返回值。
+	void EnsureStrategyMapHudController() {
+		mapHudController = GetComponent<StrategyMapHudController>();
+		if (mapHudController == null) {
+			mapHudController = gameObject.AddComponent<StrategyMapHudController>();
+		}
+
+		mapHudController.Initialize(this);
 	}
 
 	// 方法说明：在战略场景主背景上应用 MOD06 无字恢复地图和显示尺寸。
@@ -241,8 +256,9 @@ public class StrategyController : MonoBehaviour {
 			return position;
 		}
 
-		// 1. 读取当前地图边界和相机视口半径。
+		// 1. 读取当前地图边界，并确保宽屏视口不会大于地图可覆盖范围。
 		Bounds mapBounds = GetStrategyMapBounds();
+		ClampCameraZoomToMapBounds(camera, mapBounds);
 		float halfHeight = camera.orthographic ? camera.orthographicSize : DefaultStrategyMapHeight * 0.25f;
 		float halfWidth = halfHeight * camera.aspect;
 
@@ -256,6 +272,21 @@ public class StrategyController : MonoBehaviour {
 		position.x = ClampCameraAxis(position.x, minX, maxX, mapBounds.center.x);
 		position.y = ClampCameraAxis(position.y, minY, maxY, mapBounds.center.y);
 		return position;
+	}
+
+	// 方法说明：限制正交相机最大视野，保证当前屏幕比例下地图始终覆盖完整视口。
+	// 参数说明：camera 为战略地图相机，mapBounds 为主地图世界坐标边界。
+	// 返回说明：无返回值。
+	private static void ClampCameraZoomToMapBounds(Camera camera, Bounds mapBounds) {
+		if (camera == null || !camera.orthographic || camera.aspect <= 0f) return;
+
+		float maxOrthographicSize = Mathf.Min(mapBounds.extents.y, mapBounds.extents.x / camera.aspect);
+		if (maxOrthographicSize <= 0f) {
+			Debug.LogError("战略地图边界无效，无法限制相机视野。");
+			return;
+		}
+
+		camera.orthographicSize = Mathf.Min(camera.orthographicSize, maxOrthographicSize);
 	}
 
 	// 方法说明：读取战略地图渲染边界，Renderer 不可用时使用当前 MOD 对应的默认地图尺寸。
@@ -310,22 +341,23 @@ public class StrategyController : MonoBehaviour {
 	// 返回说明：无返回值。
 	void OnNormalMode() {
 		
-		// 1. 顶部加速和暂停按钮区域交给 StrategySpeedUpController 处理，避免触发地图菜单。
-		bool isPointerOverSpeedButton = StrategySpeedUpController.IsPointerOverSpeedButton();
+		// 1. 新版 HUD 和旧速度按钮区域由界面控制器处理，避免触发地图菜单。
+		bool isPointerOverInterface = StrategyMapHudController.IsPointerOverHud()
+			|| StrategySpeedUpController.IsPointerOverSpeedButton();
 
-		if (Input.GetMouseButtonDown(0) && isPointerOverSpeedButton) {
-			isSpeedButtonPointerDown = true;
+		if (Input.GetMouseButtonDown(0) && isPointerOverInterface) {
+			isInterfacePointerDown = true;
 			return;
 		}
 
-		if (isSpeedButtonPointerDown) {
+		if (isInterfacePointerDown) {
 			if (Input.GetMouseButtonUp(0)) {
-				isSpeedButtonPointerDown = false;
+				isInterfacePointerDown = false;
 			}
 			return;
 		}
 
-		if (!Input.GetMouseButton(0) && isPointerOverSpeedButton) {
+		if (!Input.GetMouseButton(0) && isPointerOverInterface) {
 			return;
 		}
 
@@ -342,7 +374,10 @@ public class StrategyController : MonoBehaviour {
 			
 			int cityIdx = flagsCtrl.GetTouchCityIdx();
 			if (cityIdx != -1) {
-				
+				if (mapHudController != null) {
+					mapHudController.SetSelectedCity(cityIdx);
+				}
+
 				choiceTarget.AddCityTarget(cityIdx);
 				SoundController.Instance.PlaySound("00038");
 			}
@@ -531,9 +566,16 @@ public class StrategyController : MonoBehaviour {
 	// 参数说明：无。
 	// 返回说明：无返回值。
 	void ShowMainMenu() {
+		ShowMainMenuAtScreenPosition(Input.mousePosition);
+	}
+
+	// 方法说明：在指定屏幕坐标显示原有战略主菜单，并把菜单限制在相机视口内。
+	// 参数说明：screenPosition 为左下角原点的屏幕坐标。
+	// 返回说明：无返回值。
+	void ShowMainMenuAtScreenPosition(Vector3 screenPosition) {
 
 		Vector3 camPos = Camera.main.transform.position;
-		Vector3 pos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+		Vector3 pos = Camera.main.ScreenToWorldPoint(screenPosition);
 		
 		pos.x = Mathf.Clamp(pos.x, camPos.x - (640 - 182) / 2, camPos.x + (640 - 182) / 2);
 		pos.y = Mathf.Clamp(pos.y, camPos.y - (480 - 213) / 2, camPos.y + (480 - 213) / 2);
@@ -541,6 +583,91 @@ public class StrategyController : MonoBehaviour {
 		
 		mainMenuCtrl.SetActive(true);
 		mainMenuCtrl.transform.position = pos;
+	}
+
+	// 方法说明：响应新版 HUD 菜单按钮，在屏幕中心打开原有战略主菜单。
+	// 参数说明：无。
+	// 返回说明：无返回值。
+	public void ShowMainMenuFromHud() {
+		if (state != State.Normal) return;
+
+		SetGamePause();
+		ShowMainMenuAtScreenPosition(new Vector3(Screen.width * 0.5f, Screen.height * 0.5f, 0f));
+	}
+
+	// 方法说明：响应新版 HUD 势力按钮，直接打开原有势力地图界面。
+	// 参数说明：无。
+	// 返回说明：无返回值。
+	public void OpenPowerMapFromHud() {
+		if (state != State.Normal) return;
+
+		MainMenu mainMenu = mainMenuCtrl == null ? null : mainMenuCtrl.GetComponent<MainMenu>();
+		if (mainMenu == null || mainMenu.commandAct == null || mainMenu.commandAct.Length == 0 || mainMenu.commandAct[0] == null) {
+			Debug.LogError("战略主菜单缺少势力地图入口，无法从新版 HUD 打开。");
+			return;
+		}
+
+		SetGamePause();
+		mainMenuCtrl.SetActive(false);
+		mainMenu.commandAct[0].SetActive(true);
+	}
+
+	// 方法说明：响应新版 HUD 主城按钮，把相机移到当前君主所在城池。
+	// 参数说明：无。
+	// 返回说明：无返回值。
+	public void FocusPlayerCapitalFromHud() {
+		if (state != State.Normal || Camera.main == null || pathfinding == null) return;
+
+		int cityIdx = GetPlayerCapitalCityIndex();
+		if (cityIdx < 0) {
+			Debug.LogError("当前君主没有有效城池，无法定位主城。");
+			return;
+		}
+
+		Vector3 cityPosition = pathfinding.GetCityPos(cityIdx);
+		cityPosition.z = Camera.main.transform.position.z;
+		Camera.main.transform.position = ClampCameraPosition(cityPosition);
+		strategyCamPos = Camera.main.transform.position;
+
+		if (mapHudController != null) {
+			mapHudController.SetSelectedCity(cityIdx);
+		}
+	}
+
+	// 方法说明：响应新版 HUD 缩放按钮，调整正交相机尺寸并保持地图边界约束。
+	// 参数说明：zoomMultiplier 小于 1 时放大地图，大于 1 时缩小地图。
+	// 返回说明：无返回值。
+	public void ZoomStrategyMapFromHud(float zoomMultiplier) {
+		Camera camera = Camera.main;
+		if (state != State.Normal || camera == null || !camera.orthographic) return;
+		if (zoomMultiplier <= 0f) {
+			Debug.LogError("战略地图缩放倍率必须大于 0。");
+			return;
+		}
+
+		Bounds mapBounds = GetStrategyMapBounds();
+		float maxZoom = Mathf.Min(mapBounds.extents.y, mapBounds.extents.x / camera.aspect);
+		float minZoom = Mathf.Max(110f, maxZoom * 0.36f);
+		camera.orthographicSize = Mathf.Clamp(camera.orthographicSize * zoomMultiplier, minZoom, maxZoom);
+		camera.transform.position = ClampCameraPosition(camera.transform.position);
+		strategyCamPos = camera.transform.position;
+	}
+
+	// 方法说明：读取当前君主所在城池，君主在外时使用其首座所属城池。
+	// 参数说明：无。
+	// 返回说明：返回有效城池索引，当前君主无城时返回 -1。
+	int GetPlayerCapitalCityIndex() {
+		if (Controller.kingIndex < 0 || Controller.kingIndex >= Informations.Instance.kingNum) return -1;
+
+		KingInfo kingInfo = Informations.Instance.GetKingInfo(Controller.kingIndex);
+		if (kingInfo == null) return -1;
+
+		GeneralInfo rulerInfo = Informations.Instance.GetGeneralInfo(kingInfo.generalIdx);
+		if (rulerInfo != null && rulerInfo.city >= 0 && rulerInfo.city < Informations.Instance.cityNum) {
+			return rulerInfo.city;
+		}
+
+		return kingInfo.cities.Count > 0 ? kingInfo.cities[0] : -1;
 	}
 	
 	// 方法说明：从暂停、菜单或选择状态恢复到战略地图普通状态。

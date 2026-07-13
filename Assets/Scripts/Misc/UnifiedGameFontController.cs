@@ -4,6 +4,19 @@ public class UnifiedGameFontController : MonoBehaviour {
 
 	private const int DynamicFontSize = 64;
 	private const float ScanInterval = 0.2f;
+	private static readonly string[] PreferredChineseFontNames = new string[] {
+		"PingFang SC",
+		"Microsoft YaHei UI",
+		"Microsoft YaHei",
+		"Arial Unicode MS",
+		"Noto Sans CJK SC",
+		"Noto Sans SC",
+		"Droid Sans Fallback",
+		"Heiti SC",
+		"Noto Sans",
+		"Roboto",
+		"sans-serif"
+	};
 
 	private static UnifiedGameFontController instance;
 	private readonly System.Collections.Generic.List<UnifiedGameFontMirror> mirrors = new System.Collections.Generic.List<UnifiedGameFontMirror>();
@@ -31,6 +44,35 @@ public class UnifiedGameFontController : MonoBehaviour {
 		controller.EnsureGameFontLoaded();
 		controller.RefreshMirrors();
 		controller.SyncMirrors();
+	}
+
+	/// <summary>
+	/// 方法说明：从当前系统真实可用的字体中创建统一中文动态字体。
+	/// 参数说明：fontSize 为动态字体基础字号。
+	/// 返回说明：返回有效中文字体；系统未报告候选字体时使用平台通用 sans-serif。
+	/// </summary>
+	public static Font CreateChineseDynamicFont(int fontSize) {
+		string fontName = ResolveInstalledChineseFontName();
+		return Font.CreateDynamicFontFromOSFont(fontName, fontSize);
+	}
+
+	/// <summary>
+	/// 方法说明：按跨平台优先级匹配 Unity 实际识别到的中文字体名称。
+	/// 参数说明：无。
+	/// 返回说明：返回首个已安装候选字体名称，均未命中时返回 sans-serif。
+	/// </summary>
+	private static string ResolveInstalledChineseFontName() {
+		string[] installedFontNames = Font.GetOSInstalledFontNames();
+		for (int preferredIndex = 0; preferredIndex < PreferredChineseFontNames.Length; preferredIndex++) {
+			string preferredName = PreferredChineseFontNames[preferredIndex];
+			for (int installedIndex = 0; installedIndex < installedFontNames.Length; installedIndex++) {
+				if (string.Equals(installedFontNames[installedIndex], preferredName, System.StringComparison.OrdinalIgnoreCase)) {
+					return installedFontNames[installedIndex];
+				}
+			}
+		}
+
+		return "sans-serif";
 	}
 
 	/// <summary>
@@ -102,7 +144,7 @@ public class UnifiedGameFontController : MonoBehaviour {
 	/// 返回说明：返回系统动态字体对象。
 	/// </summary>
 	private Font LoadGameFont() {
-		return Font.CreateDynamicFontFromOSFont(new string[] { "PingFang SC", "Heiti SC", "Arial Unicode MS", "sans-serif" }, DynamicFontSize);
+		return CreateChineseDynamicFont(DynamicFontSize);
 	}
 
 	/// <summary>
