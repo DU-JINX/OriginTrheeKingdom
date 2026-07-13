@@ -192,6 +192,8 @@ public class SelectKingSceneController : MonoBehaviour {
 
         ClearKingButtons();
         MODLoadController.Instance.LoadMOD(Controller.MODSelect);
+        mapCtrl.SetMapDraggingEnabled(true);
+        mapCtrl.ResetMapPan();
         kingListScrollIndex = 0;
         CreateKingScrollButtons();
         RebuildKingButtons();
@@ -204,6 +206,7 @@ public class SelectKingSceneController : MonoBehaviour {
         infoAnim.SetAnim(MenuDisplayAnim.AnimType.InsertFromBottom);
         mapAnim.SetAnim(MenuDisplayAnim.AnimType.InsertFromRight);
         menuAnim.SetAnim(MenuDisplayAnim.AnimType.InsertFromLeft);
+        Invoke("FocusSelectedKingMap", 0.25f);
     }
 
     /// <summary>
@@ -263,6 +266,7 @@ public class SelectKingSceneController : MonoBehaviour {
         selectMOD.SetActive(true);
         selectKing.SetActive(false);
         FitSelectBackgroundToCamera();
+        mapCtrl.SetMapDraggingEnabled(false);
 
         ClearKingButtons();
         CreateRuntimeModButtons();
@@ -314,6 +318,7 @@ public class SelectKingSceneController : MonoBehaviour {
         {
             mapCtrl.SelectCity(kInfo.cities[i]);
         }
+        mapCtrl.FocusOnCities(kInfo.cities);
 
         kingInfoCtrl.SetKing(kingIndex);
 
@@ -323,6 +328,21 @@ public class SelectKingSceneController : MonoBehaviour {
             isConfirmBoxShow = true;
         }
         confirmBox.transform.localPosition = new Vector3(confirmBox.transform.localPosition.x, GetConfirmBoxY(kingIndex), confirmBox.transform.localPosition.z);
+    }
+
+    /// <summary>
+    /// 方法说明：在选君主入场动画结束后重新聚焦当前势力城池。
+    /// 参数说明：无参数。
+    /// 返回说明：无返回值。
+    /// </summary>
+    private void FocusSelectedKingMap()
+    {
+        if (state != 1 || kingIndex < 0) return;
+
+        KingInfo kInfo = Informations.Instance.GetKingInfo(kingIndex);
+        if (kInfo == null) return;
+
+        mapCtrl.FocusOnCities(kInfo.cities);
     }
 
     /// <summary>
@@ -977,9 +997,22 @@ public class SelectKingSceneController : MonoBehaviour {
         exSpriteFont font = button.GetComponent<exSpriteFont>();
         if (font == null) return;
 
+        MarkFontAsHandledByManualLabel(font);
         Color transparent = new Color(1f, 1f, 1f, 0f);
         font.topColor = transparent;
         font.botColor = transparent;
+    }
+
+    /// <summary>
+    /// 方法说明：标记旧字体已经由当前脚本手工创建动态字体，避免全局字体镜像重复覆盖。
+    /// 参数说明：font 为需要跳过全局镜像的旧字体组件。
+    /// 返回说明：无返回值。
+    /// </summary>
+    private void MarkFontAsHandledByManualLabel(exSpriteFont font)
+    {
+        if (font == null || font.GetComponent<UnifiedGameFontIgnore>() != null) return;
+
+        font.gameObject.AddComponent<UnifiedGameFontIgnore>();
     }
 
     /// <summary>

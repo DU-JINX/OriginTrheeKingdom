@@ -89,6 +89,7 @@ public class IAKingInfo : MonoBehaviour {
 	void SetKingNameText(string name) {
 		if (kingName == null) return;
 
+		MarkFontAsHandledByManualLabel(kingName);
 		kingName.text = name;
 		HideKingNameBitmapFont();
 		if (kingNameLabel == null) {
@@ -116,10 +117,21 @@ public class IAKingInfo : MonoBehaviour {
 		textMesh.GetComponent<Renderer>().sharedMaterial = textMesh.font.material;
 		textMesh.fontSize = kingNameFontSize;
 		textMesh.characterSize = kingNameCharacterSize;
-		textMesh.anchor = TextAnchor.MiddleCenter;
-		textMesh.alignment = TextAlignment.Center;
+		textMesh.anchor = TextAnchor.MiddleLeft;
+		textMesh.alignment = TextAlignment.Left;
 		textMesh.color = Color.white;
 		return textMesh;
+	}
+
+	/// <summary>
+	/// 方法说明：标记旧字体已经由当前脚本手工创建动态字体，避免全局字体镜像重复覆盖。
+	/// 参数说明：font 为需要跳过全局镜像的旧字体组件。
+	/// 返回说明：无返回值。
+	/// </summary>
+	void MarkFontAsHandledByManualLabel(exSpriteFont font) {
+		if (font == null || font.GetComponent<UnifiedGameFontIgnore>() != null) return;
+
+		font.gameObject.AddComponent<UnifiedGameFontIgnore>();
 	}
 
 	/// <summary>

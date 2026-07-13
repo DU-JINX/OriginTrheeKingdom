@@ -179,9 +179,21 @@ public class SyPowerMap : MonoBehaviour {
 		exSpriteFont font = item.GetComponent<exSpriteFont>();
 		if (font == null) return;
 
+		MarkFontAsHandledByManualLabel(font);
 		Color transparent = new Color(1f, 1f, 1f, 0f);
 		font.topColor = transparent;
 		font.botColor = transparent;
+	}
+
+	/// <summary>
+	/// 方法说明：标记旧字体已经由当前脚本手工创建动态字体，避免全局字体镜像重复覆盖。
+	/// 参数说明：font 为需要跳过全局镜像的旧字体组件。
+	/// 返回说明：无返回值。
+	/// </summary>
+	void MarkFontAsHandledByManualLabel(exSpriteFont font) {
+		if (font == null || font.GetComponent<UnifiedGameFontIgnore>() != null) return;
+
+		font.gameObject.AddComponent<UnifiedGameFontIgnore>();
 	}
 
 	/// <summary>

@@ -1,18 +1,24 @@
 using UnityEngine;
 using System.Collections;
+using System.Collections.Generic;
 
 public class MapController : MonoBehaviour {
 
 	private Color gray = new Color(0.5f, 0, 0, 1);
 	private exSprite[] cities;
-	private TextMesh[] cityNameLabels;
-	private Font cityNameFont;
-	private int cityNameFontSize = 42;
-	private float cityNameCharacterSize = 1.35f;
-	private Vector3 cityNameOffset = new Vector3(0f, -10f, -0.35f);
 	private bool hasMapLocalBounds = false;
 	private Vector2 mapLocalMin = Vector2.zero;
 	private Vector2 mapLocalMax = Vector2.zero;
+	private bool hasBaseLocalPosition = false;
+	private bool mapDraggingEnabled = false;
+	private bool mapDragActive = false;
+	private Vector3 baseMapLocalPosition = Vector3.zero;
+	private Vector3 dragStartPointerLocalPosition = Vector3.zero;
+	private Vector3 dragStartMapLocalPosition = Vector3.zero;
+	private float dragViewportMinX = 0.36f;
+	private float dragViewportMaxX = 1f;
+	private float dragViewportMinY = 0.27f;
+	private float dragViewportMaxY = 1f;
 
 	/// <summary>
 	/// 方法说明：初始化地图城池标记。
@@ -21,7 +27,17 @@ public class MapController : MonoBehaviour {
 	/// </summary>
 	void Awake()
 	{
+		CaptureBaseMapLocalPosition();
 		InitCities();
+	}
+
+	/// <summary>
+	/// 方法说明：处理选君主地图拖动。
+	/// 参数说明：无参数。
+	/// 返回说明：无返回值。
+	/// </summary>
+	void Update() {
+		HandleMapDrag();
 	}
 
 	/// <summary>
@@ -54,9 +70,19 @@ public class MapController : MonoBehaviour {
 					cities[i].transform.localPosition = GetCityMapLocalPosition(i);
 				}
 			}
-
-			RebuildCityNameLabels();
 		}
+	}
+
+	/// <summary>
+	/// 方法说明：记录地图初始本地坐标，作为聚焦回正的基准。
+	/// 参数说明：无参数。
+	/// 返回说明：无返回值。
+	/// </summary>
+	private void CaptureBaseMapLocalPosition() {
+		if (hasBaseLocalPosition) return;
+
+		baseMapLocalPosition = transform.localPosition;
+		hasBaseLocalPosition = true;
 	}
 
 	/// <summary>
@@ -125,110 +151,20 @@ public class MapController : MonoBehaviour {
 	}
 
 	/// <summary>
-	/// 方法说明：重建 MOD06 小地图城池名称标签。
-	/// 参数说明：无参数。
-	/// 返回说明：无返回值。
-	/// </summary>
-	private void RebuildCityNameLabels() {
-		ClearCityNameLabels();
-		if (!MODLoadController.IsRestoredSango2Index(Controller.MODSelect)) return;
-
-		cityNameLabels = new TextMesh[Informations.Instance.cityNum];
-		for (int i = 0; i < Informations.Instance.cityNum; i++) {
-			if (cities[i] == null || !Informations.Instance.HasCityPosition(i)) continue;
-
-			cityNameLabels[i] = CreateCityNameLabel(i);
-		}
-	}
-
-	/// <summary>
-	/// 方法说明：清理当前小地图城池名称标签。
-	/// 参数说明：无参数。
-	/// 返回说明：无返回值。
-	/// </summary>
-	private void ClearCityNameLabels() {
-		if (cityNameLabels == null) return;
-
-		for (int i = 0; i < cityNameLabels.Length; i++) {
-			if (cityNameLabels[i] != null) {
-				DestroyMapObject(cityNameLabels[i].gameObject);
-			}
-		}
-
-		cityNameLabels = null;
-	}
-
-	/// <summary>
-	/// 方法说明：创建单个小地图城池名称标签。
-	/// 参数说明：cityIdx 为城池索引。
-	/// 返回说明：返回创建出的 TextMesh 标签。
-	/// </summary>
-	private TextMesh CreateCityNameLabel(int cityIdx) {
-		GameObject go = new GameObject("CityNameLabel" + cityIdx);
-		go.transform.parent = transform;
-		go.transform.localPosition = cities[cityIdx].transform.localPosition + cityNameOffset;
-		go.transform.localScale = Vector3.one;
-		go.transform.localRotation = Quaternion.identity;
-		go.layer = gameObject.layer;
-
-		TextMesh textMesh = go.AddComponent<TextMesh>();
-		textMesh.font = GetCityNameFont();
-		textMesh.GetComponent<Renderer>().sharedMaterial = textMesh.font.material;
-		textMesh.text = ZhongWen.Instance.GetCityName(cityIdx);
-		textMesh.fontSize = cityNameFontSize;
-		textMesh.characterSize = cityNameCharacterSize;
-		textMesh.anchor = TextAnchor.MiddleCenter;
-		textMesh.alignment = TextAlignment.Center;
-		textMesh.color = Color.white;
-		go.SetActive(false);
-		return textMesh;
-	}
-
-	/// <summary>
-	/// 方法说明：销毁小地图运行时创建的对象。
-	/// 参数说明：target 为目标对象。
-	/// 返回说明：无返回值。
-	/// </summary>
-	private void DestroyMapObject(GameObject target) {
-		if (target == null) return;
-
-		if (Application.isPlaying) {
-			Destroy(target);
-		} else {
-			DestroyImmediate(target);
-		}
-	}
-
-	/// <summary>
-	/// 方法说明：读取小地图城池名称动态字体。
-	/// 参数说明：无参数。
-	/// 返回说明：返回动态字体。
-	/// </summary>
-	private Font GetCityNameFont() {
-		if (cityNameFont == null) {
-			cityNameFont = Font.CreateDynamicFontFromOSFont(new string[] { "PingFang SC", "Heiti SC", "Arial Unicode MS", "sans-serif" }, cityNameFontSize);
-		}
-
-		return cityNameFont;
-	}
-	
-	/// <summary>
 	/// 方法说明：清空所有城池高亮。
 	/// 参数说明：无参数。
 	/// 返回说明：无返回值。
 	/// </summary>
 	public void ClearSelect() {
 		InitCities();
-		
+
 		for (int i=0; i<Informations.Instance.cityNum; i++) {
 			if (cities[i] != null) {
 				cities[i].color = gray;
 			}
-
-			SetCityNameVisible(i, false);
 		}
 	}
-	
+
 	/// <summary>
 	/// 方法说明：高亮指定城池。
 	/// 参数说明：idx 为城池索引。
@@ -236,25 +172,233 @@ public class MapController : MonoBehaviour {
 	/// </summary>
 	public void SelectCity(int idx) {
 		InitCities();
-		
+
 		if (idx < 0 || idx >= Informations.Instance.cityNum) return;
-		
+
 		if (cities[idx] != null) {
 			cities[idx].color = new Color(1, 1, 1, 1);
 		}
-
-		SetCityNameVisible(idx, true);
 	}
 
 	/// <summary>
-	/// 方法说明：设置指定城池名称标签是否显示。
-	/// 参数说明：idx 为城池索引，visible 为是否显示。
+	/// 方法说明：设置当前地图是否允许手势拖动。
+	/// 参数说明：enabledFlag 为是否允许拖动。
 	/// 返回说明：无返回值。
 	/// </summary>
-	private void SetCityNameVisible(int idx, bool visible) {
-		if (cityNameLabels == null || idx < 0 || idx >= cityNameLabels.Length) return;
-		if (cityNameLabels[idx] == null) return;
+	public void SetMapDraggingEnabled(bool enabledFlag) {
+		mapDraggingEnabled = enabledFlag;
+		if (!mapDraggingEnabled) {
+			mapDragActive = false;
+		}
+	}
 
-		cityNameLabels[idx].gameObject.SetActive(visible);
+	/// <summary>
+	/// 方法说明：把地图位置重置到场景初始位置。
+	/// 参数说明：无参数。
+	/// 返回说明：无返回值。
+	/// </summary>
+	public void ResetMapPan() {
+		CaptureBaseMapLocalPosition();
+		transform.localPosition = baseMapLocalPosition;
+	}
+
+	/// <summary>
+	/// 方法说明：把地图自动聚焦到一组城池中心。
+	/// 参数说明：cityIndexes 为需要聚焦的城池索引列表。
+	/// 返回说明：无返回值。
+	/// </summary>
+	public void FocusOnCities(List<int> cityIndexes) {
+		InitCities();
+		if (cityIndexes == null || cityIndexes.Count == 0) return;
+
+		Vector3 center;
+		if (!TryGetCitiesLocalCenter(cityIndexes, out center)) return;
+
+		Rect viewportRect;
+		if (!TryGetDragViewportLocalRect(out viewportRect)) return;
+
+		Vector3 viewportCenter = new Vector3(viewportRect.center.x, viewportRect.center.y, baseMapLocalPosition.z);
+		Vector3 scaledCenter = Vector3.Scale(center, transform.localScale);
+		Vector3 desiredPosition = viewportCenter - scaledCenter;
+		desiredPosition.z = baseMapLocalPosition.z;
+		SetMapLocalPosition(desiredPosition);
+	}
+
+	/// <summary>
+	/// 方法说明：处理地图拖动输入。
+	/// 参数说明：无参数。
+	/// 返回说明：无返回值。
+	/// </summary>
+	private void HandleMapDrag() {
+		if (!mapDraggingEnabled) return;
+
+		if (Input.GetMouseButtonDown(0) && IsPointerInMapDragArea()) {
+			mapDragActive = true;
+			dragStartPointerLocalPosition = GetPointerParentLocalPosition();
+			dragStartMapLocalPosition = transform.localPosition;
+		} else if (mapDragActive && Input.GetMouseButton(0)) {
+			Vector3 delta = GetPointerParentLocalPosition() - dragStartPointerLocalPosition;
+			SetMapLocalPosition(dragStartMapLocalPosition + delta);
+		} else if (mapDragActive && Input.GetMouseButtonUp(0)) {
+			mapDragActive = false;
+		}
+	}
+
+	/// <summary>
+	/// 方法说明：判断当前指针是否在地图拖动区域。
+	/// 参数说明：无参数。
+	/// 返回说明：在地图区域返回 true，否则返回 false。
+	/// </summary>
+	private bool IsPointerInMapDragArea() {
+		return Input.mousePosition.x >= Screen.width * dragViewportMinX
+			&& Input.mousePosition.x <= Screen.width * dragViewportMaxX
+			&& Input.mousePosition.y >= Screen.height * dragViewportMinY
+			&& Input.mousePosition.y <= Screen.height * dragViewportMaxY;
+	}
+
+	/// <summary>
+	/// 方法说明：把当前鼠标屏幕坐标转换为地图父节点本地坐标。
+	/// 参数说明：无参数。
+	/// 返回说明：返回父节点本地坐标。
+	/// </summary>
+	private Vector3 GetPointerParentLocalPosition() {
+		Camera camera = Camera.main;
+		if (camera == null) return Vector3.zero;
+
+		float zDistance = Mathf.Abs(camera.transform.position.z - transform.position.z);
+		Vector3 worldPosition = camera.ScreenToWorldPoint(new Vector3(Input.mousePosition.x, Input.mousePosition.y, zDistance));
+		return GetParentLocalPoint(worldPosition);
+	}
+
+	/// <summary>
+	/// 方法说明：尝试计算一组城池在地图本地坐标中的中心。
+	/// 参数说明：cityIndexes 为城池索引列表，center 输出中心点。
+	/// 返回说明：成功计算返回 true，否则返回 false。
+	/// </summary>
+	private bool TryGetCitiesLocalCenter(List<int> cityIndexes, out Vector3 center) {
+		center = Vector3.zero;
+		int count = 0;
+		for (int i = 0; i < cityIndexes.Count; i++) {
+			int cityIdx = (int)cityIndexes[i];
+			if (cityIdx < 0 || cityIdx >= Informations.Instance.cityNum) continue;
+			if (cities[cityIdx] == null) continue;
+
+			center += cities[cityIdx].transform.localPosition;
+			count++;
+		}
+
+		if (count <= 0) return false;
+
+		center /= count;
+		center.z = 0f;
+		return true;
+	}
+
+	/// <summary>
+	/// 方法说明：设置地图本地坐标并按可视区域约束。
+	/// 参数说明：desiredPosition 为期望本地坐标。
+	/// 返回说明：无返回值。
+	/// </summary>
+	private void SetMapLocalPosition(Vector3 desiredPosition) {
+		transform.localPosition = ClampMapLocalPosition(desiredPosition);
+	}
+
+	/// <summary>
+	/// 方法说明：把地图本地坐标限制在可视区域内，减少拖动后露出底色。
+	/// 参数说明：desiredPosition 为期望本地坐标。
+	/// 返回说明：返回约束后的本地坐标。
+	/// </summary>
+	private Vector3 ClampMapLocalPosition(Vector3 desiredPosition) {
+		Rect viewportRect;
+		Rect mapRect;
+		if (!TryGetDragViewportLocalRect(out viewportRect) || !TryGetMapParentRect(desiredPosition, out mapRect)) {
+			return desiredPosition;
+		}
+
+		Vector3 clampedPosition = desiredPosition;
+		clampedPosition.x += GetClampDelta(mapRect.xMin, mapRect.xMax, viewportRect.xMin, viewportRect.xMax);
+		mapRect.x += clampedPosition.x - desiredPosition.x;
+		clampedPosition.y += GetClampDelta(mapRect.yMin, mapRect.yMax, viewportRect.yMin, viewportRect.yMax);
+		clampedPosition.z = baseMapLocalPosition.z;
+		return clampedPosition;
+	}
+
+	/// <summary>
+	/// 方法说明：计算一维区间为了覆盖视口需要补偿的位移。
+	/// 参数说明：contentMin 为内容最小值，contentMax 为内容最大值，viewMin 为视口最小值，viewMax 为视口最大值。
+	/// 返回说明：返回需要补偿的坐标差。
+	/// </summary>
+	private float GetClampDelta(float contentMin, float contentMax, float viewMin, float viewMax) {
+		float contentSize = contentMax - contentMin;
+		float viewSize = viewMax - viewMin;
+		if (contentSize <= viewSize) {
+			return (viewMin + viewMax) * 0.5f - (contentMin + contentMax) * 0.5f;
+		}
+
+		if (contentMin > viewMin) {
+			return viewMin - contentMin;
+		}
+
+		if (contentMax < viewMax) {
+			return viewMax - contentMax;
+		}
+
+		return 0f;
+	}
+
+	/// <summary>
+	/// 方法说明：计算地图拖动可视区域在父节点内的本地矩形。
+	/// 参数说明：viewportRect 输出本地矩形。
+	/// 返回说明：成功返回 true，否则返回 false。
+	/// </summary>
+	private bool TryGetDragViewportLocalRect(out Rect viewportRect) {
+		viewportRect = new Rect();
+		Camera camera = Camera.main;
+		if (camera == null) return false;
+
+		float zDistance = Mathf.Abs(camera.transform.position.z - transform.position.z);
+		Vector3 bottomLeft = camera.ScreenToWorldPoint(new Vector3(Screen.width * dragViewportMinX, Screen.height * dragViewportMinY, zDistance));
+		Vector3 topRight = camera.ScreenToWorldPoint(new Vector3(Screen.width * dragViewportMaxX, Screen.height * dragViewportMaxY, zDistance));
+		Vector3 localBottomLeft = GetParentLocalPoint(bottomLeft);
+		Vector3 localTopRight = GetParentLocalPoint(topRight);
+		viewportRect = Rect.MinMaxRect(
+			Mathf.Min(localBottomLeft.x, localTopRight.x),
+			Mathf.Min(localBottomLeft.y, localTopRight.y),
+			Mathf.Max(localBottomLeft.x, localTopRight.x),
+			Mathf.Max(localBottomLeft.y, localTopRight.y));
+		return true;
+	}
+
+	/// <summary>
+	/// 方法说明：计算地图背景在父节点中的矩形。
+	/// 参数说明：mapLocalPosition 为地图本地坐标，mapRect 输出地图矩形。
+	/// 返回说明：成功返回 true，否则返回 false。
+	/// </summary>
+	private bool TryGetMapParentRect(Vector3 mapLocalPosition, out Rect mapRect) {
+		mapRect = new Rect();
+		exSprite mapSprite = GetComponent<exSprite>();
+		if (mapSprite == null) return false;
+
+		Rect localRect = mapSprite.boundingRect;
+		Vector3 scale = transform.localScale;
+		float xMin = mapLocalPosition.x + Mathf.Min(localRect.xMin * scale.x, localRect.xMax * scale.x);
+		float xMax = mapLocalPosition.x + Mathf.Max(localRect.xMin * scale.x, localRect.xMax * scale.x);
+		float yMin = mapLocalPosition.y + Mathf.Min(localRect.yMin * scale.y, localRect.yMax * scale.y);
+		float yMax = mapLocalPosition.y + Mathf.Max(localRect.yMin * scale.y, localRect.yMax * scale.y);
+		mapRect = Rect.MinMaxRect(xMin, yMin, xMax, yMax);
+		return true;
+	}
+
+	/// <summary>
+	/// 方法说明：把世界坐标转换为地图父节点本地坐标。
+	/// 参数说明：worldPosition 为世界坐标。
+	/// 返回说明：返回父节点本地坐标。
+	/// </summary>
+	private Vector3 GetParentLocalPoint(Vector3 worldPosition) {
+		if (transform.parent == null) {
+			return worldPosition;
+		}
+
+		return transform.parent.InverseTransformPoint(worldPosition);
 	}
 }

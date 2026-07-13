@@ -144,6 +144,10 @@ public class UnifiedGameFontController : MonoBehaviour {
 			return false;
 		}
 
+		if (sourceFont.GetComponent<UnifiedGameFontIgnore>() != null) {
+			return false;
+		}
+
 		if (!sourceFont.gameObject.scene.IsValid()) {
 			return false;
 		}
@@ -172,7 +176,13 @@ public class UnifiedGameFontController : MonoBehaviour {
 	private void SyncMirrors() {
 		for (int i = mirrors.Count - 1; i >= 0; i--) {
 			UnifiedGameFontMirror mirror = mirrors[i];
-			if (mirror == null || !mirror.IsAlive()) {
+			if (mirror == null) {
+				mirrors.RemoveAt(i);
+				continue;
+			}
+
+			if (!mirror.IsAlive()) {
+				mirror.Dispose();
 				mirrors.RemoveAt(i);
 				continue;
 			}
@@ -524,7 +534,28 @@ public class UnifiedGameFontMirror : MonoBehaviour {
 	/// 返回说明：旧字体存在返回 true，否则返回 false。
 	/// </summary>
 	public bool IsAlive() {
-		return sourceFont != null;
+		return sourceFont != null && sourceFont.GetComponent<UnifiedGameFontIgnore>() == null;
+	}
+
+	/// <summary>
+	/// 方法说明：释放已经不应显示的动态字体镜像。
+	/// 参数说明：无。
+	/// 返回说明：无。
+	/// </summary>
+	public void Dispose() {
+		if (mirrorText != null) {
+			if (Application.isPlaying) {
+				Destroy(mirrorText.gameObject);
+			} else {
+				DestroyImmediate(mirrorText.gameObject);
+			}
+		}
+
+		if (Application.isPlaying) {
+			Destroy(this);
+		} else {
+			DestroyImmediate(this);
+		}
 	}
 
 	/// <summary>

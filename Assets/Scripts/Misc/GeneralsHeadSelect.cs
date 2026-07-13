@@ -33,7 +33,7 @@ public class GeneralsHeadSelect : MonoBehaviour {
 			faceIndex = idx + 1;
 		}
 
-		string headName = "Head/Head" + faceIndex.ToString("D3");
+		string headName = GetHeadResourceName(faceIndex);
 		UnityEngine.Object headPrefab = Resources.Load(headName);
 		if (headPrefab == null) {
 			Debug.LogError("武将头像资源尚未恢复: " + headName + " 武将索引: " + idx);
@@ -44,5 +44,15 @@ public class GeneralsHeadSelect : MonoBehaviour {
 		go = (GameObject)Instantiate(headPrefab, transform.position, transform.rotation);
 		go.transform.parent = transform;
 		idxCur = idx;
+	}
+
+	/// <summary>
+	/// 方法说明：按当前剧本选择头像资源目录，避免二代恢复头像覆盖一代率土头像。
+	/// 参数说明：faceIndex 为武将头像编号。
+	/// 返回说明：返回 Resources.Load 可读取的头像路径。
+	/// </summary>
+	private string GetHeadResourceName(int faceIndex) {
+		string headDirectory = MODLoadController.IsRestoredSango2Index(Controller.MODSelect) ? "Head" : "StzbHead";
+		return headDirectory + "/Head" + faceIndex.ToString("D3");
 	}
 }
