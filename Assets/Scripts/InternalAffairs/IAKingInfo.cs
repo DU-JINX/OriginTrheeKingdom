@@ -20,6 +20,8 @@ public class IAKingInfo : MonoBehaviour {
 	private Font kingNameDynamicFont;
 	private int kingNameFontSize = 64;
 	private float kingNameCharacterSize = 3.4f;
+	private float backgroundBaseWidth = 640f;
+	private float backgroundBaseHeight = 480f;
 	
 	/// <summary>
 	/// 方法说明：初始化内政主界面的君主头像、时间、名称和城池统计。
@@ -181,13 +183,59 @@ public class IAKingInfo : MonoBehaviour {
 		money.text = "" + m;
 		population.text = p + ZhongWen.Instance.ren;
 		
-		if (kInfo.cities.Count < 16) {
-			Instantiate(background[0]);
-		} else if (kInfo.cities.Count < 32) {
-			Instantiate(background[1]);
-		} else {
-			Instantiate(background[2]);
+		GameObject cityBackground = CreateCityScaleBackground(kInfo.cities.Count);
+		FitInternalAffairsBackgroundToCamera(cityBackground);
+	}
+
+	/// <summary>
+	/// 方法说明：按城池数量创建内政大厅背景。
+	/// 参数说明：cityCount 为当前君主拥有的城池数量。
+	/// 返回说明：返回创建出的背景对象，背景配置缺失时返回 null。
+	/// </summary>
+	GameObject CreateCityScaleBackground(int cityCount) {
+		if (background == null || background.Length < 3) {
+			Debug.LogError("内政背景配置缺失，无法显示大厅背景。");
+			return null;
 		}
+
+		if (cityCount < 16) {
+			return (GameObject)Instantiate(background[0]);
+		}
+
+		if (cityCount < 32) {
+			return (GameObject)Instantiate(background[1]);
+		}
+
+		return (GameObject)Instantiate(background[2]);
+	}
+
+	/// <summary>
+	/// 方法说明：把内政大厅背景按当前相机视野等比铺满，避免宽屏左右露出底色。
+	/// 参数说明：backgroundObject 为刚创建出的背景对象。
+	/// 返回说明：无返回值。
+	/// </summary>
+	void FitInternalAffairsBackgroundToCamera(GameObject backgroundObject) {
+		Camera camera = Camera.main;
+		if (backgroundObject == null || camera == null || !camera.orthographic) {
+			return;
+		}
+
+		float viewHeight = camera.orthographicSize * 2f;
+		float viewWidth = viewHeight * camera.aspect;
+		float scale = Mathf.Max(viewWidth / backgroundBaseWidth, viewHeight / backgroundBaseHeight);
+		exSprite sprite = backgroundObject.GetComponent<exSprite>();
+		if (sprite == null) {
+			sprite = backgroundObject.GetComponentInChildren<exSprite>();
+		}
+
+		if (sprite != null) {
+			sprite.customSize = true;
+			sprite.width = backgroundBaseWidth * scale;
+			sprite.height = backgroundBaseHeight * scale;
+			return;
+		}
+
+		backgroundObject.transform.localScale = new Vector3(scale, scale, backgroundObject.transform.localScale.z);
 	}
 	
 	/// <summary>

@@ -2,6 +2,9 @@ using UnityEngine;
 using System.Collections;
 
 public class SGGeneralPosition : MonoBehaviour {
+
+	private const float DynamicTextFrontZ = -1.25f;
+	private const int DynamicTextSortingOrder = 1750;
 	
 	public SelectGeneralToWarController sgCtrl;
 	
@@ -30,6 +33,13 @@ public class SGGeneralPosition : MonoBehaviour {
 				Invoke("ReturnMain", 0.2f);
 			}
 		}
+	}
+
+	// 方法说明：持续把前列和后列选项的动态字体提升到弹窗前方。
+	// 参数说明：无。
+	// 返回说明：无返回值。
+	void LateUpdate() {
+		UnifiedGameFontController.SetDynamicTextLayer(gameObject, DynamicTextFrontZ, DynamicTextSortingOrder);
 	}
 	
 	void OnClickFront() {

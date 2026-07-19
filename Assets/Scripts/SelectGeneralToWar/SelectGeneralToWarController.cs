@@ -325,9 +325,22 @@ public class SelectGeneralToWarController : MonoBehaviour {
 	void LateUpdate() {
 		
 		if (menuSelectIdx != -1) {
-			menus[menuSelectIdx].GetComponent<exSpriteFont>().topColor = new Color(1, 0, 0, 1);
-			menus[menuSelectIdx].GetComponent<exSpriteFont>().botColor = new Color(1, 0, 0, 1);
+			SetMenuFontColor(menuSelectIdx, new Color(1, 0, 0, 1));
 		}
+	}
+
+	// 方法说明：设置底部菜单字体颜色并立即同步统一字体镜像，避免旧字和新字双层虚影。
+	// 参数说明：index 为菜单索引，color 为目标颜色。
+	// 返回说明：无返回值。
+	void SetMenuFontColor(int index, Color color) {
+		if (index < 0 || index >= menus.Length || menus[index] == null) return;
+
+		exSpriteFont font = menus[index].GetComponent<exSpriteFont>();
+		if (font == null) return;
+
+		font.topColor = color;
+		font.botColor = color;
+		UnifiedGameFontController.SyncFontNow(font);
 	}
 
 	// 方法说明：绘制战后招降专用背景和底部对话框。
@@ -2101,13 +2114,16 @@ public class SelectGeneralToWarController : MonoBehaviour {
 	void OnSelectFormation() {
 		
 		menuSelectIdx = 1;
+		HideBattleSelectSubPanels();
 		OnSubMenu();
+		selectFormation.gameObject.SetActive(true);
 		selectFormation.SetGeneral(rightGenerals[rightSelectIdx]);
 	}
 	
 	void OnGeneralPosition() {
 		
 		menuSelectIdx = 2;
+		HideBattleSelectSubPanels();
 		OnSubMenu();
 		generalPos.SetActive(true);
 	}
@@ -2115,6 +2131,7 @@ public class SelectGeneralToWarController : MonoBehaviour {
 	void OnGeneralInformation() {
 		
 		menuSelectIdx = 3;
+		HideBattleSelectSubPanels();
 		OnSubMenu();
 		
 		generalsInfo.AddGeneralsList(rightGenerals);
@@ -2124,8 +2141,27 @@ public class SelectGeneralToWarController : MonoBehaviour {
 	void OnEscape() {
 		
 		menuSelectIdx = 4;
+		HideBattleSelectSubPanels();
 		OnSubMenu();
 		retreatConfirm.SetActive(true);
+	}
+
+	// 方法说明：关闭战前页面所有二级面板，防止阵型、位置、情报等面板残留互相压住。
+	// 参数说明：无。
+	// 返回说明：无返回值。
+	void HideBattleSelectSubPanels() {
+		if (selectFormation != null) {
+			selectFormation.gameObject.SetActive(false);
+		}
+		if (generalsInfo != null) {
+			generalsInfo.gameObject.SetActive(false);
+		}
+		if (generalPos != null) {
+			generalPos.SetActive(false);
+		}
+		if (retreatConfirm != null) {
+			retreatConfirm.SetActive(false);
+		}
 	}
 	
 	void OnSubMenu() {
@@ -2140,6 +2176,7 @@ public class SelectGeneralToWarController : MonoBehaviour {
 	public void OnReturnMain() {
 		
 		state = 0;
+		HideBattleSelectSubPanels();
 		
 		int i = 0;
 		if (rightFailFlag[rightSelectIdx]) {
@@ -2152,8 +2189,7 @@ public class SelectGeneralToWarController : MonoBehaviour {
 		
 		if (menuSelectIdx != -1) {
 			
-			menus[menuSelectIdx].GetComponent<exSpriteFont>().topColor = new Color(1, 1, 1, 1);
-			menus[menuSelectIdx].GetComponent<exSpriteFont>().botColor = new Color(1, 1, 1, 1);
+			SetMenuFontColor(menuSelectIdx, new Color(1, 1, 1, 1));
 			
 			menuSelectIdx = -1;
 		}

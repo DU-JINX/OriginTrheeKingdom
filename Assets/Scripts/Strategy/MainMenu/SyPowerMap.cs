@@ -36,6 +36,7 @@ public class SyPowerMap : MonoBehaviour {
 		AddKingList();
 		kingList.SetSelectItemHandler(OnSelectKingHandler);
 		kingList.SetItemSelected(GetCurrentPlayerKingListIndex(), true);
+		ApplyRecoveredStrategyPowerMapLayout();
 		
 		kingList.GetComponent<MenuDisplayAnim>().SetAnim(MenuDisplayAnim.AnimType.InsertFromLeft);
 		map		.GetComponent<MenuDisplayAnim>().SetAnim(MenuDisplayAnim.AnimType.InsertFromRight);
@@ -153,7 +154,7 @@ public class SyPowerMap : MonoBehaviour {
 	TextMesh CreateKingListLabel(Transform parent, string name) {
 		GameObject go = new GameObject("SyPowerMapKingNameLabel");
 		go.transform.parent = parent;
-		go.transform.localPosition = Vector3.zero;
+		go.transform.localPosition = new Vector3(0f, 0f, -1.2f);
 		go.transform.localScale = Vector3.one;
 		go.transform.localRotation = Quaternion.identity;
 		go.layer = parent.gameObject.layer;
@@ -168,6 +169,28 @@ public class SyPowerMap : MonoBehaviour {
 		textMesh.alignment = TextAlignment.Left;
 		textMesh.color = Color.white;
 		return textMesh;
+	}
+
+	/// <summary>
+	/// 方法说明：修正 MOD06 战略势力图在宽屏下的地图位置，避免左侧露出底层战略地图。
+	/// 参数说明：无参数。
+	/// 返回说明：无返回值。
+	/// </summary>
+	void ApplyRecoveredStrategyPowerMapLayout() {
+		if (!MODLoadController.IsRestoredSango2Index(Controller.MODSelect) || map == null) return;
+
+		// 1. 二级势力图地图沿用旧 4:3 坐标，宽屏下需要居中铺满视口。
+		Vector3 mapPosition = map.transform.localPosition;
+		mapPosition.x = 0f;
+		map.transform.localPosition = mapPosition;
+
+		// 2. 同步菜单动画原点，防止 InsertFromRight 动画结束后回到旧偏移。
+		MenuDisplayAnim mapAnim = map.GetComponent<MenuDisplayAnim>();
+		if (mapAnim == null) return;
+
+		Vector3 originalPosition = mapAnim.GetOriginalPosition();
+		originalPosition.x = 0f;
+		mapAnim.SetOriginalPosition(originalPosition);
 	}
 
 	/// <summary>

@@ -1,18 +1,21 @@
 using UnityEngine;
 using System.Collections;
+using System.Collections.Generic;
+using System;
 
 public class FlagsController : MonoBehaviour {
 
 	public GameObject cityNamePerfab;
 	public exSpriteAnimation[] flags;
 
-	private const string RecoveredCityMarkerResourcePath = "Sango2Recovered/Map/Sango2CityMarker";
-	private const float RecoveredCityMarkerWidth = 24f;
-	private const float RecoveredCityMarkerHeight = 18f;
 	private const float RecoveredCityNameOffsetY = -22f;
-	private const float RecoveredCoincidentFlagOffsetY = 20f;
-	private static Material recoveredCityMarkerMaterial;
-	private static Mesh recoveredCityMarkerMesh;
+	private const float RecoveredFlagEdgePadding = 18f;
+	private const float RecoveredCityNameEdgePaddingX = 46f;
+	private const float RecoveredCityNameEdgePaddingY = 26f;
+	private readonly List<GameObject> cityAnnotationObjects = new List<GameObject>();
+	private readonly List<Renderer> pausedFlagRenderers = new List<Renderer>();
+	private readonly List<bool> pausedFlagRendererStates = new List<bool>();
+	private bool hasPausedFlagRenderers;
 	private static readonly Vector3[] RecoveredCityNameShadowOffsets = new Vector3[] {
 		new Vector3(-2f, 0f, 0.02f),
 		new Vector3(2f, 0f, 0.02f),
@@ -40,7 +43,6 @@ public class FlagsController : MonoBehaviour {
 			SetFlagPosition(flag, i, isRestoredSango2);
 
 			if (isRestoredSango2) {
-				CreateRecoveredCityMarker(i);
 				CreateRecoveredCityName(i);
 			} else {
 				CreateDefaultCityName(flag.transform, i);
@@ -65,6 +67,7 @@ public class FlagsController : MonoBehaviour {
 		exSpriteFont cityNameFont = go.GetComponent<exSpriteFont>();
 		cityNameFont.text = cityName;
 		SetCityNameColors(cityNameFont, Color.white, Color.white);
+		RegisterCityAnnotationRenderer(go.GetComponent<Renderer>());
 		return go;
 	}
 
@@ -82,6 +85,7 @@ public class FlagsController : MonoBehaviour {
 			exSpriteFont shadowFont = shadow.GetComponent<exSpriteFont>();
 			shadowFont.text = cityName;
 			SetCityNameColors(shadowFont, new Color(0f, 0f, 0f, 0.92f), new Color(0f, 0f, 0f, 0.92f));
+			RegisterCityAnnotationRenderer(shadow.GetComponent<Renderer>());
 		}
 	}
 
@@ -97,6 +101,9 @@ public class FlagsController : MonoBehaviour {
 		string cityName = ZhongWen.Instance.GetCityName(cityIdx);
 		Vector3 cityPosition = Informations.Instance.GetCityWorldPosition(cityIdx);
 		Vector3 labelPosition = cityPosition + new Vector3(0f, RecoveredCityNameOffsetY, 0f);
+		labelPosition = ClampRecoveredMapAnnotationPosition(labelPosition,
+		                                                    RecoveredCityNameEdgePaddingX,
+		                                                    RecoveredCityNameEdgePaddingY);
 		labelPosition.z = GetCityLayerZ(cityPosition) - 0.01f;
 
 		// 2. 再创建多方向黑色描边，让名称在山地、道路、水面上都能读清。
@@ -135,6 +142,7 @@ public class FlagsController : MonoBehaviour {
 		go.transform.localScale = cityNamePerfab.transform.localScale;
 		exSpriteFont cityNameFont = go.GetComponent<exSpriteFont>();
 		cityNameFont.text = cityName;
+		RegisterCityAnnotationRenderer(go.GetComponent<Renderer>());
 		return go;
 	}
 
@@ -170,8 +178,9 @@ public class FlagsController : MonoBehaviour {
 
 		Vector3 objectPosition = flagPosition;
 		if (isRestoredSango2) {
-			flagPosition = GetRecoveredFlagDisplayPosition(cityIdx, flagPosition);
-			objectPosition = flagPosition;
+			objectPosition = ClampRecoveredMapAnnotationPosition(flagPosition,
+			                                                      RecoveredFlagEdgePadding,
+			                                                      RecoveredFlagEdgePadding);
 			objectPosition -= GetRendererCenterOffset(flag.transform);
 		}
 
@@ -180,100 +189,59 @@ public class FlagsController : MonoBehaviour {
 	}
 
 	/// <summary>
-	/// 方法说明：读取 MOD06 旗帜显示坐标，旗帜和城池重合时上移旗帜以露出城池标记。
-	/// 参数说明：cityIdx 为城池索引，flagPosition 为原始旗帜世界坐标。
-	/// 返回说明：返回用于显示的旗帜世界坐标。
-	/// </summary>
-	private Vector3 GetRecoveredFlagDisplayPosition(int cityIdx, Vector3 flagPosition) {
-		if (!Informations.Instance.HasCityPosition(cityIdx)) return flagPosition;
-
-		Vector3 cityPosition = Informations.Instance.GetCityWorldPosition(cityIdx);
-		float distance = Vector2.Distance(new Vector2(cityPosition.x, cityPosition.y), new Vector2(flagPosition.x, flagPosition.y));
-		if (distance > RecoveredCityMarkerHeight * 0.5f) return flagPosition;
-
-		return flagPosition + new Vector3(0f, RecoveredCoincidentFlagOffsetY, 0f);
-	}
-
-	/// <summary>
-	/// 方法说明：创建 MOD06 城池本体标记。
-	/// 参数说明：cityIdx 为城池索引。
+	/// 方法说明：登记由战略地图动态创建的城名渲染器。
+	/// 参数说明：targetRenderer 为需要随菜单开关显示状态的渲染器。
 	/// 返回说明：无返回值。
 	/// </summary>
-	private void CreateRecoveredCityMarker(int cityIdx) {
-		if (!Informations.Instance.HasCityPosition(cityIdx)) return;
+	private void RegisterCityAnnotationRenderer(Renderer targetRenderer) {
+		if (targetRenderer == null) return;
 
-		Material markerMaterial = GetRecoveredCityMarkerMaterial();
-		Mesh markerMesh = GetRecoveredCityMarkerMesh();
-		if (markerMaterial == null || markerMesh == null) return;
-
-		Vector3 cityPosition = Informations.Instance.GetCityWorldPosition(cityIdx);
-		cityPosition.z = GetCityLayerZ(cityPosition) + 0.02f;
-
-		GameObject go = new GameObject("CityMarker" + cityIdx);
-		go.transform.parent = transform;
-		go.transform.position = cityPosition;
-		go.transform.localRotation = Quaternion.identity;
-		go.transform.localScale = Vector3.one;
-
-		MeshFilter meshFilter = go.AddComponent<MeshFilter>();
-		meshFilter.sharedMesh = markerMesh;
-		MeshRenderer meshRenderer = go.AddComponent<MeshRenderer>();
-		meshRenderer.sharedMaterial = markerMaterial;
+		targetRenderer.enabled = true;
+		GameObject annotationObject = targetRenderer.gameObject;
+		if (!cityAnnotationObjects.Contains(annotationObject)) {
+			cityAnnotationObjects.Add(annotationObject);
+		}
 	}
 
 	/// <summary>
-	/// 方法说明：读取或创建 MOD06 城池标记材质。
-	/// 参数说明：无参数。
-	/// 返回说明：成功返回城池标记材质，资源缺失时返回 null。
+	/// 方法说明：统一切换城名，避免旧菜单打开时地图文字穿透面板。
+	/// 参数说明：visible 为 true 时显示地图标注，为 false 时隐藏。
+	/// 返回说明：无返回值。
 	/// </summary>
-	private Material GetRecoveredCityMarkerMaterial() {
-		if (recoveredCityMarkerMaterial != null) return recoveredCityMarkerMaterial;
+	private void SetCityAnnotationsVisible(bool visible) {
+		Renderer[] childRenderers = GetComponentsInChildren<Renderer>(true);
+		for (int i = 0; i < childRenderers.Length; i++) {
+			Renderer childRenderer = childRenderers[i];
+			if (childRenderer == null) continue;
 
-		Texture2D texture = Resources.Load<Texture2D>(RecoveredCityMarkerResourcePath);
-		if (texture == null) {
-			Debug.LogError("MOD06 城池标记资源不存在: " + RecoveredCityMarkerResourcePath);
-			return null;
+			string objectName = childRenderer.gameObject.name;
+			if (objectName.StartsWith("CityName", StringComparison.Ordinal)) {
+				RegisterCityAnnotationRenderer(childRenderer);
+			}
 		}
 
-		Shader shader = Shader.Find("Unlit/Transparent");
-		if (shader == null) {
-			Debug.LogError("缺少 Unlit/Transparent Shader，无法显示 MOD06 城池标记。");
-			return null;
-		}
+		for (int i = cityAnnotationObjects.Count - 1; i >= 0; i--) {
+			GameObject annotationObject = cityAnnotationObjects[i];
+			if (annotationObject == null) {
+				cityAnnotationObjects.RemoveAt(i);
+				continue;
+			}
 
-		recoveredCityMarkerMaterial = new Material(shader);
-		recoveredCityMarkerMaterial.mainTexture = texture;
-		return recoveredCityMarkerMaterial;
+			annotationObject.SetActive(visible);
+		}
 	}
 
 	/// <summary>
-	/// 方法说明：读取或创建 MOD06 城池标记网格。
-	/// 参数说明：无参数。
-	/// 返回说明：返回城池标记四边形网格。
+	/// 方法说明：把 MOD06 旗帜或城名中心限制在地图安全边距内，避免全图视野下被屏幕四边裁切。
+	/// 参数说明：position 为原世界坐标，paddingX 和 paddingY 为横纵安全边距。
+	/// 返回说明：返回限制后的世界坐标，z 保持不变。
 	/// </summary>
-	private Mesh GetRecoveredCityMarkerMesh() {
-		if (recoveredCityMarkerMesh != null) return recoveredCityMarkerMesh;
-
-		float halfWidth = RecoveredCityMarkerWidth * 0.5f;
-		float halfHeight = RecoveredCityMarkerHeight * 0.5f;
-		Mesh mesh = new Mesh();
-		mesh.name = "RecoveredCityMarkerMesh";
-		mesh.vertices = new Vector3[] {
-			new Vector3(-halfWidth, -halfHeight, 0f),
-			new Vector3(halfWidth, -halfHeight, 0f),
-			new Vector3(-halfWidth, halfHeight, 0f),
-			new Vector3(halfWidth, halfHeight, 0f)
-		};
-		mesh.uv = new Vector2[] {
-			new Vector2(0f, 0f),
-			new Vector2(1f, 0f),
-			new Vector2(0f, 1f),
-			new Vector2(1f, 1f)
-		};
-		mesh.triangles = new int[] { 0, 2, 1, 2, 3, 1 };
-		mesh.RecalculateBounds();
-		recoveredCityMarkerMesh = mesh;
-		return recoveredCityMarkerMesh;
+	private Vector3 ClampRecoveredMapAnnotationPosition(Vector3 position, float paddingX, float paddingY) {
+		float halfWidth = MODLoadController.RecoveredMapWorldWidth * 0.5f;
+		float halfHeight = MODLoadController.RecoveredMapWorldHeight * 0.5f;
+		position.x = Mathf.Clamp(position.x, -halfWidth + paddingX, halfWidth - paddingX);
+		position.y = Mathf.Clamp(position.y, -halfHeight + paddingY, halfHeight - paddingY);
+		return position;
 	}
 
 	/// <summary>
@@ -320,7 +288,7 @@ public class FlagsController : MonoBehaviour {
 		if (animName == "") {
 			int flagIndex = kingIdx % ZhongWen.Instance.kingNames.Length;
 			animName = "Flag" + (flagIndex + 1);
-			Debug.LogError("缺少势力旗帜资源，使用当前旗帜动画池: " + kingName);
+			Debug.LogWarning("缺少势力旗帜资源，使用当前旗帜动画池: " + kingName);
 		}
 
 		flag.Play(animName);
@@ -347,11 +315,13 @@ public class FlagsController : MonoBehaviour {
 	}
 	
 	/// <summary>
-	/// 方法说明：暂停所有可见旗帜动画。
+	/// 方法说明：暂停所有可见旗帜动画，并隐藏城名和旗帜避免菜单打开时地图元素穿透面板。
 	/// 参数说明：无参数。
 	/// 返回说明：无返回值。
 	/// </summary>
 	public void SetFlagsAnimPause() {
+		SetCityAnnotationsVisible(false);
+		HideFlagRenderers();
 		for (int i=0; i<Informations.Instance.cityNum; i++) {
 			exSpriteAnimation flag = GetOrCreateFlag(i);
 			if (flag != null && flag.GetComponent<Renderer>().enabled) {
@@ -366,12 +336,59 @@ public class FlagsController : MonoBehaviour {
 	/// 返回说明：无返回值。
 	/// </summary>
 	public void SetFlagsAnimResume() {
+		SetCityAnnotationsVisible(true);
+		RestoreFlagRenderers();
 		for (int i=0; i<Informations.Instance.cityNum; i++) {
 			exSpriteAnimation flag = GetOrCreateFlag(i);
 			if (flag != null && flag.GetComponent<Renderer>().enabled) {
 				flag.Resume();
 			}
 		}
+	}
+
+	/// <summary>
+	/// 方法说明：记录并隐藏所有城池旗帜渲染器，避免半透明菜单下露出旗帜。
+	/// 参数说明：无参数。
+	/// 返回说明：无返回值。
+	/// </summary>
+	private void HideFlagRenderers() {
+		if (hasPausedFlagRenderers) return;
+
+		// 1. 逐个记录当前显示状态，后续恢复时按原状态还原。
+		for (int i = 0; i < Informations.Instance.cityNum; i++) {
+			exSpriteAnimation flag = GetOrCreateFlag(i);
+			if (flag == null) continue;
+
+			Renderer flagRenderer = flag.GetComponent<Renderer>();
+			if (flagRenderer == null) continue;
+
+			pausedFlagRenderers.Add(flagRenderer);
+			pausedFlagRendererStates.Add(flagRenderer.enabled);
+			flagRenderer.enabled = false;
+		}
+
+		// 2. 标记已经隐藏，避免重复进入暂停时把 false 状态覆盖成原状态。
+		hasPausedFlagRenderers = true;
+	}
+
+	/// <summary>
+	/// 方法说明：恢复暂停时隐藏的城池旗帜渲染器。
+	/// 参数说明：无参数。
+	/// 返回说明：无返回值。
+	/// </summary>
+	private void RestoreFlagRenderers() {
+		if (!hasPausedFlagRenderers) return;
+
+		for (int i = 0; i < pausedFlagRenderers.Count; i++) {
+			Renderer flagRenderer = pausedFlagRenderers[i];
+			if (flagRenderer != null) {
+				flagRenderer.enabled = pausedFlagRendererStates[i];
+			}
+		}
+
+		pausedFlagRenderers.Clear();
+		pausedFlagRendererStates.Clear();
+		hasPausedFlagRenderers = false;
 	}
 
 	/// <summary>

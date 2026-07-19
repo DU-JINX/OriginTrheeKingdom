@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class KingInfoController : MonoBehaviour {
 	
@@ -22,22 +23,44 @@ public class KingInfoController : MonoBehaviour {
 	private TextMesh[] infoValueLabels;
 	private Font infoDynamicFont;
 	private int infoFontSize = 64;
-	private float infoCharacterSize = 3.1f;
-	private Vector3[] infoTitlePositions = new Vector3[] {
-		new Vector3(-155f, -138f, 1.8f),
-		new Vector3(-155f, -170f, 1.8f),
-		new Vector3(-155f, -202f, 1.8f),
-		new Vector3(45f, -138f, 1.8f),
-		new Vector3(45f, -170f, 1.8f),
-		new Vector3(45f, -202f, 1.8f)
+	private float infoCharacterSize = 2.0f;
+	private InfoPanelLayout appliedLayout = InfoPanelLayout.Unset;
+	private enum InfoPanelLayout {
+		Unset,
+		SelectKing,
+		Strategy
+	}
+	private Vector3[] selectKingInfoTitlePositions = new Vector3[] {
+		new Vector3(-118f, -140f, 1.8f),
+		new Vector3(-118f, -172f, 1.8f),
+		new Vector3(-118f, -204f, 1.8f),
+		new Vector3(98f, -140f, 1.8f),
+		new Vector3(98f, -172f, 1.8f),
+		new Vector3(98f, -204f, 1.8f)
 	};
-	private Vector3[] infoValuePositions = new Vector3[] {
-		new Vector3(-105f, -138f, 1.8f),
-		new Vector3(-105f, -170f, 1.8f),
-		new Vector3(-105f, -202f, 1.8f),
-		new Vector3(175f, -138f, 1.8f),
-		new Vector3(175f, -170f, 1.8f),
-		new Vector3(210f, -202f, 1.8f)
+	private Vector3[] selectKingInfoValuePositions = new Vector3[] {
+		new Vector3(-58f, -140f, 1.8f),
+		new Vector3(-58f, -172f, 1.8f),
+		new Vector3(-58f, -204f, 1.8f),
+		new Vector3(176f, -140f, 1.8f),
+		new Vector3(176f, -172f, 1.8f),
+		new Vector3(176f, -204f, 1.8f)
+	};
+	private Vector3[] strategyInfoTitlePositions = new Vector3[] {
+		new Vector3(-118f, -126f, -1.2f),
+		new Vector3(-118f, -158f, -1.2f),
+		new Vector3(-118f, -190f, -1.2f),
+		new Vector3(98f, -126f, -1.2f),
+		new Vector3(98f, -158f, -1.2f),
+		new Vector3(98f, -190f, -1.2f)
+	};
+	private Vector3[] strategyInfoValuePositions = new Vector3[] {
+		new Vector3(-58f, -126f, -1.2f),
+		new Vector3(-58f, -158f, -1.2f),
+		new Vector3(-58f, -190f, -1.2f),
+		new Vector3(176f, -126f, -1.2f),
+		new Vector3(176f, -158f, -1.2f),
+		new Vector3(176f, -190f, -1.2f)
 	};
 	private string[] infoTitleTexts = new string[] { "君主", "金钱", "人口", "城数", "武将", "总兵数" };
 
@@ -123,15 +146,81 @@ public class KingInfoController : MonoBehaviour {
 	/// </summary>
 	private void EnsureInfoPanelLabels()
 	{
-		if (infoTitleLabels != null && infoValueLabels != null) return;
+		InfoPanelLayout layout = ResolveInfoPanelLayout();
+		if (infoTitleLabels != null && infoValueLabels != null)
+		{
+			ApplyInfoPanelLayout(layout);
+			return;
+		}
 
 		infoTitleLabels = new TextMesh[InfoItemCount];
 		infoValueLabels = new TextMesh[InfoItemCount];
+		Vector3[] titlePositions = GetTitlePositions(layout);
+		Vector3[] valuePositions = GetValuePositions(layout);
 		for (int i = 0; i < InfoItemCount; i++)
 		{
-			infoTitleLabels[i] = CreateInfoTextMesh("KingInfoTitle" + i, infoTitleTexts[i], infoTitlePositions[i], TextAnchor.MiddleLeft);
-			infoValueLabels[i] = CreateInfoTextMesh("KingInfoValue" + i, "", infoValuePositions[i], TextAnchor.MiddleLeft);
+			infoTitleLabels[i] = CreateInfoTextMesh("KingInfoTitle" + i, infoTitleTexts[i], titlePositions[i], TextAnchor.MiddleLeft);
+			infoValueLabels[i] = CreateInfoTextMesh("KingInfoValue" + i, "", valuePositions[i], TextAnchor.MiddleLeft);
 		}
+		appliedLayout = layout;
+	}
+
+	/// <summary>
+	/// 方法说明：根据当前场景选择底部信息栏布局，避免选君主页和战略势力地图共用坐标导致空白或压字。
+	/// 参数说明：无参数。
+	/// 返回说明：返回当前应使用的布局类型。
+	/// </summary>
+	private InfoPanelLayout ResolveInfoPanelLayout()
+	{
+		string sceneName = SceneManager.GetActiveScene().name;
+		return sceneName == "SelectKing" ? InfoPanelLayout.SelectKing : InfoPanelLayout.Strategy;
+	}
+
+	/// <summary>
+	/// 方法说明：在已创建标签后切换布局坐标。
+	/// 参数说明：layout 为目标布局。
+	/// 返回说明：无返回值。
+	/// </summary>
+	private void ApplyInfoPanelLayout(InfoPanelLayout layout)
+	{
+		if (appliedLayout == layout) return;
+
+		Vector3[] titlePositions = GetTitlePositions(layout);
+		Vector3[] valuePositions = GetValuePositions(layout);
+		for (int i = 0; i < InfoItemCount; i++)
+		{
+			if (infoTitleLabels[i] != null)
+			{
+				infoTitleLabels[i].transform.localPosition = titlePositions[i];
+				infoTitleLabels[i].characterSize = infoCharacterSize;
+			}
+			if (infoValueLabels[i] != null)
+			{
+				infoValueLabels[i].transform.localPosition = valuePositions[i];
+				infoValueLabels[i].characterSize = infoCharacterSize;
+			}
+		}
+		appliedLayout = layout;
+	}
+
+	/// <summary>
+	/// 方法说明：读取指定布局的标题坐标。
+	/// 参数说明：layout 为布局类型。
+	/// 返回说明：返回标题坐标数组。
+	/// </summary>
+	private Vector3[] GetTitlePositions(InfoPanelLayout layout)
+	{
+		return layout == InfoPanelLayout.SelectKing ? selectKingInfoTitlePositions : strategyInfoTitlePositions;
+	}
+
+	/// <summary>
+	/// 方法说明：读取指定布局的数值坐标。
+	/// 参数说明：layout 为布局类型。
+	/// 返回说明：返回数值坐标数组。
+	/// </summary>
+	private Vector3[] GetValuePositions(InfoPanelLayout layout)
+	{
+		return layout == InfoPanelLayout.SelectKing ? selectKingInfoValuePositions : strategyInfoValuePositions;
 	}
 
 	/// <summary>

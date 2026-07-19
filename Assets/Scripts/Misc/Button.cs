@@ -49,6 +49,7 @@ public class Button : MonoBehaviour {
 				state = ButtonState.Down;
 				fontScript.botColor = new Color(1, 0, 0, 1);
 				fontScript.topColor = new Color(1, 0, 0, 1);
+				UnifiedGameFontController.SyncFontNow(fontScript);
 				
 				if (buttonDownHandler != null)		buttonDownHandler();
 			}
@@ -59,6 +60,7 @@ public class Button : MonoBehaviour {
 					state = ButtonState.Clicked;
 					fontScript.botColor = new Color(1, 1, 1, 1);
 					fontScript.topColor = new Color(1, 1, 1, 1);
+					UnifiedGameFontController.SyncFontNow(fontScript);
 
 					if (buttonClickHandler != null)		buttonClickHandler();
 					if (buttonClickHandler1 != null)	buttonClickHandler1(data);
@@ -82,6 +84,7 @@ public class Button : MonoBehaviour {
 					
 					fontScript.botColor = new Color(1, 1, 1, 1);
 					fontScript.topColor = new Color(1, 1, 1, 1);
+					UnifiedGameFontController.SyncFontNow(fontScript);
 				}
 			} else if (state == ButtonState.Leave) {
 				
@@ -92,6 +95,7 @@ public class Button : MonoBehaviour {
 					
 					fontScript.botColor = new Color(1, 0, 0, 1);
 					fontScript.topColor = new Color(1, 0, 0, 1);
+					UnifiedGameFontController.SyncFontNow(fontScript);
 				}
 			}
 		}
@@ -127,6 +131,7 @@ public class Button : MonoBehaviour {
 			fontScript.botColor = new Color(0.5f, 0.5f, 0.5f, 1);
 			fontScript.topColor = new Color(0.5f, 0.5f, 0.5f, 1);
 		}
+		UnifiedGameFontController.SyncFontNow(fontScript);
 	}
 	
 	public ButtonState GetButtonState() {
@@ -150,6 +155,7 @@ public class Button : MonoBehaviour {
 			fontScript.botColor = new Color(1, 0, 0, 1);
 			fontScript.topColor = new Color(1, 0, 0, 1);
 		}
+		UnifiedGameFontController.SyncFontNow(fontScript);
 	}
 	
 	public void SetButtonData(object d) {

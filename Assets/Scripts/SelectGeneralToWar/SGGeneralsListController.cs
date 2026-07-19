@@ -55,7 +55,7 @@ public class SGGeneralsListController : MonoBehaviour {
 				
 				if (i == rightSelectIdx) continue;
 				
-				if (rightGeneralsList[i].transform.FindChild("BG").GetComponent<Collider>().Raycast(ray, out hit, 1000)) {
+				if (rightGeneralsList[i].transform.Find("BG").GetComponent<Collider>().Raycast(ray, out hit, 1000)) {
 					
 					rightSelectIdx = i;
 					rightBlink.transform.localPosition = new Vector3(0, -73 * rightSelectIdx, 0);

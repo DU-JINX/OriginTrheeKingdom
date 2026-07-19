@@ -3,6 +3,9 @@ using System.Collections;
 
 public class GeneralsHeadSelect : MonoBehaviour {
 	
+	private const string StzbHeadDirectory = "StzbHead";
+	private const string OriginalHeadDirectory = "Head";
+
 	private GameObject go;
 	private int idxCur = -1;
 	
@@ -47,12 +50,17 @@ public class GeneralsHeadSelect : MonoBehaviour {
 	}
 
 	/// <summary>
-	/// 方法说明：按当前剧本选择头像资源目录，避免二代恢复头像覆盖一代率土头像。
+	/// 方法说明：优先读取同编号率土头像，缺少时回退原本头像。
 	/// 参数说明：faceIndex 为武将头像编号。
 	/// 返回说明：返回 Resources.Load 可读取的头像路径。
 	/// </summary>
 	private string GetHeadResourceName(int faceIndex) {
-		string headDirectory = MODLoadController.IsRestoredSango2Index(Controller.MODSelect) ? "Head" : "StzbHead";
-		return headDirectory + "/Head" + faceIndex.ToString("D3");
+		string headFileName = "Head" + faceIndex.ToString("D3");
+		string stzbHeadName = StzbHeadDirectory + "/" + headFileName;
+		if (Resources.Load(stzbHeadName) != null) {
+			return stzbHeadName;
+		}
+
+		return OriginalHeadDirectory + "/" + headFileName;
 	}
 }

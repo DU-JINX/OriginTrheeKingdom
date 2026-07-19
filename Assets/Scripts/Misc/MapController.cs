@@ -38,6 +38,7 @@ public class MapController : MonoBehaviour {
 	/// </summary>
 	void Update() {
 		HandleMapDrag();
+		UpdateCityMarkerViewportVisibility();
 	}
 
 	/// <summary>
@@ -53,7 +54,7 @@ public class MapController : MonoBehaviour {
 			
 			for (int i=0; i<Informations.Instance.cityNum; i++) {
 				string cityName = "City" + (i+1);
-				Transform cityTransform = transform.FindChild(cityName);
+				Transform cityTransform = transform.Find(cityName);
 				if (cityTransform != null) {
 					cities[i] = cityTransform.GetComponent<exSprite>();
 					if (template == null) template = cities[i];
@@ -189,6 +190,7 @@ public class MapController : MonoBehaviour {
 		mapDraggingEnabled = enabledFlag;
 		if (!mapDraggingEnabled) {
 			mapDragActive = false;
+			SetAllCityMarkersVisible(true);
 		}
 	}
 
@@ -301,6 +303,51 @@ public class MapController : MonoBehaviour {
 	/// </summary>
 	private void SetMapLocalPosition(Vector3 desiredPosition) {
 		transform.localPosition = ClampMapLocalPosition(desiredPosition);
+		UpdateCityMarkerViewportVisibility();
+	}
+
+	/// <summary>
+	/// 方法说明：按选君主地图可拖动视口隐藏越界城池点，避免标记压到底部信息面板文字。
+	/// 参数说明：无参数。
+	/// 返回说明：无返回值。
+	/// </summary>
+	private void UpdateCityMarkerViewportVisibility() {
+		if (!mapDraggingEnabled || cities == null) return;
+
+		Camera camera = Camera.main;
+		if (camera == null) return;
+
+		for (int i = 0; i < cities.Length; i++) {
+			if (cities[i] == null) continue;
+
+			Renderer renderer = cities[i].GetComponent<Renderer>();
+			if (renderer == null) continue;
+
+			Vector3 viewportPosition = camera.WorldToViewportPoint(cities[i].transform.position);
+			renderer.enabled = viewportPosition.z > 0f
+				&& viewportPosition.x >= dragViewportMinX
+				&& viewportPosition.x <= dragViewportMaxX
+				&& viewportPosition.y >= dragViewportMinY
+				&& viewportPosition.y <= dragViewportMaxY;
+		}
+	}
+
+	/// <summary>
+	/// 方法说明：统一恢复或隐藏全部城池点 Renderer。
+	/// 参数说明：visible 为 true 时显示全部城池点，否则隐藏。
+	/// 返回说明：无返回值。
+	/// </summary>
+	private void SetAllCityMarkersVisible(bool visible) {
+		if (cities == null) return;
+
+		for (int i = 0; i < cities.Length; i++) {
+			if (cities[i] == null) continue;
+
+			Renderer renderer = cities[i].GetComponent<Renderer>();
+			if (renderer != null) {
+				renderer.enabled = visible;
+			}
+		}
 	}
 
 	/// <summary>

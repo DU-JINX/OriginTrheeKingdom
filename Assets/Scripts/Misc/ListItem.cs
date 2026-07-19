@@ -37,6 +37,7 @@ public class ListItem : MonoBehaviour {
 			font.botColor = new Color(1, 1, 1, 1);
 			font.topColor = new Color(1, 1, 1, 1);
 		}
+		UnifiedGameFontController.SyncFontNow(font);
 	}
 	
 	public void SetMouseDown(bool flag) {
@@ -55,6 +56,7 @@ public class ListItem : MonoBehaviour {
 			font.botColor = new Color(1, 1, 1, 1);
 			font.topColor = new Color(1, 1, 1, 1);
 		}
+		UnifiedGameFontController.SyncFontNow(font);
 	}
 	
 	public void SetSelectEnable(bool flag) {
@@ -72,6 +74,7 @@ public class ListItem : MonoBehaviour {
 			font.botColor = new Color(0.5f, 0.5f, 0.5f, 1);
 			font.topColor = new Color(0.5f, 0.5f, 0.5f, 1);
 		}
+		UnifiedGameFontController.SyncFontNow(font);
 	}
 	
 	public bool GetSelectEnable() {

@@ -24,14 +24,37 @@ public class FindGeneralController : MonoBehaviour {
 	
 	void OnEnable() {
 		state = 0;
+		generalsList.Clear();
 		
 		map.gameObject.SetActive(true);
+		ApplyRecoveredFindGeneralMapLayout();
 		
 		generalsList.GetComponent<MenuDisplayAnim>().SetAnim(MenuDisplayAnim.AnimType.InsertFromLeft);
 		map			.GetComponent<MenuDisplayAnim>().SetAnim(MenuDisplayAnim.AnimType.InsertFromRight);
 		cityInfo	.GetComponent<MenuDisplayAnim>().SetAnim(MenuDisplayAnim.AnimType.InsertFromBottom);
 		
 		AddGeneralsList();
+	}
+
+	// 方法说明：修正 MOD06 寻找武将地图预览位置和尺寸，避免宽图压住底部城池信息栏。
+	// 参数说明：无。
+	// 返回说明：无返回值。
+	void ApplyRecoveredFindGeneralMapLayout() {
+		if (!MODLoadController.IsRestoredSango2Index(Controller.MODSelect) || map == null) return;
+
+		Vector3 mapPosition = map.transform.localPosition;
+		mapPosition.x = 430f;
+		mapPosition.y = 225f;
+		map.transform.localPosition = mapPosition;
+		map.transform.localScale = new Vector3(0.65f, 0.65f, map.transform.localScale.z);
+
+		MenuDisplayAnim mapAnim = map.GetComponent<MenuDisplayAnim>();
+		if (mapAnim == null) return;
+
+		Vector3 originalPosition = mapAnim.GetOriginalPosition();
+		originalPosition.x = mapPosition.x;
+		originalPosition.y = mapPosition.y;
+		mapAnim.SetOriginalPosition(originalPosition);
 	}
 	
 	void OnDisable() {
@@ -166,7 +189,7 @@ public class FindGeneralController : MonoBehaviour {
 	void AddGeneralsList() {
 		
 		int kingIdx = Informations.Instance.GetKingInfo(Controller.kingIndex).generalIdx;
-		generalsList.AddItem(ZhongWen.Instance.GetGeneralName1(kingIdx)).SetItemData(kingIdx);
+		AddGeneralListItem(kingIdx);
 		
 		GeneralInfo gInfo = Informations.Instance.GetGeneralInfo(kingIdx);
 		
@@ -181,9 +204,19 @@ public class FindGeneralController : MonoBehaviour {
 			int gIdx = (int)kInfo.generals[i];
 			
 			if (gIdx != kInfo.generalIdx) {
-				generalsList.AddItem(ZhongWen.Instance.GetGeneralName1(gIdx)).SetItemData(gIdx);
+				AddGeneralListItem(gIdx);
 			}
 		}
 		
+	}
+
+	// 方法说明：添加寻找武将列表项，由全局字体镜像统一处理显示和选中颜色。
+	// 参数说明：generalIdx 为武将编号。
+	// 返回说明：返回创建出的列表项。
+	ListItem AddGeneralListItem(int generalIdx) {
+		string name = ZhongWen.Instance.GetGeneralName(generalIdx);
+		ListItem item = generalsList.AddItem(name);
+		item.SetItemData(generalIdx);
+		return item;
 	}
 }

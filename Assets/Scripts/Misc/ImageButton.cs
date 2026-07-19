@@ -20,8 +20,8 @@ public class ImageButton : MonoBehaviour {
 	
 	// Use this for initialization
 	void Start () {
-		normal = transform.FindChild("Normal").gameObject;
-		pressed = transform.FindChild("Pressed").gameObject;
+		normal = transform.Find("Normal").gameObject;
+		pressed = transform.Find("Pressed").gameObject;
 		
 		if (normal.GetComponent<BoxCollider>() == null) {
 			normal.AddComponent<BoxCollider>();

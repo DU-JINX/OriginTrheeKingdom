@@ -34,8 +34,8 @@ public class UOController : MonoBehaviour {
 		generalsInfoList.SetSelectChangeHandler(OnSelectGeneral);
 		objsList.SetSelectItemHandler(OnSelectObject);
 		
-		ok = confirmBox.transform.FindChild("OK").GetComponent<Button>();
-		cancel = confirmBox.transform.FindChild("Cancel").GetComponent<Button>();
+		ok = confirmBox.transform.Find("OK").GetComponent<Button>();
+		cancel = confirmBox.transform.Find("Cancel").GetComponent<Button>();
 		
 		ok.SetButtonClickHandler(OnConfirmButtonOK);
 		cancel.SetButtonClickHandler(OnConfirmButtonCancel);

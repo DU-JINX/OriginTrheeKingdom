@@ -47,6 +47,50 @@ public class UnifiedGameFontController : MonoBehaviour {
 	}
 
 	/// <summary>
+	/// 方法说明：旧 exSpriteFont 被业务脚本改字或改色后同步现有镜像；镜像尚未创建时安排下一稳定帧补建。
+	/// 参数说明：sourceFont 为刚被修改的旧字体组件。
+	/// 返回说明：无。
+	/// </summary>
+	public static void SyncFontNow(exSpriteFont sourceFont) {
+		if (sourceFont == null || sourceFont.GetComponent<UnifiedGameFontIgnore>() != null) {
+			return;
+		}
+
+		UnifiedGameFontController controller = EnsureInstance();
+		controller.EnsureGameFontLoaded();
+		UnifiedGameFontMirror mirror = sourceFont.GetComponent<UnifiedGameFontMirror>();
+		if (mirror == null) {
+			// 菜单 SetActive 期间禁止同步创建子节点，交给下一次稳定帧扫描创建镜像。
+			controller.scanTimer = ScanInterval;
+			return;
+		}
+
+		mirror.SyncNow();
+	}
+
+	/// <summary>
+	/// 方法说明：把指定界面中的统一字体镜像提升到目标本地深度和渲染层级。
+	/// 参数说明：root 为界面根节点，localZ 为镜像相对旧字体的本地深度，sortingOrder 为渲染顺序。
+	/// 返回说明：无。
+	/// </summary>
+	public static void SetDynamicTextLayer(GameObject root, float localZ, int sortingOrder) {
+		if (root == null) return;
+
+		TextMesh[] labels = root.GetComponentsInChildren<TextMesh>(true);
+		for (int i = 0; i < labels.Length; i++) {
+			TextMesh label = labels[i];
+			if (label == null || label.gameObject.name != "UnifiedGameFontLabel") continue;
+
+			Vector3 localPosition = label.transform.localPosition;
+			label.transform.localPosition = new Vector3(localPosition.x, localPosition.y, localZ);
+			Renderer labelRenderer = label.GetComponent<Renderer>();
+			if (labelRenderer != null) {
+				labelRenderer.sortingOrder = sortingOrder;
+			}
+		}
+	}
+
+	/// <summary>
 	/// 方法说明：从当前系统真实可用的字体中创建统一中文动态字体。
 	/// 参数说明：fontSize 为动态字体基础字号。
 	/// 返回说明：返回有效中文字体；系统未报告候选字体时使用平台通用 sans-serif。
@@ -547,10 +591,13 @@ public class UnifiedGameFontMirror : MonoBehaviour {
 
 	private const float FrontOffsetZ = -0.2f;
 	private const float ColorTolerance = 0.01f;
+	private const float SourceGlyphHeight = 22f;
+	private const float SourceCharacterSize = 2.2f;
 	private static readonly Color HiddenColor = new Color(1f, 1f, 1f, 0f);
 
 	private exSpriteFont sourceFont;
 	private TextMesh mirrorText;
+	private Renderer mirrorRenderer;
 	private Font dynamicFont;
 	private string lastText;
 	private string lastAnchorName;
@@ -650,6 +697,7 @@ public class UnifiedGameFontMirror : MonoBehaviour {
 		if (textRenderer != null) {
 			textRenderer.sharedMaterial = dynamicFont.material;
 		}
+		mirrorRenderer = textRenderer;
 	}
 
 	/// <summary>
@@ -677,12 +725,14 @@ public class UnifiedGameFontMirror : MonoBehaviour {
 
 		string anchorName = sourceFont.anchor.ToString();
 		Rect bounds = sourceFont.boundingRect;
-		if (mirrorText.text != lastText) {
-			mirrorText.text = lastText;
+		string displayText = NormalizeLayoutText(lastText);
+		bool textChanged = mirrorText.text != displayText;
+		if (textChanged) {
+			mirrorText.text = displayText;
 		}
 
-		if (!string.IsNullOrEmpty(lastText) && dynamicFont != null) {
-			dynamicFont.RequestCharactersInTexture(lastText, mirrorText.fontSize, mirrorText.fontStyle);
+		if (!string.IsNullOrEmpty(displayText) && dynamicFont != null) {
+			dynamicFont.RequestCharactersInTexture(displayText, mirrorText.fontSize, mirrorText.fontStyle);
 		}
 
 		if (lastAnchorName != anchorName) {
@@ -691,12 +741,44 @@ public class UnifiedGameFontMirror : MonoBehaviour {
 			mirrorText.alignment = ConvertAlignment(anchorName);
 		}
 
-		if (lastBounds != bounds) {
+		if (lastBounds != bounds || textChanged) {
 			lastBounds = bounds;
 			mirrorText.characterSize = CalculateCharacterSize(bounds);
+			mirrorText.lineSpacing = CalculateLineSpacing(bounds, displayText);
 		}
 
 		mirrorText.color = displayColor;
+		if (mirrorRenderer != null) {
+			Renderer sourceRenderer = sourceFont.GetComponent<Renderer>();
+			mirrorRenderer.enabled = sourceRenderer == null || sourceRenderer.enabled;
+		}
+	}
+
+	/// <summary>
+	/// 方法说明：移除旧点阵字体为两字姓名补入的空格，其余文本保持原样。
+	/// 参数说明：text 为旧字体当前文本。
+	/// 返回说明：两字姓名返回紧凑文本，其余文本原样返回。
+	/// </summary>
+	private string NormalizeLayoutText(string text) {
+		if (string.IsNullOrEmpty(text)) return text;
+		if (IsTwoCharacterPaddedName(text)) {
+			return new string(new char[] { text[0], text[3] });
+		}
+
+		return text;
+	}
+
+	/// <summary>
+	/// 方法说明：识别旧点阵字体为两字姓名补入的两个半角空格。
+	/// 参数说明：text 为待检查文本。
+	/// 返回说明：文本形如“字  字”时返回 true，否则返回 false。
+	/// </summary>
+	private bool IsTwoCharacterPaddedName(string text) {
+		return text.Length == 4
+			&& text[1] == ' '
+			&& text[2] == ' '
+			&& text[0] != ' '
+			&& text[3] != ' ';
 	}
 
 	/// <summary>
@@ -715,12 +797,26 @@ public class UnifiedGameFontMirror : MonoBehaviour {
 	/// 返回说明：返回动态字体 characterSize。
 	/// </summary>
 	private float CalculateCharacterSize(Rect bounds) {
-		float height = Mathf.Abs(bounds.height);
-		if (height <= 0.01f) {
-			height = 28f;
-		}
+		return SourceCharacterSize;
+	}
 
-		return Mathf.Clamp(height / 10f, 1.1f, 3.8f);
+	/// <summary>
+	/// 方法说明：根据旧字体多行包围盒还原原字模行距，避免按总高度放大整块文字。
+	/// 参数说明：bounds 为旧字体包围盒，text 为当前显示文本。
+	/// 返回说明：单行文字返回 1，多行文字返回与原排版接近的行距倍率。
+	/// </summary>
+	private float CalculateLineSpacing(Rect bounds, string text) {
+		if (string.IsNullOrEmpty(text)) return 1f;
+
+		int lineCount = 1;
+		for (int i = 0; i < text.Length; i++) {
+			if (text[i] == '\n') lineCount++;
+		}
+		if (lineCount <= 1) return 1f;
+
+		float height = Mathf.Abs(bounds.height);
+		float linePitch = (height - SourceGlyphHeight) / (lineCount - 1);
+		return Mathf.Clamp(linePitch / SourceGlyphHeight, 0.8f, 1.8f);
 	}
 
 	/// <summary>

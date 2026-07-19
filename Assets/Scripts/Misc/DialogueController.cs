@@ -27,7 +27,7 @@ public class DialogueController : MonoBehaviour {
 		}
 		
 		if (font == null) {
-			font = transform.FindChild("Font").GetComponent<exSpriteFont>();
+			font = transform.Find("Font").GetComponent<exSpriteFont>();
 		}
 	}
 	
@@ -39,7 +39,9 @@ public class DialogueController : MonoBehaviour {
 			if (timeTick >= 0.2f) {
 				state = 1;
 				timeTick = 0;
-				textIdx = 0;
+				if (font == null || string.IsNullOrEmpty(font.text)) {
+					textIdx = 0;
+				}
 			}
 			break;
 		case 1:
@@ -55,6 +57,7 @@ public class DialogueController : MonoBehaviour {
 					
 					font.text += text[i];
 				}
+				UnifiedGameFontController.SyncFontNow(font);
 				break;
 			}
 			
@@ -62,11 +65,7 @@ public class DialogueController : MonoBehaviour {
 			if (timeTick >= 0.05f) {
 				timeTick = 0;
 				
-				while (text[textIdx] == ' ') textIdx++;
-				
-				font.text += text[textIdx];
-				
-				textIdx++;
+				AppendNextVisibleCharacter();
 				if (textIdx >= text.Length) {
 					state = 2;
 					isShowingText = false;
@@ -94,14 +93,32 @@ public class DialogueController : MonoBehaviour {
 		timeTick = 0;
 		
 		if (font == null) {
-			font = transform.FindChild("Font").GetComponent<exSpriteFont>();
+			font = transform.Find("Font").GetComponent<exSpriteFont>();
 		}
 		font.text = "";
+		UnifiedGameFontController.SyncFontNow(font);
 		
 		text = t;
+		AppendNextVisibleCharacter();
 		//text.Replace("  ", "");
 		
 		Input.ResetInputAxes();
+	}
+
+	// 方法说明：向对白框追加下一个非空格字符，并立即同步动态字体，避免对白框首帧空白。
+	// 参数说明：无。
+	// 返回说明：无返回值。
+	void AppendNextVisibleCharacter() {
+		if (font == null || string.IsNullOrEmpty(text) || textIdx >= text.Length) return;
+
+		while (textIdx < text.Length && text[textIdx] == ' ') {
+			textIdx++;
+		}
+		if (textIdx >= text.Length) return;
+
+		font.text += text[textIdx];
+		textIdx++;
+		UnifiedGameFontController.SyncFontNow(font);
 	}
 	
 	public void SetHeadIndex(int idx) {

@@ -15,9 +15,13 @@ public class IAController : MonoBehaviour {
 	private bool isCommandDisable = false;
 	
 	private float timeTick;
+	private float commandButtonFirstY = 95f;
+	private float commandButtonLastY = -175f;
 	
 	// Use this for initialization
 	void Start () {
+
+		LayoutCommandsButtons();
 		
 		commandsButton[0].SetButtonClickHandler(OnUsingObjects);
 		commandsButton[1].SetButtonClickHandler(OnGeneralsInfo);
@@ -32,6 +36,27 @@ public class IAController : MonoBehaviour {
 		commandsButton[10].SetButtonClickHandler(OnReturnStart);
 
 		SoundController.Instance.PlayBackgroundMusic("Music02");
+	}
+
+	/// <summary>
+	/// 方法说明：把内政指令按钮按面板高度重新等距排列，避免新增回主选单按钮掉出边框。
+	/// 参数说明：无参数。
+	/// 返回说明：无返回值。
+	/// </summary>
+	void LayoutCommandsButtons() {
+		if (commandsButton == null || commandsButton.Length <= 1) {
+			return;
+		}
+
+		for (int i = 0; i < commandsButton.Length; i++) {
+			if (commandsButton[i] == null) {
+				continue;
+			}
+
+			float y = Mathf.Lerp(commandButtonFirstY, commandButtonLastY, i / (float)(commandsButton.Length - 1));
+			Vector3 position = commandsButton[i].transform.localPosition;
+			commandsButton[i].transform.localPosition = new Vector3(position.x, y, position.z);
+		}
 	}
 	
 	// Update is called once per frame

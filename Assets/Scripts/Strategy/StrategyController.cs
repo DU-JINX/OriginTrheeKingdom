@@ -32,6 +32,7 @@ public class StrategyController : MonoBehaviour {
 
 	private bool isMouseMove = false;
 	private bool isInterfacePointerDown = false;
+	private bool isPointerDownTracked = false;
 	private Vector3 mouseDownPos = Vector3.zero;
 
 	private const string RecoveredSango2StrategyMapResourcePath = "Sango2Recovered/Map/Sango2WorldMap";
@@ -353,6 +354,7 @@ public class StrategyController : MonoBehaviour {
 		if (isInterfacePointerDown) {
 			if (Input.GetMouseButtonUp(0)) {
 				isInterfacePointerDown = false;
+				isPointerDownTracked = false;
 			}
 			return;
 		}
@@ -365,19 +367,25 @@ public class StrategyController : MonoBehaviour {
 		if (Input.GetMouseButtonDown(0)) {
 			
 			isMouseMove = false;
+			isPointerDownTracked = true;
 			mouseDownPos = Input.mousePosition;
 			
-		} else if (!isMouseMove && Input.GetMouseButtonUp(0)) {
+		} else if (isPointerDownTracked && !isMouseMove && Input.GetMouseButtonUp(0)) {
+			Vector3 releaseOffset = GetCameraDragOffset(mouseDownPos, Input.mousePosition);
+			if (IsCameraDragOffset(releaseOffset)) {
+				isPointerDownTracked = false;
+				isMouseMove = true;
+				ApplyCameraDragOffset(releaseOffset);
+				Input.ResetInputAxes();
+				return;
+			}
 
 			// 3. 鼠标松开且没有拖动时，按点击目标打开城市、军队或主菜单。
+			isPointerDownTracked = false;
 			SetGamePause();
 			
 			int cityIdx = flagsCtrl.GetTouchCityIdx();
 			if (cityIdx != -1) {
-				if (mapHudController != null) {
-					mapHudController.SetSelectedCity(cityIdx);
-				}
-
 				choiceTarget.AddCityTarget(cityIdx);
 				SoundController.Instance.PlaySound("00038");
 			}
@@ -397,31 +405,48 @@ public class StrategyController : MonoBehaviour {
 				choiceTarget.Show();
 			}
 
+				Input.ResetInputAxes();
+		} else if (isPointerDownTracked && Input.GetMouseButtonUp(0)) {
+			isPointerDownTracked = false;
 			Input.ResetInputAxes();
-		} else if (Input.GetMouseButton(0)) {
+		} else if (isPointerDownTracked && Input.GetMouseButton(0)) {
 
 			// 4. 鼠标拖动时移动战略地图相机。
 			if (!isMouseMove) {
 				
 				Vector3 offset = GetCameraDragOffset(mouseDownPos, Input.mousePosition);
 				
-				if (Mathf.Abs(offset.x) > 5 || Mathf.Abs(offset.y) > 5) {
+				if (IsCameraDragOffset(offset)) {
 					isMouseMove = true;
+					ApplyCameraDragOffset(offset);
 					mouseDownPos = Input.mousePosition;
 				}
 			} else {
 				
 				Vector3 offset = GetCameraDragOffset(mouseDownPos, Input.mousePosition);
 				mouseDownPos = Input.mousePosition;
-					
-				Vector3 pos = Camera.main.transform.position;
-				
-				pos += offset;
-				pos = ClampCameraPosition(pos);
-				
-				Camera.main.transform.position = pos;
+				ApplyCameraDragOffset(offset);
 			}
 		}
+	}
+
+	// 方法说明：判断屏幕移动换算出的世界偏移是否达到地图拖动阈值。
+	// 参数说明：offset 为待判断的世界坐标偏移。
+	// 返回说明：超过任一轴拖动阈值返回 true，否则返回 false。
+	bool IsCameraDragOffset(Vector3 offset) {
+		return Mathf.Abs(offset.x) > 5f || Mathf.Abs(offset.y) > 5f;
+	}
+
+	// 方法说明：立即应用一段地图拖动偏移并记录战略相机位置，保证单次拖动事件也能移动视野。
+	// 参数说明：offset 为屏幕拖动换算后的世界坐标偏移。
+	// 返回说明：无返回值。
+	void ApplyCameraDragOffset(Vector3 offset) {
+		if (Camera.main == null) return;
+
+		Vector3 position = Camera.main.transform.position + offset;
+		position = ClampCameraPosition(position);
+		Camera.main.transform.position = position;
+		strategyCamPos = position;
 	}
 	
 	// 方法说明：处理战略时间流逝结束后的点击确认和进入内政。
@@ -554,6 +579,7 @@ public class StrategyController : MonoBehaviour {
 	// 返回说明：无返回值。
 	void SetGamePause() {
 		
+		StrategySpeedState.ApplyNormalTimeScale();
 		state = State.Pause;
 
 		hTimeCtrl.SetAnim(MenuDisplayAnim.AnimType.OutToLeft);
@@ -574,6 +600,9 @@ public class StrategyController : MonoBehaviour {
 	// 返回说明：无返回值。
 	void ShowMainMenuAtScreenPosition(Vector3 screenPosition) {
 
+		HideMainMenuChildPanels(null);
+		BringStrategyMenuUiToFront();
+
 		Vector3 camPos = Camera.main.transform.position;
 		Vector3 pos = Camera.main.ScreenToWorldPoint(screenPosition);
 		
@@ -583,6 +612,7 @@ public class StrategyController : MonoBehaviour {
 		
 		mainMenuCtrl.SetActive(true);
 		mainMenuCtrl.transform.position = pos;
+		BringStrategyMenuUiToFront();
 	}
 
 	// 方法说明：响应新版 HUD 菜单按钮，在屏幕中心打开原有战略主菜单。
@@ -608,8 +638,72 @@ public class StrategyController : MonoBehaviour {
 		}
 
 		SetGamePause();
+		HideMainMenuChildPanels(mainMenu.commandAct[0]);
 		mainMenuCtrl.SetActive(false);
 		mainMenu.commandAct[0].SetActive(true);
+		BringStrategyMenuPanelToFront(mainMenu.commandAct[0]);
+	}
+
+	// 方法说明：关闭战略主菜单的所有二级面板，只保留指定面板，避免菜单和势力地图底栏同时残留。
+	// 参数说明：keepActive 为需要保留激活的面板；传 null 时全部关闭。
+	// 返回说明：无返回值。
+	void HideMainMenuChildPanels(GameObject keepActive) {
+		if (mainMenuCtrl == null) return;
+
+		MainMenu mainMenu = mainMenuCtrl.GetComponent<MainMenu>();
+		if (mainMenu != null) {
+			mainMenu.ResetMenuState();
+			if (mainMenu.commandAct != null) {
+				for (int i = 0; i < mainMenu.commandAct.Length; i++) {
+					GameObject panel = mainMenu.commandAct[i];
+					if (panel != null && panel != keepActive) {
+						panel.SetActive(false);
+						SetPowerMapSiblingMapActive(panel, false);
+					}
+				}
+			}
+		}
+	}
+
+	// 方法说明：同步隐藏或显示战略势力图挂在兄弟节点上的地图，避免二级地图残留覆盖主战略地图。
+	// 参数说明：panel 为待检查的二级面板，active 为地图目标显示状态。
+	// 返回说明：无返回值。
+	void SetPowerMapSiblingMapActive(GameObject panel, bool active) {
+		if (panel == null) return;
+
+		SyPowerMap powerMap = panel.GetComponent<SyPowerMap>();
+		if (powerMap == null || powerMap.map == null) return;
+
+		powerMap.map.gameObject.SetActive(active);
+	}
+
+	// 方法说明：把战略主菜单和二级菜单固定到地图前景层。
+	// 参数说明：无。
+	// 返回说明：无返回值。
+	void BringStrategyMenuUiToFront() {
+		if (mainMenuCtrl == null) return;
+
+		BringStrategyMenuPanelToFront(mainMenuCtrl);
+		MainMenu mainMenu = mainMenuCtrl.GetComponent<MainMenu>();
+		if (mainMenu == null || mainMenu.commandAct == null) return;
+
+		for (int i = 0; i < mainMenu.commandAct.Length; i++) {
+			BringStrategyMenuPanelToFront(mainMenu.commandAct[i]);
+		}
+	}
+
+	// 方法说明：给单个战略菜单面板挂载前景层保持器，并立即应用前景 z 值。
+	// 参数说明：panel 为目标菜单面板。
+	// 返回说明：无返回值。
+	void BringStrategyMenuPanelToFront(GameObject panel) {
+		if (panel == null) return;
+
+		StrategyCommandForegroundZKeeper keeper = panel.GetComponent<StrategyCommandForegroundZKeeper>();
+		if (keeper == null) {
+			keeper = panel.AddComponent<StrategyCommandForegroundZKeeper>();
+		}
+		keeper.SetTargetZ(-8f);
+		keeper.ApplyNow();
 	}
 
 	// 方法说明：响应新版 HUD 主城按钮，把相机移到当前君主所在城池。
@@ -628,10 +722,6 @@ public class StrategyController : MonoBehaviour {
 		cityPosition.z = Camera.main.transform.position.z;
 		Camera.main.transform.position = ClampCameraPosition(cityPosition);
 		strategyCamPos = Camera.main.transform.position;
-
-		if (mapHudController != null) {
-			mapHudController.SetSelectedCity(cityIdx);
-		}
 	}
 
 	// 方法说明：响应新版 HUD 缩放按钮，调整正交相机尺寸并保持地图边界约束。
@@ -676,6 +766,11 @@ public class StrategyController : MonoBehaviour {
 	public void ReturnMainMode() {
 		
 		state = State.Normal;
+		StrategySpeedState.ApplyCurrentTimeScale();
+		HideMainMenuChildPanels(null);
+		if (mainMenuCtrl != null) {
+			mainMenuCtrl.SetActive(false);
+		}
 		
 		hTimeCtrl.SetAnim(MenuDisplayAnim.AnimType.InsertFromLeft);
 		flagsCtrl.SetFlagsAnimResume();

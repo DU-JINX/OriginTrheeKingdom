@@ -2,6 +2,8 @@ using UnityEngine;
 using System.Collections;
 
 public class SGGeneralItem : MonoBehaviour {
+
+	private const float ListPortraitScale = 0.64f;
 	
 	public GeneralsHeadSelect head;
 	public exSpriteAnimation arms;
@@ -26,7 +28,7 @@ public class SGGeneralItem : MonoBehaviour {
 		GeneralInfo gInfo = Informations.Instance.GetGeneralInfo(gIdx);
 		
 		head.SetGeneralHead(gIdx);
-		head.transform.GetChild(0).localScale = new Vector3(1, 1, 1);
+		head.transform.GetChild(0).localScale = new Vector3(ListPortraitScale, ListPortraitScale, 1f);
 		if (isFail) {
 			head.transform.GetChild(0).GetComponent<exSprite>().color = new Color(0.25f, 0.25f, 0.25f, 1);
 		}
@@ -36,9 +38,15 @@ public class SGGeneralItem : MonoBehaviour {
 		health.text = gInfo.healthCur + "";
 		mana.text = gInfo.manaCur + "";
 		soldier.text = (gInfo.soldierCur + gInfo.knightCur) + "";
+		UnifiedGameFontController.SyncFontNow(generalName);
+		UnifiedGameFontController.SyncFontNow(health);
+		UnifiedGameFontController.SyncFontNow(mana);
+		UnifiedGameFontController.SyncFontNow(soldier);
 		
 		int idx = Misc.GetArmsIdx(gInfo.armsCur);
 		
-		arms.SetFrame(arms.GetCurrentAnimation().name, idx);
+		if (arms != null && arms.GetCurrentAnimation() != null) {
+			arms.SetFrame(arms.GetCurrentAnimation().name, idx);
+		}
 	}
 }

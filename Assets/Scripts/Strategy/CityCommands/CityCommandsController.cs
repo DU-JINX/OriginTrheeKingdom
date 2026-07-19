@@ -22,9 +22,11 @@ public class CityCommandsController : MonoBehaviour {
 	
 	
 	private float timeTick;
+	private const float CommandForegroundZ = -5f;
 	
 	// Use this for initialization
 	void Start () {
+		BringCommandUiToFront();
 		for (int i=0; i<commands.Length; i++) {
 			
 			commands[i].SetButtonData(i);
@@ -34,6 +36,7 @@ public class CityCommandsController : MonoBehaviour {
 	
 	void OnEnable() {
 
+		BringCommandUiToFront();
 		state = 1000;
 		commandIdx = -1000;
 		timeTick = 0;
@@ -48,6 +51,8 @@ public class CityCommandsController : MonoBehaviour {
 	
 	// Update is called once per frame
 	void Update () {
+
+		BringCommandUiToFront();
 
 		if (StrategyController.state != StrategyController.State.Pause) {
 			gameObject.SetActive(false);
@@ -143,6 +148,7 @@ public class CityCommandsController : MonoBehaviour {
 
 	public void SetCity(int idx) {
 		
+		BringCommandUiToFront();
 		cityIdx = idx;
 		
 		gameObject.SetActive(true);
@@ -174,6 +180,7 @@ public class CityCommandsController : MonoBehaviour {
 	
 	public void OnAppointedPrefectMode() {
 		
+		BringCommandUiToFront();
 		state = 2;
 		
 		gameObject.SetActive(true);
@@ -188,5 +195,76 @@ public class CityCommandsController : MonoBehaviour {
 			
 		kingDialog.SetDialogue(Informations.Instance.GetKingInfo(Controller.kingIndex).generalIdx,
 			str, MenuDisplayAnim.AnimType.InsertFromBottom);
+	}
+
+	/// <summary>
+	/// 方法说明：把城内指令和所有子命令面板固定到战略地图前景层。
+	/// 参数说明：无参数。
+	/// 返回说明：无返回值。
+	/// </summary>
+	private void BringCommandUiToFront() {
+		EnsureForegroundKeeper(cityCommands == null ? null : cityCommands.transform);
+		EnsureForegroundKeeper(infoCtrl == null ? null : infoCtrl.transform);
+		EnsureForegroundKeeper(kingDialog == null ? null : kingDialog.transform);
+		EnsureForegroundKeeper(expedition == null ? null : expedition.transform);
+		EnsureForegroundKeeper(conscription == null ? null : conscription.transform);
+		EnsureForegroundKeeper(generalsInfo == null ? null : generalsInfo.transform);
+		EnsureForegroundKeeper(prefectAppointed == null ? null : prefectAppointed.transform);
+	}
+
+	/// <summary>
+	/// 方法说明：为目标对象挂载前景层保持器，并立即应用前景 z 值。
+	/// 参数说明：target 为目标 Transform。
+	/// 返回说明：无返回值。
+	/// </summary>
+	private void EnsureForegroundKeeper(Transform target) {
+		if (target == null) return;
+
+		StrategyCommandForegroundZKeeper keeper = target.GetComponent<StrategyCommandForegroundZKeeper>();
+		if (keeper == null) {
+			keeper = target.gameObject.AddComponent<StrategyCommandForegroundZKeeper>();
+		}
+
+		keeper.SetTargetZ(CommandForegroundZ);
+		keeper.ApplyNow();
+	}
+}
+
+/// <summary>
+/// 方法说明：保持城内指令面板位于战略地图和旗帜前景，避免旧 UI 被 MOD06 地图层级遮挡。
+/// 参数说明：无。
+/// 返回说明：无返回值。
+/// </summary>
+public class StrategyCommandForegroundZKeeper : MonoBehaviour {
+	private float targetZ = -5f;
+
+	/// <summary>
+	/// 方法说明：设置需要保持的本地 z 值。
+	/// 参数说明：z 为目标本地 z 值。
+	/// 返回说明：无返回值。
+	/// </summary>
+	public void SetTargetZ(float z) {
+		targetZ = z;
+	}
+
+	/// <summary>
+	/// 方法说明：每帧末尾重新应用前景 z 值，覆盖菜单动画的原始 z 回写。
+	/// 参数说明：无。
+	/// 返回说明：无返回值。
+	/// </summary>
+	void LateUpdate() {
+		ApplyNow();
+	}
+
+	/// <summary>
+	/// 方法说明：立即把当前 Transform 移到目标前景 z 层。
+	/// 参数说明：无。
+	/// 返回说明：无返回值。
+	/// </summary>
+	public void ApplyNow() {
+		Vector3 position = transform.localPosition;
+		if (Mathf.Approximately(position.z, targetZ)) return;
+
+		transform.localPosition = new Vector3(position.x, position.y, targetZ);
 	}
 }

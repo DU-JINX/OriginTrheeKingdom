@@ -27,6 +27,7 @@ public class PushedButton : MonoBehaviour {
 			
 			mText = value;
 			fontScript.text = mText;
+			UnifiedGameFontController.SyncFontNow(fontScript);
 		}
 	}
 	
@@ -58,6 +59,7 @@ public class PushedButton : MonoBehaviour {
 				
 				fontScript.botColor = selectedColor;
 				fontScript.topColor = selectedColor;
+				UnifiedGameFontController.SyncFontNow(fontScript);
 				
 				if (buttonDownHandler != null) 		buttonDownHandler();
 				if (buttonDownHandler1 != null) 	buttonDownHandler1(data);
@@ -98,6 +100,7 @@ public class PushedButton : MonoBehaviour {
 			if (buttonDownHandler != null) 		buttonDownHandler();
 			if (buttonDownHandler1 != null) 	buttonDownHandler1(data);
 		}
+		UnifiedGameFontController.SyncFontNow(fontScript);
 	}
 	
 	public void SetButtonData(object d) {

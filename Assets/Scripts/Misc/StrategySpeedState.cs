@@ -4,6 +4,7 @@ public static class StrategySpeedState {
 
 	private const float NormalTimeScale = 1f;
 	private const float SpeedUpTimeScale = 2f;
+	private const float PausedTimeScale = 0f;
 	private static bool isSpeedUp = false;
 	private static bool isPaused = false;
 
@@ -56,7 +57,7 @@ public static class StrategySpeedState {
 	// 返回说明：无返回值。
 	public static void ApplyCurrentTimeScale() {
 		if (isPaused) {
-			Time.timeScale = NormalTimeScale;
+			Time.timeScale = PausedTimeScale;
 			return;
 		}
 

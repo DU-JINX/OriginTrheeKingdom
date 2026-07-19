@@ -274,7 +274,7 @@ public class Informations {
 	/// <summary>
 	/// 方法说明：读取战斗小人部件索引。
 	/// 参数说明：gIdx 为武将索引，partIdx 为部件索引，0 表示头，1 表示身体/武器。
-	/// 返回说明：返回部件索引；超出已恢复资源范围时返回 0 并输出错误日志。
+	/// 返回说明：返回部件索引；超出已恢复资源范围时返回一代基础部件 0 并输出警告日志。
 	/// </summary>
 	public int GetGeneralBodyPart(int gIdx, int partIdx) {
 		if (partIdx < 0 || partIdx >= 2) {
@@ -283,7 +283,7 @@ public class Informations {
 		}
 
 		if (gIdx < 0 || gIdx >= generalBody.GetLength(0)) {
-			Debug.LogError("武将战斗小人资源尚未恢复，使用一代基础部件。武将索引: " + gIdx);
+			Debug.LogWarning("武将战斗小人资源尚未恢复，使用一代基础部件。武将索引: " + gIdx);
 			return 0;
 		}
 

@@ -39,8 +39,8 @@ public class ListController : MonoBehaviour {
 	
 	// Use this for initialization
 	void Start () {
-		slider.parent.FindChild("ArrowUp").GetComponent<ImageButton>().SetButtonClickHandler(OnArrowUpClickHandler);
-		slider.parent.FindChild("ArrowDown").GetComponent<ImageButton>().SetButtonClickHandler(OnArrowDownClickHandler);
+		slider.parent.Find("ArrowUp").GetComponent<ImageButton>().SetButtonClickHandler(OnArrowUpClickHandler);
+		slider.parent.Find("ArrowDown").GetComponent<ImageButton>().SetButtonClickHandler(OnArrowDownClickHandler);
 	}
 	
 	// Update is called once per frame

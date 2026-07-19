@@ -261,9 +261,13 @@ public static class Sango2RecoveredResourceImporter
     [MenuItem(MenuRoot + "截图选择君主界面")]
     public static void CaptureSelectKingRuntimeScreenshot()
     {
+        const int captureWidth = 2048;
+        const int captureHeight = 1152;
+
         // 1. 打开选择君主场景，并进入 MOD06 运行时选择君主状态。
         Scene scene = EditorSceneManager.OpenScene("Assets/Scenes/SelectKing.unity", OpenSceneMode.Single);
         SelectKingSceneController controller = FindSelectKingSceneController(scene);
+        FindSceneCamera(scene).aspect = captureWidth / (float)captureHeight;
         Controller.MODSelect = 5;
         InvokePrivateControllerMethod(controller, "SelectKingEnter");
         Debug.Log("SELECT KING CAPTURE ROOT: kingListRoot=" + BuildTransformPath(controller.kingListRoot.transform) +
@@ -278,7 +282,7 @@ public static class Sango2RecoveredResourceImporter
 
         // 3. 从场景摄像机渲染当前画面。
         string outputPath = Path.Combine(Application.dataPath, "../Builds/Screenshots/select-king-scrollbar.png");
-        CaptureSceneCameraPng(scene, outputPath, 2048, 964);
+        CaptureSceneCameraPng(scene, outputPath, captureWidth, captureHeight);
 
         // 4. 输出绝对路径，便于直接打开检查。
         Debug.Log("SELECT KING SCREENSHOT: " + Path.GetFullPath(outputPath));
@@ -308,6 +312,661 @@ public static class Sango2RecoveredResourceImporter
 
         // 4. 输出绝对路径，便于直接打开检查。
         Debug.Log("SELECT MOD SCREENSHOT: " + Path.GetFullPath(outputPath));
+    }
+
+    /// <summary>
+    /// 方法说明：渲染一张 MOD06 战略势力地图截图，用于确认战略底部君主信息栏排版。
+    /// 参数说明：无。
+    /// 返回说明：无返回值；截图写入 Builds/Screenshots 目录。
+    /// </summary>
+    [MenuItem(MenuRoot + "截图战略势力地图")]
+    public static void CaptureStrategyPowerMapRuntimeScreenshot()
+    {
+        const int captureWidth = 2048;
+        const int captureHeight = 1152;
+
+        // 1. 打开战略场景并加载 MOD06 正常运行数据。
+        Scene scene = EditorSceneManager.OpenScene("Assets/Scenes/Strategy.unity", OpenSceneMode.Single);
+        FindSceneCamera(scene).aspect = captureWidth / (float)captureHeight;
+        Informations.Reset();
+        StrategyController.Reset();
+        Controller.MODSelect = MODLoadController.RestoredSango2Index;
+        Controller.kingIndex = 0;
+        if (!MODLoadController.Instance.LoadMOD(MODLoadController.RestoredSango2Index))
+        {
+            throw new InvalidOperationException("MOD06 加载失败，无法截图战略势力地图。");
+        }
+        Controller.kingIndex = FindActiveKingWithCitiesAndGenerals();
+
+        // 2. 定位战略控制器和势力地图面板，只激活势力地图，避免旧主菜单和底栏重叠。
+        StrategyController strategyController = FindSceneComponent<StrategyController>(scene);
+        SyPowerMap powerMap = FindSceneComponent<SyPowerMap>(scene);
+        InvokePrivateInstanceMethod(strategyController, "ApplyRestoredSango2StrategyMap");
+        HideStrategyMainMenu(strategyController, powerMap.gameObject);
+        powerMap.gameObject.SetActive(true);
+        ForceStrategyPowerMapAtRest(powerMap);
+        InvokePrivateInstanceMethod(strategyController, "BringStrategyMenuPanelToFront", new object[] { powerMap.gameObject });
+        if (strategyController.hTimeCtrl != null)
+        {
+            strategyController.hTimeCtrl.gameObject.SetActive(false);
+        }
+
+        // 3. 强制相关动画停在最终位置，避免截图截到滑入过程。
+        ForceMenuAtRest(powerMap.kingList.GetComponent<MenuDisplayAnim>());
+        ForceMenuAtRest(powerMap.map.GetComponent<MenuDisplayAnim>());
+        ForceMenuAtRest(powerMap.kingInfo.GetComponent<MenuDisplayAnim>());
+        StrategyController.state = StrategyController.State.Pause;
+
+        // 4. 从场景摄像机渲染当前战略势力地图画面。
+        string outputPath = Path.Combine(Application.dataPath, "../Builds/Screenshots/strategy-power-map.png");
+        CaptureSceneCameraPng(scene, outputPath, captureWidth, captureHeight);
+        Debug.Log("STRATEGY POWER MAP SCREENSHOT: " + Path.GetFullPath(outputPath));
+    }
+
+    /// <summary>
+    /// 方法说明：渲染一张 MOD06 战略主菜单截图，用于确认菜单背景和文字层级正常。
+    /// 参数说明：无。
+    /// 返回说明：无返回值；截图写入 Builds/Screenshots 目录。
+    /// </summary>
+    [MenuItem(MenuRoot + "截图战略主菜单")]
+    public static void CaptureStrategyMainMenuRuntimeScreenshot()
+    {
+        const int captureWidth = 2048;
+        const int captureHeight = 1152;
+
+        // 1. 打开战略场景并加载 MOD06 数据。
+        Scene scene = EditorSceneManager.OpenScene("Assets/Scenes/Strategy.unity", OpenSceneMode.Single);
+        FindSceneCamera(scene).aspect = captureWidth / (float)captureHeight;
+        PrepareRecoveredMod06Data();
+
+        // 2. 走真实战略主菜单打开路径，验证主菜单层级修复。
+        StrategyController strategyController = FindSceneComponent<StrategyController>(scene);
+        InvokePrivateInstanceMethod(strategyController, "ApplyRestoredSango2StrategyMap");
+        if (strategyController.flagsCtrl != null)
+        {
+            InvokePrivateInstanceMethod(strategyController.flagsCtrl, "Start");
+            strategyController.flagsCtrl.SetFlagsAnimPause();
+        }
+        InvokePrivateInstanceMethod(strategyController, "ShowMainMenuAtScreenPosition", new object[] {
+            new Vector3(captureWidth * 0.5f, captureHeight * 0.5f, 0f)
+        });
+        UnifiedGameFontController.RefreshSceneFontsForPreview();
+
+        // 3. 从场景摄像机渲染当前战略主菜单画面。
+        string outputPath = Path.Combine(Application.dataPath, "../Builds/Screenshots/strategy-main-menu.png");
+        CaptureSceneCameraPng(scene, outputPath, captureWidth, captureHeight);
+        Debug.Log("STRATEGY MAIN MENU SCREENSHOT: " + Path.GetFullPath(outputPath));
+    }
+
+    /// <summary>
+    /// 方法说明：渲染一张 MOD06 普通战略地图截图，用于确认主地图城名和旗帜显示正常。
+    /// 参数说明：无。
+    /// 返回说明：无返回值；截图写入 Builds/Screenshots 目录。
+    /// </summary>
+    [MenuItem(MenuRoot + "截图战略普通地图")]
+    public static void CaptureStrategyMapRuntimeScreenshot()
+    {
+        const int captureWidth = 2048;
+        const int captureHeight = 1152;
+
+        // 1. 打开战略场景并加载 MOD06 数据。
+        Scene scene = EditorSceneManager.OpenScene("Assets/Scenes/Strategy.unity", OpenSceneMode.Single);
+        FindSceneCamera(scene).aspect = captureWidth / (float)captureHeight;
+        PrepareRecoveredMod06Data();
+
+        // 2. 初始化地图、旗帜和城名，保持普通地图状态不打开任何菜单。
+        StrategyController strategyController = FindSceneComponent<StrategyController>(scene);
+        InvokePrivateInstanceMethod(strategyController, "ApplyRestoredSango2StrategyMap");
+        HideStrategyMainMenu(strategyController, null);
+        if (strategyController.flagsCtrl != null)
+        {
+            InvokePrivateInstanceMethod(strategyController.flagsCtrl, "Start");
+            strategyController.flagsCtrl.SetFlagsAnimResume();
+        }
+        UnifiedGameFontController.RefreshSceneFontsForPreview();
+
+        // 3. 从场景摄像机渲染普通战略地图。
+        string outputPath = Path.Combine(Application.dataPath, "../Builds/Screenshots/strategy-map-overview.png");
+        CaptureSceneCameraPng(scene, outputPath, captureWidth, captureHeight);
+        Debug.Log("STRATEGY MAP SCREENSHOT: " + Path.GetFullPath(outputPath));
+    }
+
+    /// <summary>
+    /// 方法说明：渲染战前主菜单、阵型菜单和武将位置菜单截图，用于确认文字虚影和面板压字已修复。
+    /// 参数说明：无。
+    /// 返回说明：无返回值；截图写入 Builds/Screenshots 目录。
+    /// </summary>
+    [MenuItem(MenuRoot + "截图战前重点页面")]
+    public static void CaptureWarSelectRuntimeScreenshots()
+    {
+        const int captureWidth = 2048;
+        const int captureHeight = 1152;
+
+        // 1. 使用 MOD06 真实数据准备一组战前双方军队。
+        PrepareRecoveredMod06Data();
+        BuildFocusedBattleSample();
+
+        // 2. 打开战前场景并执行控制器初始化。
+        Scene scene = EditorSceneManager.OpenScene("Assets/Scenes/SelectGeneralToWar.unity", OpenSceneMode.Single);
+        FindSceneCamera(scene).aspect = captureWidth / (float)captureHeight;
+        SelectGeneralToWarController controller = FindSceneComponent<SelectGeneralToWarController>(scene);
+        InvokePrivateInstanceMethod(controller, "Start");
+        UnifiedGameFontController.RefreshSceneFontsForPreview();
+
+        // 3. 截取战前主菜单。
+        string mainPath = Path.Combine(Application.dataPath, "../Builds/Screenshots/war-select-main.png");
+        CaptureSceneCameraPng(scene, mainPath, captureWidth, captureHeight);
+        Debug.Log("WAR SELECT MAIN SCREENSHOT: " + Path.GetFullPath(mainPath));
+
+        // 4. 打开阵型菜单并截取，检查红色选中项无双层虚影。
+        InvokePrivateInstanceMethod(controller, "OnSelectFormation");
+        InvokePrivateInstanceMethod(controller, "LateUpdate");
+        ForceMenuAtRest(controller.selectFormation.GetComponent<MenuDisplayAnim>());
+        UnifiedGameFontController.RefreshSceneFontsForPreview();
+        string formationPath = Path.Combine(Application.dataPath, "../Builds/Screenshots/war-select-formation.png");
+        CaptureSceneCameraPng(scene, formationPath, captureWidth, captureHeight);
+        Debug.Log("WAR SELECT FORMATION SCREENSHOT: " + Path.GetFullPath(formationPath));
+
+        // 5. 返回主菜单后打开武将位置菜单，确认不会残留阵型菜单互相压住。
+        controller.OnReturnMain();
+        InvokePrivateInstanceMethod(controller, "OnGeneralPosition");
+        InvokePrivateInstanceMethod(controller, "LateUpdate");
+        ForceMenuAtRest(controller.generalPos.GetComponent<MenuDisplayAnim>());
+        UnifiedGameFontController.RefreshSceneFontsForPreview();
+        string positionPath = Path.Combine(Application.dataPath, "../Builds/Screenshots/war-select-position.png");
+        CaptureSceneCameraPng(scene, positionPath, captureWidth, captureHeight);
+        Debug.Log("WAR SELECT POSITION SCREENSHOT: " + Path.GetFullPath(positionPath));
+    }
+
+    /// <summary>
+    /// 方法说明：渲染战斗开场对白截图，用于确认蓝色对白框内文字不再空白。
+    /// 参数说明：无。
+    /// 返回说明：无返回值；截图写入 Builds/Screenshots 目录。
+    /// </summary>
+    [MenuItem(MenuRoot + "截图战斗对白")]
+    public static void CaptureWarDialogueRuntimeScreenshot()
+    {
+        const int captureWidth = 2048;
+        const int captureHeight = 1152;
+
+        // 1. 使用 MOD06 真实数据准备战斗双方武将。
+        PrepareRecoveredMod06Data();
+        FocusedBattleSample sample = BuildFocusedBattleSample();
+        WarSceneController.leftGeneralIdx = sample.leftGeneral;
+        WarSceneController.rightGeneralIdx = sample.rightGeneral;
+        WarSceneController.leftDefense = 0;
+        WarSceneController.rightDefense = 0;
+        WarSceneController.rightGeneralPosition = 0;
+
+        // 2. 打开战斗场景并直接触发战斗对白组件。
+        Scene scene = EditorSceneManager.OpenScene("Assets/Scenes/WarScene.unity", OpenSceneMode.Single);
+        FindSceneCamera(scene).aspect = captureWidth / (float)captureHeight;
+        WarSceneController controller = FindSceneComponent<WarSceneController>(scene);
+        InvokePrivateInstanceMethod(controller.infoPanel, "Start");
+        string text = ZhongWen.Instance.GetGeneralName(sample.leftGeneral) + "率军出战!";
+        controller.dialog.SetDialogue(text, WarSceneController.WhichSide.Left);
+        AdvanceWarDialogueForCapture(controller.dialog, text.Length);
+        UnifiedGameFontController.RefreshSceneFontsForPreview();
+
+        // 3. 从场景摄像机渲染当前战斗对白画面。
+        string outputPath = Path.Combine(Application.dataPath, "../Builds/Screenshots/war-dialogue.png");
+        CaptureSceneCameraStackPng(scene, outputPath, captureWidth, captureHeight);
+        Debug.Log("WAR DIALOGUE SCREENSHOT: " + Path.GetFullPath(outputPath));
+    }
+
+    /// <summary>
+    /// 方法说明：逐个打开当前 QA 关注的主流程按钮并截图，覆盖选择、战略、战前和战斗对白页面。
+    /// 参数说明：无。
+    /// 返回说明：无返回值；截图写入 Builds/Screenshots/full-button-qa-current 目录。
+    /// </summary>
+    [MenuItem(MenuRoot + "全按钮QA截图")]
+    public static void CaptureFullButtonQaScreenshots()
+    {
+        const int captureWidth = 2048;
+        const int captureHeight = 1152;
+        string outputDirectory = GetFullButtonQaDirectory();
+        Directory.CreateDirectory(outputDirectory);
+
+        CaptureSelectButtonQaScreenshots(outputDirectory, captureWidth, captureHeight);
+        CaptureStrategyButtonQaScreenshots(outputDirectory, captureWidth, captureHeight);
+        CaptureWarSelectButtonQaScreenshots(outputDirectory, captureWidth, captureHeight);
+        CaptureWarDialogueButtonQaScreenshot(outputDirectory, captureWidth, captureHeight);
+
+        Debug.Log("FULL BUTTON QA SCREENSHOTS: " + Path.GetFullPath(outputDirectory));
+    }
+
+    /// <summary>
+    /// 方法说明：截取剧本选择、MOD06 选择君主和确认框页面。
+    /// 参数说明：outputDirectory 为输出目录，captureWidth 为截图宽度，captureHeight 为截图高度。
+    /// 返回说明：无返回值。
+    /// </summary>
+    private static void CaptureSelectButtonQaScreenshots(string outputDirectory, int captureWidth, int captureHeight)
+    {
+        Scene modScene = EditorSceneManager.OpenScene("Assets/Scenes/SelectKing.unity", OpenSceneMode.Single);
+        SelectKingSceneController modController = FindSelectKingSceneController(modScene);
+        FindSceneCamera(modScene).aspect = captureWidth / (float)captureHeight;
+        InvokePrivateControllerMethod(modController, "SetupMODButtons");
+        InvokePrivateControllerMethod(modController, "SelectMODEnter");
+        ForceMenuAtRest(modController.selectMOD.GetComponent<MenuDisplayAnim>());
+        CaptureSceneCameraPng(modScene, Path.Combine(outputDirectory, "01-select-mod.png"), captureWidth, captureHeight);
+
+        Scene kingScene = EditorSceneManager.OpenScene("Assets/Scenes/SelectKing.unity", OpenSceneMode.Single);
+        SelectKingSceneController kingController = FindSelectKingSceneController(kingScene);
+        FindSceneCamera(kingScene).aspect = captureWidth / (float)captureHeight;
+        Controller.MODSelect = MODLoadController.RestoredSango2Index;
+        InvokePrivateControllerMethod(kingController, "SelectKingEnter");
+        ForceSelectKingMenuAtRest(kingController);
+        InvokePrivateControllerMethod(kingController, "OnCancelButton");
+        CaptureSceneCameraPng(kingScene, Path.Combine(outputDirectory, "02-select-king.png"), captureWidth, captureHeight);
+        InvokePrivateControllerMethod(kingController, "OnKingNameSelect", new object[] { FindActiveKingWithCitiesAndGenerals() });
+        ForceSelectKingMenuAtRest(kingController);
+        CaptureSceneCameraPng(kingScene, Path.Combine(outputDirectory, "03-select-king-confirm.png"), captureWidth, captureHeight);
+    }
+
+    /// <summary>
+    /// 方法说明：逐个打开战略地图 HUD 和主菜单四个按钮状态并截图。
+    /// 参数说明：outputDirectory 为输出目录，captureWidth 为截图宽度，captureHeight 为截图高度。
+    /// 返回说明：无返回值。
+    /// </summary>
+    private static void CaptureStrategyButtonQaScreenshots(string outputDirectory, int captureWidth, int captureHeight)
+    {
+        StrategyController strategyController;
+        Scene mapScene = PrepareStrategyQaScene(captureWidth, captureHeight, out strategyController);
+        CaptureSceneCameraPng(mapScene, Path.Combine(outputDirectory, "04-strategy-map.png"), captureWidth, captureHeight);
+		CaptureStrategyMapDragQaScreenshots(outputDirectory, captureWidth, captureHeight);
+
+        Scene capitalScene = PrepareStrategyQaScene(captureWidth, captureHeight, out strategyController);
+        strategyController.FocusPlayerCapitalFromHud();
+        CaptureSceneCameraPng(capitalScene, Path.Combine(outputDirectory, "05-strategy-hud-capital.png"), captureWidth, captureHeight);
+
+        Scene zoomScene = PrepareStrategyQaScene(captureWidth, captureHeight, out strategyController);
+        strategyController.ZoomStrategyMapFromHud(0.82f);
+        CaptureSceneCameraPng(zoomScene, Path.Combine(outputDirectory, "06-strategy-hud-zoom-in.png"), captureWidth, captureHeight);
+
+        Scene powerHudScene = PrepareStrategyQaScene(captureWidth, captureHeight, out strategyController);
+        strategyController.OpenPowerMapFromHud();
+        ForceStrategyPowerMapAtRest(FindSceneComponent<SyPowerMap>(powerHudScene));
+        CaptureSceneCameraPng(powerHudScene, Path.Combine(outputDirectory, "07-strategy-hud-power.png"), captureWidth, captureHeight);
+
+        Scene menuHudScene = PrepareStrategyQaScene(captureWidth, captureHeight, out strategyController);
+        strategyController.ShowMainMenuFromHud();
+        ForceStrategyMenuAtRest(strategyController);
+		UnifiedGameFontController.RefreshSceneFontsForPreview();
+		MainMenu visibleMainMenu = strategyController.mainMenuCtrl.GetComponent<MainMenu>();
+		InvokePrivateInstanceMethod(visibleMainMenu, "LateUpdate");
+        CaptureSceneCameraPng(menuHudScene, Path.Combine(outputDirectory, "08-strategy-hud-menu.png"), captureWidth, captureHeight);
+
+        CaptureStrategyMainMenuCommandQa(outputDirectory, captureWidth, captureHeight, 0, "09-strategy-menu-power.png");
+        CaptureStrategyMainMenuCommandQa(outputDirectory, captureWidth, captureHeight, 1, "10-strategy-menu-find-general.png");
+        CaptureStrategyMainMenuCommandQa(outputDirectory, captureWidth, captureHeight, 2, "11-strategy-menu-how-to-play.png");
+        CaptureStrategyMainMenuCommandQa(outputDirectory, captureWidth, captureHeight, 3, "12-strategy-menu-return-confirm.png");
+    }
+
+    /// <summary>
+    /// 方法说明：打开战略主菜单并点击指定按钮，然后截取结果页面。
+    /// 参数说明：outputDirectory 为输出目录，captureWidth 为截图宽度，captureHeight 为截图高度，commandIndex 为按钮序号，fileName 为输出文件名。
+    /// 返回说明：无返回值。
+    /// </summary>
+    private static void CaptureStrategyMainMenuCommandQa(string outputDirectory, int captureWidth, int captureHeight, int commandIndex, string fileName)
+    {
+        StrategyController strategyController;
+        Scene scene = PrepareStrategyQaScene(captureWidth, captureHeight, out strategyController);
+        strategyController.ShowMainMenuFromHud();
+
+        MainMenu mainMenu = strategyController.mainMenuCtrl.GetComponent<MainMenu>();
+        if (commandIndex >= 0 && commandIndex < mainMenu.commands.Length)
+        {
+            mainMenu.commands[commandIndex].SetButtonState(Button.ButtonState.Clicked);
+            mainMenu.ProcessClickedCommandButtons();
+            Debug.Log("FULL BUTTON QA CLICKED: strategy-main-menu index=" + commandIndex);
+        }
+        ForceStrategyMenuAtRest(strategyController);
+        HideStrategyLegacyHistory(strategyController);
+
+        if (commandIndex == 0)
+        {
+            ForceStrategyPowerMapAtRest(FindSceneComponent<SyPowerMap>(scene));
+        }
+        else if (commandIndex == 1)
+        {
+            FindGeneralController findGeneral = FindSceneComponent<FindGeneralController>(scene);
+            InvokePrivateInstanceMethod(findGeneral, "Start");
+            InvokePrivateInstanceMethod(findGeneral, "OnEnable");
+            ForceAllMenuAnimationsAtRest(findGeneral.gameObject);
+            if (findGeneral.generalsList != null && findGeneral.generalsList.GetCount() > 0)
+            {
+                findGeneral.generalsList.SetItemSelected(0, true);
+                ForceAllMenuAnimationsAtRest(findGeneral.gameObject);
+                if (findGeneral.confirmBox != null)
+                {
+                    findGeneral.confirmBox.SetActive(false);
+                }
+            }
+        }
+        else if (commandIndex == 2)
+        {
+            SyHowToPlayController helpController = FindSceneComponent<SyHowToPlayController>(scene);
+            InvokePrivateInstanceMethod(helpController, "EnsureHelpContent");
+            ForceAllMenuAnimationsAtRest(helpController.gameObject);
+        }
+
+        UnifiedGameFontController.RefreshSceneFontsForPreview();
+        CaptureSceneCameraPng(scene, Path.Combine(outputDirectory, fileName), captureWidth, captureHeight);
+    }
+
+    /// <summary>
+    /// 方法说明：逐个打开战前菜单五个按钮状态并截图。
+    /// 参数说明：outputDirectory 为输出目录，captureWidth 为截图宽度，captureHeight 为截图高度。
+    /// 返回说明：无返回值。
+    /// </summary>
+    private static void CaptureWarSelectButtonQaScreenshots(string outputDirectory, int captureWidth, int captureHeight)
+    {
+        SelectGeneralToWarController controller;
+        Scene mainScene = PrepareWarSelectQaScene(captureWidth, captureHeight, out controller);
+        CaptureSceneCameraPng(mainScene, Path.Combine(outputDirectory, "13-war-select-main.png"), captureWidth, captureHeight);
+
+        Scene formationScene = PrepareWarSelectQaScene(captureWidth, captureHeight, out controller);
+        InvokePrivateInstanceMethod(controller, "OnSelectFormation");
+        ForceAllMenuAnimationsAtRest(controller.gameObject);
+		UnifiedGameFontController.RefreshSceneFontsForPreview();
+		InvokePrivateInstanceMethod(controller.selectFormation, "LateUpdate");
+        CaptureSceneCameraPng(formationScene, Path.Combine(outputDirectory, "14-war-select-formation.png"), captureWidth, captureHeight);
+
+        Scene positionScene = PrepareWarSelectQaScene(captureWidth, captureHeight, out controller);
+        InvokePrivateInstanceMethod(controller, "OnGeneralPosition");
+        ForceAllMenuAnimationsAtRest(controller.gameObject);
+		UnifiedGameFontController.RefreshSceneFontsForPreview();
+		InvokePrivateInstanceMethod(controller.generalPos.GetComponent<SGGeneralPosition>(), "LateUpdate");
+        CaptureSceneCameraPng(positionScene, Path.Combine(outputDirectory, "15-war-select-position.png"), captureWidth, captureHeight);
+
+        Scene infoListScene = PrepareWarSelectQaScene(captureWidth, captureHeight, out controller);
+        InvokePrivateInstanceMethod(controller, "OnGeneralInformation");
+        ForceAllMenuAnimationsAtRest(controller.gameObject);
+		UnifiedGameFontController.RefreshSceneFontsForPreview();
+        CaptureSceneCameraPng(infoListScene, Path.Combine(outputDirectory, "16-war-select-info-list.png"), captureWidth, captureHeight);
+
+        if (controller.generalsInfo != null && controller.generalsInfo.generalsList != null && controller.generalsInfo.generalsList.GetCount() > 0)
+        {
+            controller.generalsInfo.generalsList.SetItemSelected(0, true);
+            InvokePrivateInstanceMethod(controller.generalsInfo, "OnSelectGeneral");
+            ForceWarGeneralInformationAtRest(controller.generalsInfo);
+            CaptureSceneCameraPng(infoListScene, Path.Combine(outputDirectory, "17-war-select-info-detail.png"), captureWidth, captureHeight);
+        }
+
+        Scene retreatScene = PrepareWarSelectQaScene(captureWidth, captureHeight, out controller);
+        InvokePrivateInstanceMethod(controller, "OnEscape");
+        ForceAllMenuAnimationsAtRest(controller.gameObject);
+		UnifiedGameFontController.RefreshSceneFontsForPreview();
+		InvokePrivateInstanceMethod(controller.retreatConfirm.GetComponent<SGRetreat>(), "LateUpdate");
+        CaptureSceneCameraPng(retreatScene, Path.Combine(outputDirectory, "18-war-select-retreat.png"), captureWidth, captureHeight);
+
+        Scene toWarScene = PrepareWarSelectQaScene(captureWidth, captureHeight, out controller);
+        InvokePrivateInstanceMethod(controller, "OnToWar");
+        Debug.Log("FULL BUTTON QA CLICKED: war-select 出战 -> WarScene load requested");
+    }
+
+    /// <summary>
+    /// 方法说明：截取战斗对白页面，覆盖战前出战后的战斗文字框状态。
+    /// 参数说明：outputDirectory 为输出目录，captureWidth 为截图宽度，captureHeight 为截图高度。
+    /// 返回说明：无返回值。
+    /// </summary>
+    private static void CaptureWarDialogueButtonQaScreenshot(string outputDirectory, int captureWidth, int captureHeight)
+    {
+        PrepareRecoveredMod06Data();
+        FocusedBattleSample sample = BuildFocusedBattleSample();
+        WarSceneController.leftGeneralIdx = sample.leftGeneral;
+        WarSceneController.rightGeneralIdx = sample.rightGeneral;
+        WarSceneController.leftDefense = 0;
+        WarSceneController.rightDefense = 0;
+        WarSceneController.rightGeneralPosition = 0;
+
+        Scene scene = EditorSceneManager.OpenScene("Assets/Scenes/WarScene.unity", OpenSceneMode.Single);
+        FindSceneCamera(scene).aspect = captureWidth / (float)captureHeight;
+        WarSceneController controller = FindSceneComponent<WarSceneController>(scene);
+        InvokePrivateInstanceMethod(controller.infoPanel, "Start");
+        string text = ZhongWen.Instance.GetGeneralName(sample.leftGeneral) + "率军出战!";
+        controller.dialog.SetDialogue(text, WarSceneController.WhichSide.Left);
+        AdvanceWarDialogueForCapture(controller.dialog, text.Length);
+        UnifiedGameFontController.RefreshSceneFontsForPreview();
+		InvokePrivateInstanceMethod(controller.dialog, "LateUpdate");
+        CaptureSceneCameraStackPng(scene, Path.Combine(outputDirectory, "19-war-dialogue.png"), captureWidth, captureHeight);
+    }
+
+	/// <summary>
+	/// 方法说明：调用战略地图实际拖动位移方法并生成拖动前后截图，验证相机位置和城池标注会随地图移动。
+	/// 参数说明：outputDirectory 为输出目录，captureWidth 为截图宽度，captureHeight 为截图高度。
+	/// 返回说明：无返回值；相机没有移动时抛出异常使 QA 失败。
+	/// </summary>
+	private static void CaptureStrategyMapDragQaScreenshots(string outputDirectory, int captureWidth, int captureHeight)
+	{
+		StrategyController strategyController;
+		Scene dragScene = PrepareStrategyQaScene(captureWidth, captureHeight, out strategyController);
+		Camera camera = FindSceneCamera(dragScene);
+		Vector3 startPosition = StrategyController.ClampCameraPosition(Vector3.zero);
+		camera.transform.position = startPosition;
+		CaptureSceneCameraPng(dragScene, Path.Combine(outputDirectory, "04a-strategy-map-drag-before.png"), captureWidth, captureHeight);
+
+		InvokePrivateInstanceMethod(strategyController, "ApplyCameraDragOffset", new object[] { new Vector3(90f, 60f, 0f) });
+		Vector3 endPosition = camera.transform.position;
+		if (Vector2.Distance(new Vector2(startPosition.x, startPosition.y), new Vector2(endPosition.x, endPosition.y)) <= 1f)
+		{
+			throw new InvalidOperationException("战略地图拖动 QA 失败：相机位置未变化。");
+		}
+
+		CaptureSceneCameraPng(dragScene, Path.Combine(outputDirectory, "04b-strategy-map-drag-after.png"), captureWidth, captureHeight);
+		Debug.Log("FULL BUTTON QA DRAG PASS: start=" + startPosition + " end=" + endPosition);
+	}
+
+    /// <summary>
+    /// 方法说明：准备战略场景 QA 状态，初始化 MOD06 地图、旗帜和菜单层级。
+    /// 参数说明：captureWidth 为截图宽度，captureHeight 为截图高度，strategyController 输出战略控制器。
+    /// 返回说明：返回已打开的战略场景。
+    /// </summary>
+    private static Scene PrepareStrategyQaScene(int captureWidth, int captureHeight, out StrategyController strategyController)
+    {
+        Scene scene = EditorSceneManager.OpenScene("Assets/Scenes/Strategy.unity", OpenSceneMode.Single);
+        FindSceneCamera(scene).aspect = captureWidth / (float)captureHeight;
+        PrepareRecoveredMod06Data();
+        strategyController = FindSceneComponent<StrategyController>(scene);
+        InvokePrivateInstanceMethod(strategyController, "ApplyRestoredSango2StrategyMap");
+        HideStrategyMainMenu(strategyController, null);
+        if (strategyController.flagsCtrl != null)
+        {
+            InvokePrivateInstanceMethod(strategyController.flagsCtrl, "Start");
+            strategyController.flagsCtrl.SetFlagsAnimResume();
+        }
+
+        StrategyController.state = StrategyController.State.Normal;
+        UnifiedGameFontController.RefreshSceneFontsForPreview();
+        return scene;
+    }
+
+    /// <summary>
+    /// 方法说明：准备战前选择场景 QA 状态，初始化 MOD06 双方军队并执行场景 Start。
+    /// 参数说明：captureWidth 为截图宽度，captureHeight 为截图高度，controller 输出战前控制器。
+    /// 返回说明：返回已打开的战前场景。
+    /// </summary>
+    private static Scene PrepareWarSelectQaScene(int captureWidth, int captureHeight, out SelectGeneralToWarController controller)
+    {
+        PrepareRecoveredMod06Data();
+        BuildFocusedBattleSample();
+        Scene scene = EditorSceneManager.OpenScene("Assets/Scenes/SelectGeneralToWar.unity", OpenSceneMode.Single);
+        FindSceneCamera(scene).aspect = captureWidth / (float)captureHeight;
+        controller = FindSceneComponent<SelectGeneralToWarController>(scene);
+        InvokePrivateInstanceMethod(controller, "Start");
+        UnifiedGameFontController.RefreshSceneFontsForPreview();
+        return scene;
+    }
+
+    /// <summary>
+    /// 方法说明：把战略主菜单和所有子菜单动画强制停到最终位置。
+    /// 参数说明：strategyController 为战略控制器。
+    /// 返回说明：无返回值。
+    /// </summary>
+    private static void ForceStrategyMenuAtRest(StrategyController strategyController)
+    {
+        if (strategyController == null || strategyController.mainMenuCtrl == null) return;
+
+        ForceAllMenuAnimationsAtRest(strategyController.mainMenuCtrl);
+        MainMenu mainMenu = strategyController.mainMenuCtrl.GetComponent<MainMenu>();
+        if (mainMenu == null || mainMenu.commandAct == null) return;
+
+        for (int i = 0; i < mainMenu.commandAct.Length; i++)
+        {
+            ForceAllMenuAnimationsAtRest(mainMenu.commandAct[i]);
+        }
+    }
+
+    /// <summary>
+    /// 方法说明：把战略势力地图的列表、地图和信息栏停到最终位置。
+    /// 参数说明：powerMap 为势力地图控制器。
+    /// 返回说明：无返回值。
+    /// </summary>
+    private static void ForceStrategyPowerMapAtRest(SyPowerMap powerMap)
+    {
+        if (powerMap == null) return;
+
+        Controller.kingIndex = FindActiveKingWithCitiesAndGenerals();
+        powerMap.kingList.Clear();
+        InvokePrivateInstanceMethod(powerMap, "OnEnable");
+        int listIndex = FindPowerMapKingListIndex(powerMap, Controller.kingIndex);
+        if (listIndex >= 0)
+        {
+            powerMap.kingList.SetItemSelected(listIndex, true);
+        }
+        powerMap.kingInfo.SetKing(Controller.kingIndex);
+        HideStrategyLegacyHistoryForPowerMap(powerMap);
+        ForceMenuAtRest(powerMap.kingList.GetComponent<MenuDisplayAnim>());
+        ForceMenuAtRest(powerMap.map.GetComponent<MenuDisplayAnim>());
+        ForceMenuAtRest(powerMap.kingInfo.GetComponent<MenuDisplayAnim>());
+        UnifiedGameFontController.RefreshSceneFontsForPreview();
+    }
+
+    /// <summary>
+    /// 方法说明：查找势力地图列表中指定君主所在行。
+    /// 参数说明：powerMap 为势力地图控制器，kingIndex 为君主索引。
+    /// 返回说明：找到返回列表行号，找不到返回 -1。
+    /// </summary>
+    private static int FindPowerMapKingListIndex(SyPowerMap powerMap, int kingIndex)
+    {
+        if (powerMap == null || powerMap.kingList == null) return -1;
+
+        for (int i = 0; i < powerMap.kingList.GetCount(); i++)
+        {
+            ListItem item = powerMap.kingList.GetListItem(i);
+            if (item == null || item.GetItemData() == null) continue;
+            if ((int)item.GetItemData() == kingIndex)
+            {
+                return i;
+            }
+        }
+
+        return -1;
+    }
+
+    /// <summary>
+    /// 方法说明：势力图截图时隐藏旧年月框，避免旧时间框压住势力图标题。
+    /// 参数说明：powerMap 为势力地图控制器。
+    /// 返回说明：无返回值。
+    /// </summary>
+    private static void HideStrategyLegacyHistoryForPowerMap(SyPowerMap powerMap)
+    {
+        if (powerMap == null || powerMap.strCtrl == null || powerMap.strCtrl.hTimeCtrl == null) return;
+
+        HideStrategyLegacyHistory(powerMap.strCtrl);
+    }
+
+    /// <summary>
+    /// 方法说明：截图战略二级页面时隐藏仍在退场动画首帧的旧年月框，避免它压住页面标题。
+    /// 参数说明：strategyController 为当前战略控制器。
+    /// 返回说明：无返回值。
+    /// </summary>
+    private static void HideStrategyLegacyHistory(StrategyController strategyController)
+    {
+        if (strategyController == null || strategyController.hTimeCtrl == null) return;
+
+        Renderer[] renderers = strategyController.hTimeCtrl.GetComponentsInChildren<Renderer>(true);
+        for (int i = 0; i < renderers.Length; i++)
+        {
+            if (renderers[i] != null)
+            {
+                renderers[i].enabled = false;
+            }
+        }
+    }
+
+    /// <summary>
+    /// 方法说明：把战前武将资料详情面板切到详情状态并停止所有动画。
+    /// 参数说明：generalsInfo 为武将资料控制器。
+    /// 返回说明：无返回值。
+    /// </summary>
+    private static void ForceWarGeneralInformationAtRest(SGGeneralsInfoController generalsInfo)
+    {
+        if (generalsInfo == null) return;
+
+        InvokePrivateInstanceMethod(generalsInfo, "SetGeneralsListVisible", new object[] { false });
+        if (generalsInfo.generalsList != null)
+        {
+            generalsInfo.generalsList.gameObject.SetActive(false);
+            if (generalsInfo.generalsList.slider != null && generalsInfo.generalsList.slider.parent != null)
+            {
+                generalsInfo.generalsList.slider.parent.gameObject.SetActive(false);
+            }
+        }
+        MapController[] mapBackgrounds = generalsInfo.GetComponentsInChildren<MapController>(true);
+        for (int i = 0; i < mapBackgrounds.Length; i++)
+        {
+            mapBackgrounds[i].gameObject.SetActive(false);
+        }
+        if (generalsInfo.information != null)
+        {
+            generalsInfo.information.SetActive(true);
+        }
+        ForceAllMenuAnimationsAtRest(generalsInfo.gameObject);
+        UnifiedGameFontController.RefreshSceneFontsForPreview();
+    }
+
+    /// <summary>
+    /// 方法说明：递归把对象下所有菜单动画停到原始位置。
+    /// 参数说明：root 为待处理对象。
+    /// 返回说明：无返回值。
+    /// </summary>
+    private static void ForceAllMenuAnimationsAtRest(GameObject root)
+    {
+        if (root == null) return;
+
+        MenuDisplayAnim[] menuAnimations = root.GetComponentsInChildren<MenuDisplayAnim>(true);
+        for (int i = 0; i < menuAnimations.Length; i++)
+        {
+            ForceMenuAtRest(menuAnimations[i], false);
+        }
+    }
+
+    /// <summary>
+    /// 方法说明：返回全按钮 QA 截图输出目录。
+    /// 参数说明：无。
+    /// 返回说明：返回绝对路径。
+    /// </summary>
+    private static string GetFullButtonQaDirectory()
+    {
+        return Path.GetFullPath(Path.Combine(Application.dataPath, "../Builds/Screenshots/full-button-qa-current"));
+    }
+
+    /// <summary>
+    /// 方法说明：在编辑器截图中推进战斗对白打字机若干帧，让截图能看到完整文本而不是首帧。
+    /// 参数说明：dialog 为战斗对白组件，characterCount 为目标推进字符数。
+    /// 返回说明：无返回值。
+    /// </summary>
+    private static void AdvanceWarDialogueForCapture(WSDialogue dialog, int characterCount)
+    {
+        if (dialog == null) return;
+
+        int count = Mathf.Max(1, characterCount);
+        for (int i = 0; i < count; i++)
+        {
+            System.Threading.Thread.Sleep(60);
+            InvokePrivateInstanceMethod(dialog, "Update");
+        }
     }
 
     /// <summary>
@@ -410,9 +1069,22 @@ public static class Sango2RecoveredResourceImporter
     /// </summary>
     private static void ForceMenuAtRest(MenuDisplayAnim menuAnim)
     {
+        ForceMenuAtRest(menuAnim, true);
+    }
+
+    /// <summary>
+    /// 方法说明：把单个菜单动画对象放回原始位置，可选择是否强制激活对象。
+    /// 参数说明：menuAnim 为菜单动画组件，activate 为 true 时会打开对象，为 false 时只定格当前位置。
+    /// 返回说明：无返回值。
+    /// </summary>
+    private static void ForceMenuAtRest(MenuDisplayAnim menuAnim, bool activate)
+    {
         if (menuAnim == null) return;
 
-        menuAnim.gameObject.SetActive(true);
+        if (activate)
+        {
+            menuAnim.gameObject.SetActive(true);
+        }
         menuAnim.transform.localPosition = menuAnim.GetOriginalPosition();
     }
 
@@ -458,6 +1130,66 @@ public static class Sango2RecoveredResourceImporter
     }
 
     /// <summary>
+    /// 方法说明：按场景中启用摄像机的 depth 顺序叠加渲染 PNG 截图，适用于战斗场景多摄像机画面。
+    /// 参数说明：scene 为目标场景，outputPath 为输出路径，width 为截图宽度，height 为截图高度。
+    /// 返回说明：无返回值；缺少可渲染摄像机时抛出异常。
+    /// </summary>
+    private static void CaptureSceneCameraStackPng(Scene scene, string outputPath, int width, int height)
+    {
+        List<Camera> cameras = FindSceneCameras(scene);
+        RenderTexture renderTexture = new RenderTexture(width, height, 24);
+        Texture2D texture = new Texture2D(width, height, TextureFormat.RGB24, false);
+        RenderTexture previousActive = RenderTexture.active;
+        CameraClearFlags[] previousClearFlags = new CameraClearFlags[cameras.Count];
+        RenderTexture[] previousTargets = new RenderTexture[cameras.Count];
+        float[] previousAspects = new float[cameras.Count];
+
+        try
+        {
+            RenderTexture.active = renderTexture;
+            GL.Clear(true, true, Color.black);
+            for (int i = 0; i < cameras.Count; i++)
+            {
+                Camera camera = cameras[i];
+                previousClearFlags[i] = camera.clearFlags;
+                previousTargets[i] = camera.targetTexture;
+                previousAspects[i] = camera.aspect;
+
+                if (i > 0 && camera.clearFlags == CameraClearFlags.SolidColor)
+                {
+                    camera.clearFlags = CameraClearFlags.Depth;
+                }
+                camera.aspect = width / (float)height;
+                camera.targetTexture = renderTexture;
+                camera.Render();
+            }
+
+            texture.ReadPixels(new Rect(0, 0, width, height), 0, 0);
+            texture.Apply();
+
+            string directory = Path.GetDirectoryName(outputPath);
+            if (!Directory.Exists(directory))
+            {
+                Directory.CreateDirectory(directory);
+            }
+
+            File.WriteAllBytes(outputPath, texture.EncodeToPNG());
+        }
+        finally
+        {
+            for (int i = 0; i < cameras.Count; i++)
+            {
+                cameras[i].clearFlags = previousClearFlags[i];
+                cameras[i].targetTexture = previousTargets[i];
+                cameras[i].aspect = previousAspects[i];
+            }
+            RenderTexture.active = previousActive;
+            UnityEngine.Object.DestroyImmediate(renderTexture);
+            UnityEngine.Object.DestroyImmediate(texture);
+        }
+    }
+
+    /// <summary>
     /// 方法说明：查找场景内用于截图的摄像机。
     /// 参数说明：scene 为目标场景。
     /// 返回说明：返回找到的摄像机；缺失时抛出异常。
@@ -474,6 +1206,44 @@ public static class Sango2RecoveredResourceImporter
         }
 
         throw new InvalidOperationException("选择界面场景缺少摄像机：" + scene.path);
+    }
+
+    /// <summary>
+    /// 方法说明：查找场景中所有启用的摄像机，并按 depth 从低到高排序。
+    /// 参数说明：scene 为目标场景。
+    /// 返回说明：返回摄像机列表；缺失时抛出异常。
+    /// </summary>
+    private static List<Camera> FindSceneCameras(Scene scene)
+    {
+        List<Camera> cameras = new List<Camera>();
+        foreach (GameObject root in scene.GetRootGameObjects())
+        {
+            Camera[] rootCameras = root.GetComponentsInChildren<Camera>(true);
+            for (int i = 0; i < rootCameras.Length; i++)
+            {
+                Camera camera = rootCameras[i];
+                if (camera != null && camera.enabled && camera.gameObject.activeInHierarchy)
+                {
+                    cameras.Add(camera);
+                }
+            }
+        }
+
+        if (cameras.Count == 0)
+        {
+            throw new InvalidOperationException("场景缺少可渲染摄像机：" + scene.path);
+        }
+
+        cameras.Sort((left, right) => left.depth.CompareTo(right.depth));
+        for (int i = 0; i < cameras.Count; i++)
+        {
+            Debug.Log("CAPTURE CAMERA STACK: " + BuildTransformPath(cameras[i].transform) +
+                      " depth=" + cameras[i].depth +
+                      " clear=" + cameras[i].clearFlags +
+                      " culling=" + cameras[i].cullingMask);
+        }
+
+        return cameras;
     }
 
     /// <summary>
@@ -496,11 +1266,252 @@ public static class Sango2RecoveredResourceImporter
     }
 
     /// <summary>
+    /// 方法说明：从指定场景根节点查找组件，包含未激活对象。
+    /// 参数说明：scene 为目标场景。
+    /// 返回说明：找到返回组件，缺失时抛出异常。
+    /// </summary>
+    private static T FindSceneComponent<T>(Scene scene) where T : Component
+    {
+        foreach (GameObject root in scene.GetRootGameObjects())
+        {
+            T component = root.GetComponentInChildren<T>(true);
+            if (component != null)
+            {
+                return component;
+            }
+        }
+
+        throw new InvalidOperationException("场景缺少组件：" + typeof(T).Name + " scene=" + scene.path);
+    }
+
+    /// <summary>
+    /// 方法说明：隐藏战略旧主菜单和非目标子菜单，避免截图或运行中出现多层菜单叠加。
+    /// 参数说明：strategyController 为战略控制器，activePanel 为需要保留显示的子面板。
+    /// 返回说明：无返回值。
+    /// </summary>
+    private static void HideStrategyMainMenu(StrategyController strategyController, GameObject activePanel)
+    {
+        if (strategyController == null || strategyController.mainMenuCtrl == null) return;
+
+        MainMenu mainMenu = strategyController.mainMenuCtrl.GetComponent<MainMenu>();
+        if (mainMenu != null && mainMenu.commandAct != null)
+        {
+            for (int i = 0; i < mainMenu.commandAct.Length; i++)
+            {
+                GameObject panel = mainMenu.commandAct[i];
+                if (panel != null && panel != activePanel)
+                {
+                    panel.SetActive(false);
+                }
+            }
+        }
+
+        strategyController.mainMenuCtrl.SetActive(false);
+    }
+
+    /// <summary>
+    /// 方法说明：准备 MOD06 运行时数据，供编辑器截图入口复用。
+    /// 参数说明：无。
+    /// 返回说明：无返回值；MOD 加载失败时抛出异常。
+    /// </summary>
+    private static void PrepareRecoveredMod06Data()
+    {
+        Informations.Reset();
+        StrategyController.Reset();
+        Controller.MODSelect = MODLoadController.RestoredSango2Index;
+        Controller.kingIndex = 0;
+        if (!MODLoadController.Instance.LoadMOD(MODLoadController.RestoredSango2Index))
+        {
+            throw new InvalidOperationException("MOD06 加载失败，无法准备截图数据。");
+        }
+        Controller.kingIndex = FindActiveKingWithCitiesAndGenerals();
+    }
+
+    /// <summary>
+    /// 方法说明：查找一个有城池且有武将的活跃势力，避免 QA 截图选到空势力导致信息栏全 0。
+    /// 参数说明：无。
+    /// 返回说明：返回有效势力索引，找不到时返回 0。
+    /// </summary>
+    private static int FindActiveKingWithCitiesAndGenerals()
+    {
+        for (int i = 0; i < Informations.Instance.kingNum; i++)
+        {
+            KingInfo kingInfo = Informations.Instance.GetKingInfo(i);
+            if (kingInfo == null || kingInfo.active != 1) continue;
+            if (kingInfo.cities == null || kingInfo.cities.Count == 0) continue;
+            if (kingInfo.generals == null || kingInfo.generals.Count == 0) continue;
+            return i;
+        }
+
+        return 0;
+    }
+
+    /// <summary>
+    /// 方法说明：从 MOD06 真实势力中构建一组战前/战斗截图用军队数据。
+    /// 参数说明：无。
+    /// 返回说明：返回左右双方主将和军队信息。
+    /// </summary>
+    private static FocusedBattleSample BuildFocusedBattleSample()
+    {
+        int mineKing = FindKingWithGenerals(0, -1, 2);
+        int enemyKing = FindKingWithGenerals(0, mineKing, 2);
+        ArmyInfo mine = BuildFocusedArmy(mineKing, enemyKing);
+        ArmyInfo enemy = BuildFocusedArmy(enemyKing, mineKing);
+
+        SelectGeneralToWarController.mode = 0;
+        SelectGeneralToWarController.mine = mine;
+        SelectGeneralToWarController.enemy = enemy;
+        SelectGeneralToWarController.isWarBegin = true;
+        SelectGeneralToWarController.warResult = 2;
+
+        // 截图时把玩家君主设到不存在的势力，避免自动弹快速战斗确认框遮住战前菜单。
+        Controller.kingIndex = -1000;
+
+        return new FocusedBattleSample
+        {
+            leftGeneral = enemy.commander,
+            rightGeneral = mine.commander,
+            mine = mine,
+            enemy = enemy
+        };
+    }
+
+    /// <summary>
+    /// 方法说明：查找一个拥有足够武将的有效势力。
+    /// 参数说明：startIndex 为起始势力索引，excludeKing 为需要排除的势力索引，minGenerals 为最少武将数。
+    /// 返回说明：返回势力索引；找不到时抛出异常。
+    /// </summary>
+    private static int FindKingWithGenerals(int startIndex, int excludeKing, int minGenerals)
+    {
+        for (int i = Mathf.Max(0, startIndex); i < Informations.Instance.kingNum; i++)
+        {
+            if (i == excludeKing) continue;
+
+            KingInfo kingInfo = Informations.Instance.GetKingInfo(i);
+            if (kingInfo == null || kingInfo.active != 1 || kingInfo.generals == null) continue;
+            if (CountFocusedBattleReadyGenerals(kingInfo) >= minGenerals)
+            {
+                return i;
+            }
+        }
+
+        throw new InvalidOperationException("MOD06 中找不到可用于截图的有效势力。");
+    }
+
+    /// <summary>
+    /// 方法说明：用指定势力的现有武将构建截图用军队。
+    /// 参数说明：kingIndex 为军队势力索引，targetKingIndex 为目标势力索引。
+    /// 返回说明：返回军队信息。
+    /// </summary>
+    private static ArmyInfo BuildFocusedArmy(int kingIndex, int targetKingIndex)
+    {
+        KingInfo kingInfo = Informations.Instance.GetKingInfo(kingIndex);
+        if (kingInfo == null || kingInfo.generals == null || kingInfo.generals.Count == 0)
+        {
+            throw new InvalidOperationException("势力缺少可出战武将：" + kingIndex);
+        }
+
+        ArmyInfo army = new ArmyInfo();
+        army.king = kingIndex;
+        army.cityFrom = PickFirstCity(kingIndex);
+        army.cityTo = PickFirstCity(targetKingIndex);
+        for (int i = 0; i < kingInfo.generals.Count && army.generals.Count < 3; i++)
+        {
+            int generalIndex = kingInfo.generals[i];
+            if (!IsFocusedGeneralBattleReady(generalIndex)) continue;
+
+            army.generals.Add(generalIndex);
+        }
+        if (army.generals.Count == 0)
+        {
+            throw new InvalidOperationException("势力缺少字段完整的出战武将：" + kingIndex);
+        }
+
+        army.commander = army.generals[0];
+        return army;
+    }
+
+    /// <summary>
+    /// 方法说明：读取势力的第一座城市，作为截图用军队出发或目标城市。
+    /// 参数说明：kingIndex 为势力索引。
+    /// 返回说明：有城市返回第一座城市索引，否则返回 0。
+    /// </summary>
+    private static int PickFirstCity(int kingIndex)
+    {
+        KingInfo kingInfo = Informations.Instance.GetKingInfo(kingIndex);
+        if (kingInfo != null && kingInfo.cities != null && kingInfo.cities.Count > 0)
+        {
+            return kingInfo.cities[0];
+        }
+
+        return 0;
+    }
+
+    /// <summary>
+    /// 方法说明：统计势力中字段完整、可用于截图战斗页面的武将数量。
+    /// 参数说明：kingInfo 为势力信息。
+    /// 返回说明：返回可用武将数量。
+    /// </summary>
+    private static int CountFocusedBattleReadyGenerals(KingInfo kingInfo)
+    {
+        if (kingInfo == null || kingInfo.generals == null) return 0;
+
+        int count = 0;
+        for (int i = 0; i < kingInfo.generals.Count; i++)
+        {
+            if (IsFocusedGeneralBattleReady(kingInfo.generals[i]))
+            {
+                count++;
+            }
+        }
+
+        return count;
+    }
+
+    /// <summary>
+    /// 方法说明：判断武将是否具备战前和战斗截图所需的真实字段。
+    /// 参数说明：generalIndex 为武将索引。
+    /// 返回说明：字段完整返回 true，否则返回 false。
+    /// </summary>
+    private static bool IsFocusedGeneralBattleReady(int generalIndex)
+    {
+        GeneralInfo generalInfo = Informations.Instance.GetGeneralInfo(generalIndex);
+        if (generalInfo == null)
+        {
+            return false;
+        }
+
+        return generalInfo.active == 1 &&
+               generalInfo.healthMax > 0 &&
+               generalInfo.healthCur > 0 &&
+               generalInfo.formation != 0 &&
+               generalInfo.formationCur != 0;
+    }
+
+    private struct FocusedBattleSample
+    {
+        public int leftGeneral;
+        public int rightGeneral;
+        public ArmyInfo mine;
+        public ArmyInfo enemy;
+    }
+
+    /// <summary>
     /// 方法说明：反射调用选择界面控制器私有方法。
     /// 参数说明：controller 为目标控制器，methodName 为方法名。
     /// 返回说明：无返回值；方法缺失时抛出异常。
     /// </summary>
     private static void InvokePrivateControllerMethod(SelectKingSceneController controller, string methodName)
+    {
+        InvokePrivateControllerMethod(controller, methodName, null);
+    }
+
+    /// <summary>
+    /// 方法说明：反射调用选择界面控制器私有方法，支持传入参数。
+    /// 参数说明：controller 为目标控制器，methodName 为方法名，args 为调用参数。
+    /// 返回说明：无返回值；方法缺失时抛出异常。
+    /// </summary>
+    private static void InvokePrivateControllerMethod(SelectKingSceneController controller, string methodName, object[] args)
     {
         MethodInfo method = typeof(SelectKingSceneController).GetMethod(methodName, BindingFlags.Instance | BindingFlags.NonPublic);
         if (method == null)
@@ -508,7 +1519,38 @@ public static class Sango2RecoveredResourceImporter
             throw new MissingMethodException(typeof(SelectKingSceneController).FullName, methodName);
         }
 
-        method.Invoke(controller, null);
+        method.Invoke(controller, args);
+    }
+
+    /// <summary>
+    /// 方法说明：反射调用任意对象的私有无参方法。
+    /// 参数说明：target 为目标对象，methodName 为方法名。
+    /// 返回说明：无返回值；对象或方法缺失时抛出异常。
+    /// </summary>
+    private static void InvokePrivateInstanceMethod(object target, string methodName)
+    {
+        InvokePrivateInstanceMethod(target, methodName, null);
+    }
+
+    /// <summary>
+    /// 方法说明：反射调用任意对象的私有方法，支持传入参数。
+    /// 参数说明：target 为目标对象，methodName 为方法名，args 为调用参数。
+    /// 返回说明：无返回值；对象或方法缺失时抛出异常。
+    /// </summary>
+    private static void InvokePrivateInstanceMethod(object target, string methodName, object[] args)
+    {
+        if (target == null)
+        {
+            throw new ArgumentNullException("target");
+        }
+
+        MethodInfo method = target.GetType().GetMethod(methodName, BindingFlags.Instance | BindingFlags.NonPublic);
+        if (method == null)
+        {
+            throw new MissingMethodException(target.GetType().FullName, methodName);
+        }
+
+        method.Invoke(target, args);
     }
 
     /// <summary>
@@ -534,6 +1576,34 @@ public static class Sango2RecoveredResourceImporter
         }
 
         return labels;
+    }
+
+    /// <summary>
+    /// 方法说明：输出指定对象下 TextMesh 的关键渲染信息，辅助定位截图空白问题。
+    /// 参数说明：root 为检查根对象，prefix 为日志前缀。
+    /// 返回说明：无返回值。
+    /// </summary>
+    private static void DumpTextMeshes(GameObject root, string prefix)
+    {
+        if (root == null)
+        {
+            Debug.Log(prefix + " COUNT: 0 root=null");
+            return;
+        }
+
+        TextMesh[] textMeshes = root.GetComponentsInChildren<TextMesh>(true);
+        Debug.Log(prefix + " COUNT: " + textMeshes.Length);
+        for (int i = 0; i < textMeshes.Length; i++)
+        {
+            TextMesh textMesh = textMeshes[i];
+            Renderer renderer = textMesh.GetComponent<Renderer>();
+            Debug.Log(prefix + ": " + BuildTransformPath(textMesh.transform) +
+                      " text=" + textMesh.text +
+                      " localPos=" + FormatVector3(textMesh.transform.localPosition) +
+                      " worldPos=" + FormatVector3(textMesh.transform.position) +
+                      " layer=" + textMesh.gameObject.layer +
+                      " renderer=" + (renderer != null && renderer.enabled));
+        }
     }
 
     /// <summary>
@@ -1085,16 +2155,16 @@ public static class Sango2RecoveredResourceImporter
     /// </summary>
     private static void ConfigureMapTextures()
     {
-        ConfigureTexture(MapDirectory + "/Sango2WorldMap.png", TextureImporterType.Default, 4096, false);
+        ConfigureTexture(MapDirectory + "/Sango2WorldMap.png", TextureImporterType.Default, 4096, false, true);
         ConfigureTexture(MapDirectory + "/Sango2WorldMapPreview.png", TextureImporterType.Default, 2048, false);
     }
 
     /// <summary>
     /// 方法说明：按统一参数设置贴图导入器。
-    /// 参数说明：assetPath 为资源路径，textureType 为贴图类型，maxSize 为最大尺寸，mipmapEnabled 表示是否开启 mipmap。
+    /// 参数说明：assetPath 为资源路径，textureType 为贴图类型，maxSize 为最大尺寸，mipmapEnabled 表示是否开启 mipmap，isUncompressed 表示是否禁用平台压缩。
     /// 返回说明：无返回值。
     /// </summary>
-    private static void ConfigureTexture(string assetPath, TextureImporterType textureType, int maxSize, bool mipmapEnabled)
+    private static void ConfigureTexture(string assetPath, TextureImporterType textureType, int maxSize, bool mipmapEnabled, bool isUncompressed = false)
     {
         TextureImporter importer = AssetImporter.GetAtPath(assetPath) as TextureImporter;
         if (importer == null)
@@ -1108,7 +2178,31 @@ public static class Sango2RecoveredResourceImporter
         importer.maxTextureSize = maxSize;
         importer.npotScale = TextureImporterNPOTScale.None;
         importer.wrapMode = TextureWrapMode.Clamp;
+        importer.filterMode = FilterMode.Bilinear;
+        if (isUncompressed)
+        {
+            importer.textureCompression = TextureImporterCompression.Uncompressed;
+            ConfigureUncompressedPlatformTexture(importer, "DefaultTexturePlatform", maxSize);
+            ConfigureUncompressedPlatformTexture(importer, "Standalone", maxSize);
+            ConfigureUncompressedPlatformTexture(importer, "Android", maxSize);
+        }
         importer.SaveAndReimport();
+    }
+
+    /// <summary>
+    /// 方法说明：把指定平台的贴图导入参数设置为原尺寸无压缩。
+    /// 参数说明：importer 为目标贴图导入器，platformName 为平台名称，maxSize 为最大贴图尺寸。
+    /// 返回说明：无返回值。
+    /// </summary>
+    private static void ConfigureUncompressedPlatformTexture(TextureImporter importer, string platformName, int maxSize)
+    {
+        TextureImporterPlatformSettings platformSettings = importer.GetPlatformTextureSettings(platformName);
+        platformSettings.overridden = true;
+        platformSettings.maxTextureSize = maxSize;
+        platformSettings.format = TextureImporterFormat.RGB24;
+        platformSettings.textureCompression = TextureImporterCompression.Uncompressed;
+        platformSettings.compressionQuality = 100;
+        importer.SetPlatformTextureSettings(platformSettings);
     }
 
     /// <summary>

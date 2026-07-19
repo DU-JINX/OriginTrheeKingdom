@@ -188,7 +188,9 @@ public class SelectKingSceneController : MonoBehaviour {
 
         selectMOD.SetActive(false);
         selectKing.SetActive(true);
+        FitSelectBackgroundToCamera();
         BringKingListMenuToFront();
+        HideSelectKingCityInfoPanels();
 
         ClearKingButtons();
         MODLoadController.Instance.LoadMOD(Controller.MODSelect);
@@ -210,7 +212,7 @@ public class SelectKingSceneController : MonoBehaviour {
     }
 
     /// <summary>
-    /// 方法说明：把左侧选择君主菜单放到地图和城池标记前面。
+    /// 方法说明：把选择君主界面的菜单、信息面板和确认框放到地图和城池标记前面。
     /// 参数说明：无参数。
     /// 返回说明：无返回值。
     /// </summary>
@@ -218,6 +220,24 @@ public class SelectKingSceneController : MonoBehaviour {
     {
         SetLocalZ(menuAnim == null ? null : menuAnim.transform, -6f);
         SetLocalZ(kingListRoot == null ? null : kingListRoot.transform, -6f);
+        SetLocalZ(infoAnim == null ? null : infoAnim.transform, -6f);
+        SetLocalZ(confirmBox == null ? null : confirmBox.transform, -7f);
+    }
+
+    /// <summary>
+    /// 方法说明：选择君主页只显示君主汇总信息，关闭复用底栏里的城池详情，避免两套文字重叠。
+    /// 参数说明：无参数。
+    /// 返回说明：无返回值。
+    /// </summary>
+    private void HideSelectKingCityInfoPanels()
+    {
+        CityInfoController[] cityInfoControllers = selectKing.GetComponentsInChildren<CityInfoController>(true);
+        for (int i = 0; i < cityInfoControllers.Length; i++)
+        {
+            if (cityInfoControllers[i] == null) continue;
+
+            cityInfoControllers[i].SetCity(-1);
+        }
     }
 
     /// <summary>
@@ -319,6 +339,7 @@ public class SelectKingSceneController : MonoBehaviour {
             mapCtrl.SelectCity(kInfo.cities[i]);
         }
         mapCtrl.FocusOnCities(kInfo.cities);
+        HideSelectKingCityInfoPanels();
 
         kingInfoCtrl.SetKing(kingIndex);
 

@@ -16,8 +16,8 @@ public class ClickTrackController : MonoBehaviour {
 
 		particle = (GameObject)Instantiate(pariticlePrefab);
 		particle.transform.parent = this.transform;
-		fire = particle.transform.FindChild("Fire").GetComponent<ParticleSystem>();
-		smoke = particle.transform.FindChild("Smoke").GetComponent<ParticleSystem>();
+		fire = particle.transform.Find("Fire").GetComponent<ParticleSystem>();
+		smoke = particle.transform.Find("Smoke").GetComponent<ParticleSystem>();
 	}
 	
 	// Update is called once per frame

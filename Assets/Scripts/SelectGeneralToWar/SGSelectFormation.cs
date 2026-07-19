@@ -2,6 +2,10 @@ using UnityEngine;
 using System.Collections;
 
 public class SGSelectFormation : MonoBehaviour {
+
+	private const float DynamicTextFrontZ = -1.25f;
+	private const int DynamicTextSortingOrder = 1750;
+	private const float ReadablePanelX = -140f;
 	
 	public SelectGeneralToWarController sgCtrl;
 	
@@ -34,6 +38,13 @@ public class SGSelectFormation : MonoBehaviour {
 			}
 		}
 	}
+
+	// 方法说明：持续把阵形选项的动态字体提升到右侧面板前方。
+	// 参数说明：无。
+	// 返回说明：无返回值。
+	void LateUpdate() {
+		UnifiedGameFontController.SetDynamicTextLayer(gameObject, DynamicTextFrontZ, DynamicTextSortingOrder);
+	}
 	
 	void OnButtonClick(object idx) {
 		
@@ -61,6 +72,7 @@ public class SGSelectFormation : MonoBehaviour {
 		
 		if (menuAnim == null)
 			menuAnim = GetComponent<MenuDisplayAnim>();
+		ApplyReadablePanelLayout();
 		
 		menuAnim.SetAnim(MenuDisplayAnim.AnimType.InsertFromRight);
 		
@@ -79,5 +91,19 @@ public class SGSelectFormation : MonoBehaviour {
 				}
 			}
 		}
+	}
+
+	// 方法说明：把阵形列表从旧版屏幕外坐标移到当前宽屏右侧可见区域，并同步动画终点。
+	// 参数说明：无。
+	// 返回说明：无返回值。
+	void ApplyReadablePanelLayout() {
+		Vector3 panelPosition = transform.localPosition;
+		panelPosition.x = ReadablePanelX;
+		transform.localPosition = panelPosition;
+		if (menuAnim == null) return;
+
+		Vector3 originalPosition = menuAnim.GetOriginalPosition();
+		originalPosition.x = ReadablePanelX;
+		menuAnim.SetOriginalPosition(originalPosition);
 	}
 }
