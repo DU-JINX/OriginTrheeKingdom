@@ -14,6 +14,7 @@ public class Button : MonoBehaviour {
 	private ButtonState state = ButtonState.Normal;
 	private exSpriteFont fontScript;
 	private object data = null;
+	private static readonly Color NormalTextColor = new Color(1, 1, 1, 1);
 	
 	public delegate void MessageDelegate();
 	private MessageDelegate buttonDownHandler = null;
@@ -23,18 +24,31 @@ public class Button : MonoBehaviour {
 	public delegate void MessageDelegate1(object d);
 	private MessageDelegate1 buttonClickHandler1 = null;
 	
-	// Use this for initialization
+	/// <summary>
+	/// 方法说明：缓存当前按钮的旧字体组件。
+	/// 参数说明：无。
+	/// 返回说明：无返回值。
+	/// </summary>
 	void Start () {
 		if (fontScript == null) {
 			fontScript = GetComponent<exSpriteFont>();
 		}
 	}
 	
+	/// <summary>
+	/// 方法说明：按钮隐藏时恢复普通状态，避免下一次显示残留按下态。
+	/// 参数说明：无。
+	/// 返回说明：无返回值。
+	/// </summary>
 	void OnDisable() {
 		SetButtonState(ButtonState.Normal);
 	}
 	
-	// Update is called once per frame
+	/// <summary>
+	/// 方法说明：处理普通文字按钮的按下、松开、离开和点击回调。
+	/// 参数说明：无。
+	/// 返回说明：无返回值。
+	/// </summary>
 	void Update () {
 		
 		if (Input.touchCount > 1) return;
@@ -47,9 +61,7 @@ public class Button : MonoBehaviour {
 			if (CheckIsHit()) {
 				
 				state = ButtonState.Down;
-				fontScript.botColor = new Color(1, 0, 0, 1);
-				fontScript.topColor = new Color(1, 0, 0, 1);
-				UnifiedGameFontController.SyncFontNow(fontScript);
+				ApplyNormalTextColor();
 				
 				if (buttonDownHandler != null)		buttonDownHandler();
 			}
@@ -58,9 +70,7 @@ public class Button : MonoBehaviour {
 				
 				if (CheckIsHit()) {
 					state = ButtonState.Clicked;
-					fontScript.botColor = new Color(1, 1, 1, 1);
-					fontScript.topColor = new Color(1, 1, 1, 1);
-					UnifiedGameFontController.SyncFontNow(fontScript);
+					ApplyNormalTextColor();
 
 					if (buttonClickHandler != null)		buttonClickHandler();
 					if (buttonClickHandler1 != null)	buttonClickHandler1(data);
@@ -82,9 +92,7 @@ public class Button : MonoBehaviour {
 				} else {
 					state = ButtonState.Leave;
 					
-					fontScript.botColor = new Color(1, 1, 1, 1);
-					fontScript.topColor = new Color(1, 1, 1, 1);
-					UnifiedGameFontController.SyncFontNow(fontScript);
+					ApplyNormalTextColor();
 				}
 			} else if (state == ButtonState.Leave) {
 				
@@ -93,15 +101,18 @@ public class Button : MonoBehaviour {
 					
 					if (buttonPressHandler != null)		buttonPressHandler();
 					
-					fontScript.botColor = new Color(1, 0, 0, 1);
-					fontScript.topColor = new Color(1, 0, 0, 1);
-					UnifiedGameFontController.SyncFontNow(fontScript);
+					ApplyNormalTextColor();
 				}
 			}
 		}
 		
 	}
 	
+	/// <summary>
+	/// 方法说明：检测当前指针是否命中文字按钮包围盒。
+	/// 参数说明：无。
+	/// 返回说明：命中返回 true，否则返回 false。
+	/// </summary>
 	bool CheckIsHit() {
 		
 		Vector3 mousePoint = Camera.main.ScreenToWorldPoint(Input.mousePosition);
@@ -114,6 +125,11 @@ public class Button : MonoBehaviour {
 		return bound.Contains(point);
 	}
 	
+	/// <summary>
+	/// 方法说明：设置按钮是否可点击，并同步禁用态文字颜色。
+	/// 参数说明：flag 为 true 时启用按钮，为 false 时禁用按钮。
+	/// 返回说明：无返回值。
+	/// </summary>
 	public void SetButtonEnable(bool flag) {
 		
 		enabled = flag;
@@ -125,8 +141,8 @@ public class Button : MonoBehaviour {
 		}
 		
 		if (enabled) {
-			fontScript.botColor = new Color(1, 1, 1, 1);
-			fontScript.topColor = new Color(1, 1, 1, 1);
+			fontScript.botColor = NormalTextColor;
+			fontScript.topColor = NormalTextColor;
 		} else {
 			fontScript.botColor = new Color(0.5f, 0.5f, 0.5f, 1);
 			fontScript.topColor = new Color(0.5f, 0.5f, 0.5f, 1);
@@ -134,10 +150,20 @@ public class Button : MonoBehaviour {
 		UnifiedGameFontController.SyncFontNow(fontScript);
 	}
 	
+	/// <summary>
+	/// 方法说明：读取按钮当前交互状态。
+	/// 参数说明：无。
+	/// 返回说明：返回当前 ButtonState。
+	/// </summary>
 	public ButtonState GetButtonState() {
 		return state;
 	}
 	
+	/// <summary>
+	/// 方法说明：外部设置按钮交互状态并刷新文字颜色。
+	/// 参数说明：s 为目标按钮状态。
+	/// 返回说明：无返回值。
+	/// </summary>
 	public void SetButtonState(ButtonState s) {
 		
 		state = s;
@@ -148,36 +174,75 @@ public class Button : MonoBehaviour {
 		
 		if (!enabled) return;
 		
-		if (state == ButtonState.Normal || state == ButtonState.Leave || state == ButtonState.Clicked) {
-			fontScript.botColor = new Color(1, 1, 1, 1);
-			fontScript.topColor = new Color(1, 1, 1, 1);
-		} else if (state == ButtonState.Down || state == ButtonState.Pressed) {
-			fontScript.botColor = new Color(1, 0, 0, 1);
-			fontScript.topColor = new Color(1, 0, 0, 1);
+		ApplyNormalTextColor();
+	}
+
+	/// <summary>
+	/// 方法说明：普通按钮点击时保持白字，不再做红字放大式反馈。
+	/// 参数说明：无。
+	/// 返回说明：无返回值。
+	/// </summary>
+	private void ApplyNormalTextColor() {
+		if (fontScript == null) {
+			fontScript = GetComponent<exSpriteFont>();
 		}
+		if (fontScript == null) return;
+
+		fontScript.botColor = NormalTextColor;
+		fontScript.topColor = NormalTextColor;
 		UnifiedGameFontController.SyncFontNow(fontScript);
 	}
 	
+	/// <summary>
+	/// 方法说明：设置按钮携带的数据。
+	/// 参数说明：d 为点击回调需要携带的数据。
+	/// 返回说明：无返回值。
+	/// </summary>
 	public void SetButtonData(object d) {
 		data = d;
 	}
 	
+	/// <summary>
+	/// 方法说明：读取按钮携带的数据。
+	/// 参数说明：无。
+	/// 返回说明：返回按钮当前携带的数据。
+	/// </summary>
 	public object GetButtonData() {
 		return data;
 	}
 	
+	/// <summary>
+	/// 方法说明：设置按钮按下回调。
+	/// 参数说明：func 为按下时执行的方法。
+	/// 返回说明：无返回值。
+	/// </summary>
 	public void SetButtonDownHandler(MessageDelegate func) {
 		buttonDownHandler = new MessageDelegate(func);
 	}
 	
+	/// <summary>
+	/// 方法说明：设置按钮持续按住回调。
+	/// 参数说明：func 为按住时执行的方法。
+	/// 返回说明：无返回值。
+	/// </summary>
 	public void SetButtonPressHandler(MessageDelegate func) {
 		buttonPressHandler = new MessageDelegate(func);
 	}
 	
+	/// <summary>
+	/// 方法说明：设置无参数点击回调。
+	/// 参数说明：func 为点击时执行的方法。
+	/// 返回说明：无返回值。
+	/// </summary>
 	public void SetButtonClickHandler(MessageDelegate func) {
 		buttonClickHandler = new MessageDelegate(func);
 	}
 	
+	/// <summary>
+	/// 方法说明：设置携带数据的点击回调。
+	/// 参数说明：func 为点击时执行且接收按钮数据的方法。
+	/// 返回说明：无返回值。
+	/// </summary>
 	public void SetButtonClickHandler(MessageDelegate1 func) {
 		buttonClickHandler1 = new MessageDelegate1(func);
 	}

@@ -42,7 +42,9 @@ public class FlagsController : MonoBehaviour {
 			SetFlag(i);
 			SetFlagPosition(flag, i, isRestoredSango2);
 
-			if (isRestoredSango2) {
+			if (ShouldUseModernRecoveredMapUi()) {
+				HideFlagRenderer(flag);
+			} else if (isRestoredSango2) {
 				CreateRecoveredCityName(i);
 			} else {
 				CreateDefaultCityName(flag.transform, i);
@@ -293,6 +295,9 @@ public class FlagsController : MonoBehaviour {
 
 		flag.Play(animName);
 		flag.GetComponent<Renderer>().enabled = true;
+		if (ShouldUseModernRecoveredMapUi()) {
+			HideFlagRenderer(flag);
+		}
 	}
 	
 	/// <summary>
@@ -329,6 +334,16 @@ public class FlagsController : MonoBehaviour {
 			}
 		}
 	}
+
+	/// <summary>
+	/// 方法说明：暂停态每帧保持地图旗帜和城名隐藏，覆盖其他逻辑重新启用 Renderer 的情况。
+	/// 参数说明：无参数。
+	/// 返回说明：无返回值。
+	/// </summary>
+	public void KeepPausedMapAnnotationsHidden() {
+		SetCityAnnotationsVisible(false);
+		HideFlagRenderers();
+	}
 	
 	/// <summary>
 	/// 方法说明：恢复所有可见旗帜动画。
@@ -336,6 +351,12 @@ public class FlagsController : MonoBehaviour {
 	/// 返回说明：无返回值。
 	/// </summary>
 	public void SetFlagsAnimResume() {
+		if (ShouldUseModernRecoveredMapUi()) {
+			SetCityAnnotationsVisible(false);
+			HideFlagRenderers();
+			return;
+		}
+
 		SetCityAnnotationsVisible(true);
 		RestoreFlagRenderers();
 		for (int i=0; i<Informations.Instance.cityNum; i++) {
@@ -352,9 +373,7 @@ public class FlagsController : MonoBehaviour {
 	/// 返回说明：无返回值。
 	/// </summary>
 	private void HideFlagRenderers() {
-		if (hasPausedFlagRenderers) return;
-
-		// 1. 逐个记录当前显示状态，后续恢复时按原状态还原。
+		// 1. 首次暂停时记录当前显示状态，后续恢复时按原状态还原。
 		for (int i = 0; i < Informations.Instance.cityNum; i++) {
 			exSpriteAnimation flag = GetOrCreateFlag(i);
 			if (flag == null) continue;
@@ -362,13 +381,38 @@ public class FlagsController : MonoBehaviour {
 			Renderer flagRenderer = flag.GetComponent<Renderer>();
 			if (flagRenderer == null) continue;
 
-			pausedFlagRenderers.Add(flagRenderer);
-			pausedFlagRendererStates.Add(flagRenderer.enabled);
+			if (!hasPausedFlagRenderers) {
+				pausedFlagRenderers.Add(flagRenderer);
+				pausedFlagRendererStates.Add(flagRenderer.enabled);
+			}
 			flagRenderer.enabled = false;
 		}
 
 		// 2. 标记已经隐藏，避免重复进入暂停时把 false 状态覆盖成原状态。
 		hasPausedFlagRenderers = true;
+	}
+
+	/// <summary>
+	/// 方法说明：判断 MOD06 是否使用现代地图 UI 覆盖层替代旧旗帜和旧城名。
+	/// 参数说明：无参数。
+	/// 返回说明：当前 MOD 为二代恢复版时返回 true，否则返回 false。
+	/// </summary>
+	private bool ShouldUseModernRecoveredMapUi() {
+		return MODLoadController.IsRestoredSango2Index(Controller.MODSelect);
+	}
+
+	/// <summary>
+	/// 方法说明：隐藏单个旧旗帜渲染器，保留碰撞体和动画数据供点击逻辑使用。
+	/// 参数说明：flag 为需要隐藏视觉表现的旗帜动画组件。
+	/// 返回说明：无返回值。
+	/// </summary>
+	private void HideFlagRenderer(exSpriteAnimation flag) {
+		if (flag == null) return;
+
+		Renderer flagRenderer = flag.GetComponent<Renderer>();
+		if (flagRenderer != null) {
+			flagRenderer.enabled = false;
+		}
 	}
 
 	/// <summary>

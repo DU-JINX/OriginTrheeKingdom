@@ -22,6 +22,7 @@ public static class Sango2RecoveredResourceImporter
     private const string RiffManifestPath = RecoveredRoot + "/reports/pak_media/audio_riff.tsv";
     private const string FaceDirectory = "Assets/Graph/Sango2Recovered/Face";
     private const string MapDirectory = "Assets/Graph/Sango2Recovered/Map";
+    private const string ResourceMapDirectory = "Assets/Graph/Resources/Sango2Recovered/Map";
     private const string SkillImportDirectory = "Assets/__Sango2RecoveredSkillFrameImport";
     private const string SkillBundleDirectory = "Assets/StreamingAssets/Sango2RecoveredBundles";
     private const string AudioDirectory = "Assets/Sound/Resources/Sango2Recovered";
@@ -29,6 +30,7 @@ public static class Sango2RecoveredResourceImporter
     private const string HeadMaterialDirectory = "Assets/Graph/Sango2Recovered/FaceMaterials";
     private const string HeadTemplatePath = HeadPrefabDirectory + "/Head001.prefab";
     private const string WorldMapPath = MapDirectory + "/Sango2WorldMap.png";
+    private const string WorldMapGeneratedResourcePath = ResourceMapDirectory + "/Sango2WorldMapGenerated.png";
     private const string WorldMapPreviewPath = MapDirectory + "/Sango2WorldMapPreview.png";
     private const string SkillBundlePrefix = "sango2_skill_frames_";
     private const string SkillMapReportPath = "Assets/XML/Resources/Sango2SkillResourceMap.tsv";
@@ -592,9 +594,10 @@ public static class Sango2RecoveredResourceImporter
         strategyController.ShowMainMenuFromHud();
         ForceStrategyMenuAtRest(strategyController);
 		UnifiedGameFontController.RefreshSceneFontsForPreview();
-		MainMenu visibleMainMenu = strategyController.mainMenuCtrl.GetComponent<MainMenu>();
-		InvokePrivateInstanceMethod(visibleMainMenu, "LateUpdate");
+        MainMenu visibleMainMenu = strategyController.mainMenuCtrl.GetComponent<MainMenu>();
+        InvokePrivateInstanceMethod(visibleMainMenu, "LateUpdate");
         CaptureSceneCameraPng(menuHudScene, Path.Combine(outputDirectory, "08-strategy-hud-menu.png"), captureWidth, captureHeight);
+        CaptureStrategyCityCommandQa(outputDirectory, captureWidth, captureHeight);
 
         CaptureStrategyMainMenuCommandQa(outputDirectory, captureWidth, captureHeight, 0, "09-strategy-menu-power.png");
         CaptureStrategyMainMenuCommandQa(outputDirectory, captureWidth, captureHeight, 1, "10-strategy-menu-find-general.png");
@@ -652,6 +655,42 @@ public static class Sango2RecoveredResourceImporter
 
         UnifiedGameFontController.RefreshSceneFontsForPreview();
         CaptureSceneCameraPng(scene, Path.Combine(outputDirectory, fileName), captureWidth, captureHeight);
+    }
+
+    /// <summary>
+    /// 方法说明：打开玩家城池的城内指令面板并截图，验证城名旗帜不会穿透半透明指令面板。
+    /// 参数说明：outputDirectory 为输出目录，captureWidth 为截图宽度，captureHeight 为截图高度。
+    /// 返回说明：无返回值。
+    /// </summary>
+    private static void CaptureStrategyCityCommandQa(string outputDirectory, int captureWidth, int captureHeight)
+    {
+        // 1. 准备战略地图并定位玩家第一个有效城池。
+        StrategyController strategyController;
+        Scene scene = PrepareStrategyQaScene(captureWidth, captureHeight, out strategyController);
+        int cityIndex = FindFirstPlayerCityIndex();
+        Camera camera = FindSceneCamera(scene);
+        camera.transform.position = StrategyController.ClampCameraPosition(Informations.Instance.GetCityWorldPosition(cityIndex));
+
+        // 2. 进入暂停态并持续隐藏地图标注，模拟真实打开城内指令时的层级状态。
+        StrategyController.state = StrategyController.State.Pause;
+        if (strategyController.flagsCtrl != null)
+        {
+            strategyController.flagsCtrl.SetFlagsAnimPause();
+            strategyController.flagsCtrl.KeepPausedMapAnnotationsHidden();
+        }
+        HideStrategyLegacyHistory(strategyController);
+
+        // 3. 打开城内指令控制器，并把所有滑入动画停在最终位置。
+        CityCommandsController cityCommands = FindSceneComponent<CityCommandsController>(scene);
+        InvokePrivateInstanceMethod(cityCommands, "Start");
+        cityCommands.SetCity(cityIndex);
+        InvokePrivateInstanceMethod(cityCommands, "OnEnable");
+        ForceAllMenuAnimationsAtRest(cityCommands.gameObject);
+        InvokePrivateInstanceMethod(cityCommands, "Update");
+
+        // 4. 刷新字体并截图，输出给视觉验收使用。
+        UnifiedGameFontController.RefreshSceneFontsForPreview();
+        CaptureSceneCameraPng(scene, Path.Combine(outputDirectory, "08b-strategy-city-command.png"), captureWidth, captureHeight);
     }
 
     /// <summary>
@@ -746,15 +785,38 @@ public static class Sango2RecoveredResourceImporter
 		camera.transform.position = startPosition;
 		CaptureSceneCameraPng(dragScene, Path.Combine(outputDirectory, "04a-strategy-map-drag-before.png"), captureWidth, captureHeight);
 
-		InvokePrivateInstanceMethod(strategyController, "ApplyCameraDragOffset", new object[] { new Vector3(90f, 60f, 0f) });
-		Vector3 endPosition = camera.transform.position;
-		if (Vector2.Distance(new Vector2(startPosition.x, startPosition.y), new Vector2(endPosition.x, endPosition.y)) <= 1f)
+		Vector3[] dragOffsets = new Vector3[] {
+			new Vector3(90f, 60f, 0f),
+			new Vector3(-90f, 0f, 0f),
+			new Vector3(0f, 90f, 0f),
+			new Vector3(0f, -90f, 0f)
+		};
+		string[] dragFileNames = new string[] {
+			"04b-strategy-map-drag-right-down.png",
+			"04c-strategy-map-drag-left.png",
+			"04d-strategy-map-drag-up.png",
+			"04e-strategy-map-drag-down.png"
+		};
+
+		for (int i = 0; i < dragOffsets.Length; i++)
 		{
-			throw new InvalidOperationException("战略地图拖动 QA 失败：相机位置未变化。");
+			camera.transform.position = startPosition;
+			InvokePrivateInstanceMethod(strategyController, "ApplyCameraDragOffset", new object[] { dragOffsets[i] });
+			Vector3 endPosition = camera.transform.position;
+			Debug.Log("FULL BUTTON QA DRAG DETAIL: size=" + camera.orthographicSize
+				+ " aspect=" + camera.aspect
+				+ " offset=" + dragOffsets[i]
+				+ " start=" + startPosition
+				+ " end=" + endPosition);
+			if (Vector2.Distance(new Vector2(startPosition.x, startPosition.y), new Vector2(endPosition.x, endPosition.y)) <= 1f)
+			{
+				throw new InvalidOperationException("战略地图拖动 QA 失败：相机位置未变化 offset=" + dragOffsets[i]);
+			}
+
+			CaptureSceneCameraPng(dragScene, Path.Combine(outputDirectory, dragFileNames[i]), captureWidth, captureHeight);
 		}
 
-		CaptureSceneCameraPng(dragScene, Path.Combine(outputDirectory, "04b-strategy-map-drag-after.png"), captureWidth, captureHeight);
-		Debug.Log("FULL BUTTON QA DRAG PASS: start=" + startPosition + " end=" + endPosition);
+		Debug.Log("FULL BUTTON QA DRAG PASS: start=" + startPosition + " directions=" + dragOffsets.Length);
 	}
 
     /// <summary>
@@ -769,6 +831,7 @@ public static class Sango2RecoveredResourceImporter
         PrepareRecoveredMod06Data();
         strategyController = FindSceneComponent<StrategyController>(scene);
         InvokePrivateInstanceMethod(strategyController, "ApplyRestoredSango2StrategyMap");
+        InvokePrivateInstanceMethod(strategyController, "EnsureStrategyMapHudController");
         HideStrategyMainMenu(strategyController, null);
         if (strategyController.flagsCtrl != null)
         {
@@ -777,6 +840,11 @@ public static class Sango2RecoveredResourceImporter
         }
 
         StrategyController.state = StrategyController.State.Normal;
+        StrategyMapHudController mapHudController = strategyController.GetComponent<StrategyMapHudController>();
+        if (mapHudController != null)
+        {
+            mapHudController.RefreshForCameraCapture();
+        }
         UnifiedGameFontController.RefreshSceneFontsForPreview();
         return scene;
     }
@@ -1344,6 +1412,29 @@ public static class Sango2RecoveredResourceImporter
         }
 
         return 0;
+    }
+
+    /// <summary>
+    /// 方法说明：查找当前玩家势力第一个有效城池，用于战略城内指令截图。
+    /// 参数说明：无。
+    /// 返回说明：返回城池索引；找不到时抛出异常。
+    /// </summary>
+    private static int FindFirstPlayerCityIndex()
+    {
+        KingInfo kingInfo = Informations.Instance.GetKingInfo(Controller.kingIndex);
+        if (kingInfo != null && kingInfo.cities != null)
+        {
+            for (int i = 0; i < kingInfo.cities.Count; i++)
+            {
+                int cityIndex = kingInfo.cities[i];
+                if (cityIndex >= 0 && cityIndex < Informations.Instance.cityNum)
+                {
+                    return cityIndex;
+                }
+            }
+        }
+
+        throw new InvalidOperationException("当前玩家势力没有可用于城内指令截图的城池。");
     }
 
     /// <summary>
@@ -2156,7 +2247,21 @@ public static class Sango2RecoveredResourceImporter
     private static void ConfigureMapTextures()
     {
         ConfigureTexture(MapDirectory + "/Sango2WorldMap.png", TextureImporterType.Default, 4096, false, true);
+        ConfigureTexture(WorldMapGeneratedResourcePath, TextureImporterType.Default, 8192, false, true);
         ConfigureTexture(MapDirectory + "/Sango2WorldMapPreview.png", TextureImporterType.Default, 2048, false);
+    }
+
+    /// <summary>
+    /// 方法说明：只刷新二代恢复地图贴图的 Unity 导入参数，避免重跑完整 PAK 导入流程。
+    /// 参数说明：无。
+    /// 返回说明：无返回值。
+    /// </summary>
+    [MenuItem(MenuRoot + "配置地图贴图导入参数")]
+    public static void ConfigureRecoveredMapTextureImportSettings()
+    {
+        ConfigureMapTextures();
+        AssetDatabase.SaveAssets();
+        AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
     }
 
     /// <summary>

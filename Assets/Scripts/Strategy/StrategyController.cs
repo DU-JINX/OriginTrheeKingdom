@@ -35,9 +35,10 @@ public class StrategyController : MonoBehaviour {
 	private bool isPointerDownTracked = false;
 	private Vector3 mouseDownPos = Vector3.zero;
 
-	private const string RecoveredSango2StrategyMapResourcePath = "Sango2Recovered/Map/Sango2WorldMap";
+	private const string RecoveredSango2StrategyMapResourcePath = "Sango2Recovered/Map/Sango2WorldMapGenerated";
 	private const float DefaultStrategyMapWidth = 1280f;
 	private const float DefaultStrategyMapHeight = 960f;
+	private const float RestoredStrategyDefaultOrthographicSize = 360f;
 	private static bool isStrategyMapBoundsCached = false;
 	private static Bounds strategyMapBounds = new Bounds(Vector3.zero, new Vector3(DefaultStrategyMapWidth, DefaultStrategyMapHeight, 0));
 	
@@ -71,6 +72,8 @@ public class StrategyController : MonoBehaviour {
 	// 参数说明：无。
 	// 返回说明：无返回值。
 	void Update () {
+
+		KeepMapAnnotationsHiddenWhenPaused();
 
 		if (isFirstEnter) {
 			isFirstEnter = false;
@@ -167,6 +170,26 @@ public class StrategyController : MonoBehaviour {
 
 		// 4. 刷新战略相机边界缓存，保证拖动范围读取主背景实际边界。
 		ResetStrategyMapBoundsCache();
+		ApplyRestoredStrategyDefaultCameraZoom();
+	}
+
+	// 方法说明：MOD06 战略地图默认使用更近的高清视野，给超宽屏保留横向拖动空间。
+	// 参数说明：无。
+	// 返回说明：无返回值。
+	void ApplyRestoredStrategyDefaultCameraZoom() {
+		Camera camera = Camera.main;
+		if (camera == null || !camera.orthographic) return;
+
+		camera.orthographicSize = Mathf.Min(camera.orthographicSize, RestoredStrategyDefaultOrthographicSize);
+	}
+
+	// 方法说明：暂停态持续隐藏地图旗帜和城名，避免半透明菜单下出现层级穿透。
+	// 参数说明：无。
+	// 返回说明：无返回值。
+	void KeepMapAnnotationsHiddenWhenPaused() {
+		if (state != State.Pause || flagsCtrl == null) return;
+
+		flagsCtrl.KeepPausedMapAnnotationsHidden();
 	}
 
 	// 方法说明：把战略主背景重建为和 MOD06 坐标系一致的地图网格。
